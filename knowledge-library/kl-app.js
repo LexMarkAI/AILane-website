@@ -3891,7 +3891,7 @@
             title: klNoteTitleFromQuestion(msg.userMessage),
             content_plain: "Question:\n" + (msg.userMessage || "") + "\n\nEileen:\n" + (msg.content || ""),
             content_json: { kind: "eileen_conversation", turns: [{ role: "user", text: msg.userMessage || "" }, { role: "assistant", text: msg.content || "" }] },
-            note_type: "eileen_response",
+            note_type: "eileen_conversation",
             source_attribution: msg.conversationId || null
           };
           klWsInsert("kl_workspace_notes", note).then(function(rows) {
@@ -4304,7 +4304,7 @@
       }
     }, label);
   }
-  function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion, lang, hubChrome, currentFacet, onSelectFacet, hubSession, hasKLSession, hasSubscription, onOpenWorkspace }) {
+  function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onDeleteSession, onDownloadSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion, lang, hubChrome, currentFacet, onSelectFacet, hubSession, hasKLSession, hasSubscription, onOpenWorkspace }) {
     var _historyOpen = useState(false);
     var historyOpen = _historyOpen[0];
     var setHistoryOpen = _historyOpen[1];
@@ -4487,11 +4487,11 @@
               }
             }) : null
           ]);
-        }),
-        // KL-VAULT-INTEGRATION-001 §2.3 (branch 1) — a subscription holder who ALSO holds
-        // an active KL pass gets a visible secondary link to their KL session vault, in
-        // addition to the (unchanged) Operational Document Vault above.
-        hasKLSession ? klVaultNavButton("kl-session-vault", "Knowledge Library session vault") : null
+        })
+        // WSUX-SITE-004 W3 — the "Knowledge Library session vault" secondary nav link
+        // (KL-VAULT-INTEGRATION-001 §2.3 branch 1) is removed for ALL tiers. The
+        // Operational/Governance Document Vault above is unchanged; the KL-only pass
+        // holder's Documents link (branch 2 below) is likewise untouched.
       ) : React.createElement(
         "div",
         { style: { flex: 1, overflowY: "auto", minHeight: 0 } },
@@ -4654,17 +4654,47 @@
                 }
               }, group.label),
               group.items.map(function(s) {
+                var actionStyle = { flex: "0 0 auto", background: "transparent", border: "none", color: "#64748B", cursor: "pointer", fontSize: "14px", lineHeight: 1, padding: "4px 5px", borderRadius: "4px", fontFamily: "'DM Sans', sans-serif" };
                 return React.createElement(
-                  "button",
+                  "div",
                   {
                     key: s.sessionId,
                     className: "kl-history-item" + (s.sessionId === activeSessionId ? " active" : ""),
-                    onClick: function() {
-                      onSelectSession(s.sessionId);
-                    }
+                    style: { display: "flex", alignItems: "center", gap: "2px", cursor: "default" }
                   },
-                  React.createElement("div", { className: "kl-history-title" }, truncate(s.title, 40)),
-                  React.createElement("div", { className: "kl-history-time" }, formatRelativeTime(s.lastActivity))
+                  React.createElement(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: function() {
+                        onSelectSession(s.sessionId);
+                      },
+                      title: s.title,
+                      style: { flex: "1 1 auto", minWidth: 0, textAlign: "left", background: "transparent", border: "none", color: "inherit", cursor: "pointer", padding: 0, font: "inherit", overflow: "hidden" }
+                    },
+                    React.createElement("div", { className: "kl-history-title" }, truncate(s.title, 40)),
+                    React.createElement("div", { className: "kl-history-time" }, formatRelativeTime(s.lastActivity))
+                  ),
+                  React.createElement("button", {
+                    type: "button",
+                    title: "Download this conversation (.txt)",
+                    "aria-label": "Download this conversation",
+                    onClick: function(e) {
+                      e.stopPropagation();
+                      if (typeof onDownloadSession === "function") onDownloadSession(s.sessionId, s.title);
+                    },
+                    style: actionStyle
+                  }, "\u2193"),
+                  React.createElement("button", {
+                    type: "button",
+                    title: "Delete this conversation",
+                    "aria-label": "Delete this conversation",
+                    onClick: function(e) {
+                      e.stopPropagation();
+                      if (typeof onDeleteSession === "function" && window.confirm("Delete this conversation? This cannot be undone.")) onDeleteSession(s.sessionId);
+                    },
+                    style: actionStyle
+                  }, "\xD7")
                 );
               })
             );
@@ -5038,29 +5068,7 @@
         }
       },
       brandLabel
-    ), /* @__PURE__ */ React.createElement("div", { className: "kl-topbar-right" }, hubSession && /* @__PURE__ */ React.createElement(HubNotifBell, { hubSession }), accessType === "per_session" && sessionExpiresAt && /* @__PURE__ */ React.createElement(SessionCountdown, { expiresAt: sessionExpiresAt, onExpired: onSessionExpired }), onToggleLang && /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        type: "button",
-        onClick: onToggleLang,
-        className: "kl-lang-toggle",
-        title: lang === "en" ? "Newid i Gymraeg" : "Switch to English",
-        "aria-label": lang === "en" ? "Switch to Welsh" : "Switch to English",
-        style: {
-          background: "none",
-          border: "1px solid rgba(255,255,255,0.3)",
-          borderRadius: "6px",
-          color: "#fff",
-          padding: "4px 10px",
-          fontSize: "13px",
-          cursor: "pointer",
-          fontFamily: "'DM Sans', sans-serif",
-          letterSpacing: "0.5px",
-          marginRight: "8px"
-        }
-      },
-      lang === "en" ? "CY" : "EN"
-    ), hasKLSession && !hasSubscription && /* @__PURE__ */ React.createElement(KLTickerBell, { onOpenLawInstrument: onOpenHubLaw }), /* @__PURE__ */ React.createElement("span", { className: "kl-tier-badge " + badgeClass }, badgeLabel), hasKLSession && !hasSubscription && /* @__PURE__ */ React.createElement(KLSignOutControl, null)));
+    ), /* @__PURE__ */ React.createElement("div", { className: "kl-topbar-right" }, hubSession && /* @__PURE__ */ React.createElement(HubNotifBell, { hubSession }), accessType === "per_session" && sessionExpiresAt && /* @__PURE__ */ React.createElement(SessionCountdown, { expiresAt: sessionExpiresAt, onExpired: onSessionExpired }), hasKLSession && !hasSubscription && /* @__PURE__ */ React.createElement(KLTickerBell, { onOpenLawInstrument: onOpenHubLaw }), /* @__PURE__ */ React.createElement("span", { className: "kl-tier-badge " + badgeClass }, badgeLabel), hasKLSession && !hasSubscription && /* @__PURE__ */ React.createElement(KLSignOutControl, null)));
   }
   var PANEL_DEFS = [
     // Primary group (AMD-044 §4.2)
@@ -5174,7 +5182,7 @@
   var NOTES_DISCLAIMER = "\n\n---\nThis content was exported from the Ailane Knowledge Library. It constitutes regulatory intelligence, not legal advice. For legal advice, consult a qualified employment solicitor. AI Lane Limited \xB7 Company No. 17035654 \xB7 ICO Reg. 00013389720 \xB7 ailane.ai/terms/";
   function noteTypeIcon(noteType) {
     if (noteType === "clip") return "\u{1F4CC}";
-    if (noteType === "eileen_response") return "\u{1F4AC}";
+    if (noteType === "eileen_response" || noteType === "eileen_conversation") return "\u{1F4AC}";
     return "\u{1F4DD}";
   }
   function relativeTime(dateStr) {
@@ -5387,7 +5395,7 @@
       if (filter === "all") return true;
       if (filter === "note") return n.note_type === "note" || !n.note_type;
       if (filter === "clip") return n.note_type === "clip";
-      if (filter === "eileen") return n.note_type === "eileen_response";
+      if (filter === "eileen") return n.note_type === "eileen_response" || n.note_type === "eileen_conversation";
       return true;
     });
     var statusLabel = status === "loading" ? "Loading\u2026" : status === "dirty" ? "Unsaved changes" : status === "saving" ? "Saving\u2026" : status === "error" ? "Couldn\u2019t save \u2014 try again in a moment" : "\u2713 Saved";
@@ -12841,7 +12849,7 @@
   }
   function hubNoteTypeChip(noteType) {
     var t = String(noteType || "note");
-    if (t === "eileen_response") return React.createElement("span", { key: "chip", style: HUB_VAULT_CHIP_STYLE }, "Eileen");
+    if (t === "eileen_response" || t === "eileen_conversation") return React.createElement("span", { key: "chip", style: HUB_VAULT_CHIP_STYLE }, "Eileen");
     if (t === "clip") return React.createElement("span", { key: "chip", style: HUB_VAULT_CHIP_STYLE }, "Clip");
     return null;
   }
@@ -13467,6 +13475,27 @@
     var _st = useState({ status: "loading", list: [], error: false });
     var st = _st[0];
     var setSt = _st[1];
+    var _email = useState("");
+    var email = _email[0];
+    var setEmail = _email[1];
+    var _role = useState("member");
+    var role = _role[0];
+    var setRole = _role[1];
+    var _busy = useState(false);
+    var busy = _busy[0];
+    var setBusy = _busy[1];
+    var _msg = useState(null);
+    var msg = _msg[0];
+    var setMsg = _msg[1];
+    var _invited = useState([]);
+    var invited = _invited[0];
+    var setInvited = _invited[1];
+    var _forbidden = useState(false);
+    var forbidden = _forbidden[0];
+    var setForbidden = _forbidden[1];
+    var _avail = useState("checking");
+    var avail = _avail[0];
+    var setAvail = _avail[1];
     useEffect(function() {
       var alive = true;
       var sb = hubSession && hubSession.sb;
@@ -13488,16 +13517,146 @@
         alive = false;
       };
     }, [hubSession, orgId]);
+    useEffect(function() {
+      var alive = true;
+      if (!hubSession || !hubSession.functionsBase) {
+        setAvail("available");
+        return;
+      }
+      fetch(hubSession.functionsBase + "/team-invite", { method: "OPTIONS", headers: { "apikey": hubSession.anon } }).then(function(r) {
+        if (!alive) return;
+        if (r.status === 404) {
+          console.warn("[WSUX-004] team-invite: not yet deployed");
+          setAvail("absent");
+        } else setAvail("available");
+      }).catch(function() {
+        if (alive) setAvail("available");
+      });
+      return function() {
+        alive = false;
+      };
+    }, [hubSession]);
+    function submitInvite() {
+      var addr = (email || "").trim();
+      if (!addr || addr.indexOf("@") < 1 || addr.lastIndexOf(".") < addr.indexOf("@")) {
+        setMsg({ kind: "err", text: "Enter a valid email address." });
+        return;
+      }
+      setBusy(true);
+      setMsg(null);
+      fetch(hubSession.functionsBase + "/team-invite", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + hubSession.token, "apikey": hubSession.anon, "Content-Type": "application/json" },
+        body: JSON.stringify({ email: addr, role })
+      }).then(function(r) {
+        setBusy(false);
+        if (r.status === 200 || r.status === 201) {
+          setInvited(function(prev) {
+            return prev.concat([{ email: addr, role }]);
+          });
+          setEmail("");
+          setRole("member");
+          setMsg({ kind: "ok", text: "Invitation sent to " + addr + "." });
+        } else if (r.status === 409) {
+          setMsg({ kind: "err", text: "That person is already a member of your organisation." });
+        } else if (r.status === 403) {
+          setForbidden(true);
+        } else if (r.status === 404) {
+          console.warn("[WSUX-004] team-invite: not yet deployed");
+          setAvail("absent");
+        } else if (r.status === 400) {
+          setMsg({ kind: "err", text: "That email address was not accepted. Please check it and try again." });
+        } else if (r.status === 401) {
+          setMsg({ kind: "err", text: "Your session has expired \u2014 please sign in again." });
+        } else if (r.status === 429) {
+          setMsg({ kind: "err", text: "Too many invitations just now \u2014 please try again in a few minutes." });
+        } else {
+          setMsg({ kind: "err", text: "Could not send the invitation just now. Please try again." });
+        }
+      }).catch(function() {
+        setBusy(false);
+        setMsg({ kind: "err", text: "Could not send the invitation just now. Please try again." });
+      });
+    }
     if (st.status === "loading") return React.createElement("div", { style: HUB_SET_SUB }, "Loading your team\u2026");
-    if (st.error || !st.list.length) return React.createElement("div", { style: HUB_SET_SUB }, st.error ? "Could not load your team just now." : "No team members to show.");
-    return React.createElement("div", null, st.list.map(function(m) {
-      return React.createElement(
+    var callerRole = null;
+    (st.list || []).forEach(function(m) {
+      if (m.email && hubSession.email && String(m.email).toLowerCase() === String(hubSession.email).toLowerCase()) callerRole = m.role;
+    });
+    var roleKnownNonAdmin = callerRole != null && ["owner", "admin"].indexOf(String(callerRole).toLowerCase()) < 0;
+    var showInvite = !forbidden && !roleKnownNonAdmin;
+    var children = [];
+    if (st.error) {
+      children.push(React.createElement("div", { key: "__err", style: HUB_SET_SUB }, "Could not load your team just now."));
+    } else if (!st.list.length) {
+      children.push(React.createElement("div", { key: "__empty", style: HUB_SET_SUB }, "No team members to show yet."));
+    } else {
+      st.list.forEach(function(m) {
+        children.push(React.createElement(
+          "div",
+          { key: m.id, style: HUB_SET_ROW },
+          React.createElement("span", { style: HUB_SET_KEY }, (m.full_name || m.email || "Member") + (m.is_active === false ? " \xB7 inactive" : "")),
+          React.createElement("span", { style: HUB_SET_VAL }, [m.email && m.full_name ? m.email : null, klTierDisplay(m.role)].filter(Boolean).join("  \xB7  ") || hubAceiHumanise(m.role))
+        ));
+      });
+    }
+    invited.forEach(function(iv, i) {
+      children.push(React.createElement(
         "div",
-        { key: m.id, style: HUB_SET_ROW },
-        React.createElement("span", { style: HUB_SET_KEY }, (m.full_name || m.email || "Member") + (m.is_active === false ? " \xB7 inactive" : "")),
-        React.createElement("span", { style: HUB_SET_VAL }, [m.email && m.full_name ? m.email : null, klTierDisplay(m.role)].filter(Boolean).join("  \xB7  ") || hubAceiHumanise(m.role))
-      );
-    }));
+        { key: "__inv" + i, style: HUB_SET_ROW },
+        React.createElement("span", { style: HUB_SET_KEY }, iv.email),
+        React.createElement(
+          "span",
+          { style: HUB_SET_VAL },
+          klTierDisplay(iv.role) + "  \xB7  ",
+          React.createElement("span", { key: "chip", style: HUB_VAULT_CHIP_STYLE }, "Invited")
+        )
+      ));
+    });
+    if (showInvite) {
+      var absent = avail === "absent";
+      children.push(React.createElement(
+        "div",
+        { key: "__invite", style: { marginTop: "16px" } },
+        React.createElement("div", { style: HUB_CAL_FIELD_LABEL }, "Add team member"),
+        React.createElement(
+          "div",
+          { style: { display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" } },
+          React.createElement("input", {
+            type: "email",
+            value: email,
+            placeholder: "name@company.co.uk",
+            "aria-label": "New team member email",
+            disabled: absent || busy,
+            onChange: function(e) {
+              setEmail(e.target.value);
+            },
+            onKeyDown: function(e) {
+              if (e.key === "Enter" && !absent && !busy) submitInvite();
+            },
+            style: Object.assign({}, HUB_NOTES_INPUT_STYLE, { flex: "1 1 200px", width: "auto" })
+          }),
+          hubCalSelectEl("invite-role", role, function(e) {
+            setRole(e.target.value);
+          }, [{ v: "admin", l: "Admin" }, { v: "member", l: "Member" }], "New team member role", null),
+          React.createElement("button", {
+            type: "button",
+            disabled: absent || busy,
+            style: Object.assign({}, HUB_MATTER_BTN_PRIMARY, absent || busy ? { opacity: 0.55, cursor: "default" } : null),
+            onClick: function() {
+              if (!absent && !busy) submitInvite();
+            }
+          }, absent ? "Available shortly" : busy ? "Sending\u2026" : "Invite")
+        ),
+        msg ? React.createElement("div", { key: "__msg", style: Object.assign({}, HUB_NOTES_ERR_STYLE, { color: msg.kind === "ok" ? "#22C55E" : "#F87171" }) }, msg.text) : null,
+        React.createElement(
+          "div",
+          { style: Object.assign({}, HUB_SET_SUB, { marginTop: "8px", marginBottom: 0 }) },
+          absent ? "Team invitations will be available shortly." : "They will receive an email invitation to join your organisation."
+        )
+      ));
+    }
+    return React.createElement("div", null, children);
   }
   function hubUsageMeter(label, used, limit, key) {
     var u = Number(used) || 0;
@@ -13569,7 +13728,6 @@
       React.createElement("div", { style: Object.assign({}, HUB_SET_SUB, { marginBottom: 0, marginTop: "4px" }) }, "Monthly allowances reset on " + klNextResetLabel() + ".")
     );
   }
-  var HUB_NP_DIGEST = [{ v: "immediate", l: "Immediate" }, { v: "daily", l: "Daily" }, { v: "weekly", l: "Weekly" }];
   function HubSettingsNotifications({ hubSession }) {
     var _st = useState({ status: "loading", prefs: null, exists: false, error: false });
     var st = _st[0];
@@ -13618,6 +13776,7 @@
       setBusy(true);
       setMsg("");
       var body = Object.assign({ user_id: hubSession.userId }, st.prefs, { updated_at: (/* @__PURE__ */ new Date()).toISOString() });
+      delete body.digest_frequency;
       var q = st.exists ? sb.from("vault_notification_prefs").update(body).eq("user_id", hubSession.userId) : sb.from("vault_notification_prefs").insert(body);
       q.then(function(r) {
         setBusy(false);
@@ -13654,10 +13813,8 @@
       checkRow("notify_on_green_revert", "Green-revert alerts"),
       checkRow("channel_email", "Email"),
       checkRow("channel_in_app", "In-app"),
-      React.createElement("div", { style: HUB_CAL_FIELD_LABEL }, "Digest frequency"),
-      hubCalSelectEl("digest", p.digest_frequency || "daily", function(e) {
-        setField("digest_frequency", e.target.value);
-      }, HUB_NP_DIGEST, "Digest frequency", null),
+      // WSUX-SITE-004 W2 — Digest frequency label + select removed; the four toggles above and
+      // the Save action below remain. Saving no longer writes digest_frequency (see save()).
       msg ? React.createElement("div", { style: Object.assign({}, HUB_NOTES_ERR_STYLE, { color: msg.indexOf("saved") >= 0 ? "#22C55E" : "#F87171" }) }, msg) : null,
       React.createElement("div", { style: HUB_NOTES_ACTIONS_STYLE }, React.createElement("button", { type: "button", disabled: busy, style: HUB_MATTER_BTN_PRIMARY, onClick: save }, busy ? "Saving\u2026" : "Save preferences"))
     );
@@ -14209,7 +14366,7 @@
         return next;
       });
     }
-    const effLang = klPassHolder ? "en" : lang;
+    const effLang = "en";
     const [nearDomain, setNearDomain] = useState(null);
     const nearDomainTimeout = useRef(null);
     function handleDomainHover(domainSlug) {
@@ -14464,6 +14621,67 @@
         setSessionId(sid);
       } catch (err) {
         console.error("Failed to load session:", err);
+      }
+    }
+    async function downloadSession(sid, title) {
+      if (!window.__klToken) return;
+      try {
+        const resp = await fetch(
+          SUPABASE_URL + "/rest/v1/kl_eileen_conversations?session_id=eq." + sid + "&select=user_message,eileen_response,created_at&order=created_at.asc",
+          { headers: { "Authorization": "Bearer " + window.__klToken, "apikey": SUPABASE_ANON_KEY } }
+        );
+        const data = await resp.json();
+        if (!Array.isArray(data) || !data.length) return;
+        var lines = [];
+        lines.push(title || "Conversation with Eileen");
+        var first = data[0] && data[0].created_at ? new Date(data[0].created_at) : null;
+        if (first && !isNaN(first.getTime())) lines.push(first.toLocaleString("en-GB"));
+        lines.push("");
+        data.forEach(function(row) {
+          lines.push("You:");
+          lines.push(row.user_message || "");
+          lines.push("");
+          lines.push("Eileen:");
+          lines.push(row.eileen_response || "");
+          lines.push("");
+          lines.push("----------------------------------------");
+          lines.push("");
+        });
+        var slug = String(title || "conversation").replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "").toLowerCase().slice(0, 40) || "conversation";
+        var blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "eileen-" + slug + ".txt";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function() {
+          URL.revokeObjectURL(url);
+        }, 1e3);
+      } catch (err) {
+        console.error("Failed to download session:", err);
+      }
+    }
+    async function deleteSession(sid) {
+      if (!window.__klToken) return;
+      try {
+        const resp = await fetch(
+          SUPABASE_URL + "/rest/v1/kl_eileen_conversations?session_id=eq." + sid + (window.__klUserId ? "&user_id=eq." + window.__klUserId : ""),
+          { method: "DELETE", headers: { "Authorization": "Bearer " + window.__klToken, "apikey": SUPABASE_ANON_KEY, "Prefer": "return=minimal" } }
+        );
+        if (!resp.ok) {
+          console.error("Failed to delete session:", resp.status);
+          return;
+        }
+        setSessionHistory(function(prev) {
+          return prev.filter(function(s) {
+            return s.sessionId !== sid;
+          });
+        });
+        if (sessionId === sid) newChat();
+      } catch (err) {
+        console.error("Failed to delete session:", err);
       }
     }
     function newChat() {
@@ -15056,6 +15274,8 @@
           loadSession(sid);
           if (window.innerWidth <= 768) setSidebarOpen(false);
         },
+        onDeleteSession: deleteSession,
+        onDownloadSession: downloadSession,
         onNewChat: () => {
           newChat();
           if (window.innerWidth <= 768) setSidebarOpen(false);
