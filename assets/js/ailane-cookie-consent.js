@@ -118,9 +118,10 @@
     else document.addEventListener('DOMContentLoaded', showStrip);
   }
 
-  // Honour any prior decision immediately on load (load GA4 if previously granted),
-  // but never auto-show the strip — the page calls present() at the right moment.
-  if (read() === 'granted') loadGA4();
+  // Auto-present on load: honour a prior decision (load GA4 only if previously granted),
+  // otherwise show the consent strip so the visitor can choose. GA4 is never loaded
+  // without a prior or fresh 'granted' decision.
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', present); } else { present(); }
 
   window.ailaneConsent = {
     present: present,
