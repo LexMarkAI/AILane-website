@@ -657,18 +657,12 @@
         <div class="state-msg"><div class="spinner"></div>Loading your vault…</div>
       </section>
 
-      <!-- Lower controls — notification prefs (§B4 write surface) + notes.
-           DOCV-ROOM-004 §2: the attestation control lives inside each document
-           card (per-document, singular — ARC-DOCV-001 §6/AM-004); no global
-           attestation form remains on the page. -->
+      <!-- Lower controls — notes. GOV-MENU-FEEDBACK-SITE-001 §5: the "Notification settings" pane is
+           removed; notification preferences now live at the single workspace Settings home
+           (/governance/#settings-notif). DOCV-ROOM-004 §2: the attestation control lives inside each
+           document card (per-document, singular — ARC-DOCV-001 §6/AM-004); no global attestation form
+           remains on the page. -->
       <div class="lower-grid">
-        <section class="pane" aria-label="Notification settings">
-          <h2 class="section-head">Notification settings</h2>
-          <div id="notifications">
-            <div class="state-msg"><div class="spinner"></div>Loading your settings…</div>
-          </div>
-        </section>
-
         <section class="pane" aria-label="Notes">
           <h2 class="section-head">Notes</h2>
           <div id="vault-notes"></div>
@@ -912,7 +906,6 @@
 
     // ---- DOM refs ----
     var listEl   = document.getElementById('vault-cards');
-    var notifEl  = document.getElementById('notifications');
     var badgeEl  = document.getElementById('tier-badge');
     var countEl  = document.getElementById('monitor-counter');
     var filterEl = document.getElementById('folder-filter');    // GOVWS-OFFER §5.5
@@ -3593,83 +3586,10 @@
         });
     }
 
-    // ===========================================================
-    //  PANE 3 — Notification settings
-    // ===========================================================
-    var NOTIF_DEFAULTS = {
-      notify_on_law_change: true, notify_on_green_revert: true,
-      channel_email: true, channel_in_app: true, digest_frequency: 'immediate'
-    };
-    function loadNotifications() {
-      loading(notifEl, 'Loading your settings…');
-      getJson('/vault_notification_prefs?user_id=eq.' + uid +
-              '&select=notify_on_law_change,notify_on_green_revert,channel_email,channel_in_app,digest_frequency&limit=1')
-        .then(function (rows) {
-          var prefs = (rows && rows[0]) ? rows[0] : NOTIF_DEFAULTS;
-          renderNotifications(prefs);
-        })
-        .catch(function () { renderNotifications(NOTIF_DEFAULTS); });
-    }
-    function renderNotifications(prefs) {
-      clear(notifEl);
-      notifEl.appendChild(el('p', 'notif-intro',
-        'We’ll tell you when a monitored document’s analysis changes after a change in the law.'));
-
-      function toggleLine(id, labelText, checked) {
-        var line = el('div', 'toggle-line');
-        line.appendChild(el('span', 'tl-label', labelText));
-        var cb = el('input', 'check');
-        cb.type = 'checkbox'; cb.id = id; cb.checked = !!checked;
-        line.appendChild(cb);
-        return line;
-      }
-
-      var l1 = toggleLine('n_law', 'Notify on a change in the law', prefs.notify_on_law_change);
-      var l2 = toggleLine('n_revert', 'Notify if a green status reverts', prefs.notify_on_green_revert);
-      var l3 = toggleLine('n_email', 'Email', prefs.channel_email);
-      var l4 = toggleLine('n_inapp', 'In-app', prefs.channel_in_app);
-      notifEl.appendChild(l1); notifEl.appendChild(l2); notifEl.appendChild(l3); notifEl.appendChild(l4);
-
-      // DOCV-ROOM-RECTIFY-001 §3 — Digest-frequency control removed: the offering is
-      // event-led (a check runs when a relevant change enters our intelligence), so a
-      // fixed digest cadence would contradict that promise.
-
-      var saveBtn = el('button', 'btn-primary', 'Save settings');
-      saveBtn.type = 'button';
-      notifEl.appendChild(saveBtn);
-      var notifMsg = el('div', 'form-msg'); notifMsg.hidden = true;
-      notifEl.appendChild(notifMsg);
-
-      saveBtn.addEventListener('click', function () {
-        notifMsg.hidden = true; notifMsg.className = 'form-msg';
-        saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
-        var body = {
-          user_id: uid,
-          notify_on_law_change: document.getElementById('n_law').checked,
-          notify_on_green_revert: document.getElementById('n_revert').checked,
-          channel_email: document.getElementById('n_email').checked,
-          channel_in_app: document.getElementById('n_inapp').checked,
-          // DOCV-ROOM-RECTIFY-001 §3 — event-led offering: the column stays populated
-          // and consistent with 'immediate' (the digest-frequency control was removed).
-          digest_frequency: 'immediate'
-        };
-        fetch(RESTU + '/vault_notification_prefs', {
-          method: 'POST',
-          headers: Object.assign({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }, H),
-          body: JSON.stringify(body)
-        })
-          .then(function (r) { if (r.status < 200 || r.status >= 300) throw new Error('http ' + r.status); })
-          .then(function () {
-            saveBtn.disabled = false; saveBtn.textContent = 'Save settings';
-            notifMsg.textContent = 'Settings saved.'; notifMsg.className = 'form-msg ok'; notifMsg.hidden = false;
-          })
-          .catch(function () {
-            saveBtn.disabled = false; saveBtn.textContent = 'Save settings';
-            notifMsg.textContent = 'Could not save your settings right now. Please try again.';
-            notifMsg.className = 'form-msg err'; notifMsg.hidden = false;
-          });
-      });
-    }
+    // PANE 3 — Notification settings: REMOVED (GOV-MENU-FEEDBACK-SITE-001 §5). The single
+    // notifications home is now the workspace Settings → Notifications block
+    // (/governance/#settings-notif). vault_notification_prefs and the notification bell pipeline
+    // (initNotifBell below) are unchanged.
 
     // ===========================================================
     //  ③ Solicitors Preparation Bundle pane — per card, state-aware
@@ -3717,11 +3637,12 @@
         host.appendChild(genBtn);
       }
       host.appendChild(pmsg);
-      // Condition 5 line + link to the prefs write surface (§B4 keeps #notifications as-is).
+      // Condition 5 line + link to the notification-preferences home. GOV-MENU-FEEDBACK-SITE-001 §5:
+      // the in-page #notifications pane is retired; this now points at the workspace Settings home.
       var note = el('div', 'pack-condition5');
       note.appendChild(document.createTextNode('This is groundwork for instructing a solicitor, not legal advice. '));
       var prefsLink = document.createElement('a');
-      prefsLink.href = '#notifications'; prefsLink.textContent = 'Notification settings';
+      prefsLink.href = '/governance/#settings-notif'; prefsLink.textContent = 'Notification settings';
       note.appendChild(prefsLink);
       note.appendChild(document.createTextNode(' control how we tell you about changes.'));
       host.appendChild(note);
@@ -3999,7 +3920,7 @@
         }
         panel.appendChild(scroll);
         var foot = document.createElement('a');
-        foot.href = '#notifications';
+        foot.href = '/governance/#settings-notif';   // GOV-MENU-FEEDBACK-SITE-001 §5 — single notifications home
         foot.textContent = 'Notification settings →';
         foot.style.cssText = 'display:block;padding:10px 14px;border-top:1px solid var(--border-mid,rgba(148,163,184,0.2));color:var(--tier-operational,#22d3ee);font-size:0.8rem;text-decoration:none;';
         foot.addEventListener('click', function () { toggle(false); });
@@ -4190,7 +4111,6 @@
     // ---- Kick off ----
     loadTierBadge();
     loadPalettes().then(loadSlots).then(autoSelectInitial);
-    loadNotifications();
     initNotifBell();
     renderNotes(null);
     initReportIssue();
