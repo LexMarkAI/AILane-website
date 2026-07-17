@@ -30,11 +30,14 @@ Owner: AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720)
 
 ## EVERY HTML PAGE MUST INCLUDE
 
-### GA4 (no exceptions)
+### Analytics — consent-gated loader (no exceptions; PECR opt-in)
+Every user-facing page MUST carry the consent loader as the FIRST script in `<head>`:
 ```html
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
+<script src="/assets/js/ailane-cookie-consent.js"></script>
 ```
+Estate-wide since PR #443 (Privacy Notice v4.7). GA4 (measurement ID `G-NTNXWZN31C`) is loaded
+BY the consent script AFTER the visitor accepts — never up front. The always-on inline
+`gtag('js'/'config', …)` snippet is PROHIBITED on every page (it fires GA4 before consent, breaching PECR).
 
 ### CSP Meta Tag (SEC-001 §3.2)
 ```html
@@ -54,6 +57,9 @@ Every page MUST carry the favicon block in `<head>` (icon files live at repo roo
 ```
 
 Inline `data:` URI icons are prohibited — reference the root asset files. `AiLaneCEO/` pages change only under explicit CEO approval.
+
+### Gold accent (`#F59E0B`) — Director-authorised per element (AMD-279)
+Gold is Director-authorised per element (AMD-279 / CEO-RAT-GOLD-DV-001, 17 Jul 2026); the Document Vault sidebar button is gold-banded across all tiers. Any other gold use still requires recorded Director authorisation.
 
 ## EDGE FUNCTION RULES
 

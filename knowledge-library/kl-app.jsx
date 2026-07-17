@@ -3120,8 +3120,10 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
             <div className="kl-welcome-input">
               <MessageInput onSend={onSend} disabled={isLoading} onInputChange={onInputChange} nexusState={nexusState} tier={tier} prefersReducedMotion={prefersReducedMotion} />
             </div>
-            {/* OOX-001 §1.4: hub-mode matter bar (retain-or-clear + remember). */}
-            {hubMode && hubSession && <HubMatterPanel hubSession={hubSession} refreshKey={matterRefreshKey} showHistory={true} />}
+            {/* OOX-001 §1.4: hub-mode matter bar (retain-or-clear + remember). WSUX pass 2 §4 —
+                showHistory dropped: the "Remembered matters" manager now lives in the sidebar
+                (HubRememberedMattersPanel, above HISTORY); "+ Remember a matter" stays here. */}
+            {hubMode && hubSession && <HubMatterPanel hubSession={hubSession} refreshKey={matterRefreshKey} />}
             <HorizonAlert />
             {/* KL-LIVE-001 §W-C: Coming-into-force rail (live feed, date-sorted) */}
             <ForwardRail />
@@ -3607,6 +3609,24 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onDel
             // own session vault instead of the Operational vault their pass can't open.
             var href = f.href;
             if (f.id === 'vault' && hasKLSession && !hasSubscription) href = '/knowledge-library/vault/';
+            // WSUX pass 2 §7 (RATIFIED — AMD-279 / CEO-RAT-GOLD-DV-001, 17 Jul 2026) — the Document
+            // Vault item is a prominent gold-banded button (#F59E0B band/border) on the estate's dark
+            // surface, ALL TIERS. Position and behaviour are unchanged (same onClick/href); styling
+            // only. Text stays legible (near-white) per the existing sidebar type.
+            var isVault = f.id === 'vault';
+            var facetStyle = isVault ? {
+              width: 'calc(100% - 16px)', margin: '4px 8px', textAlign: 'left', display: 'block',
+              background: active ? 'rgba(245,158,11,0.20)' : 'rgba(245,158,11,0.10)',
+              border: '1px solid #F59E0B', borderLeft: '3px solid #F59E0B', borderRadius: '6px',
+              color: '#F8FAFC', cursor: 'pointer', fontWeight: 600,
+              fontFamily: "'DM Sans', sans-serif", fontSize: '13px', padding: '8px 13px',
+            } : {
+              width: '100%', textAlign: 'left', display: 'block',
+              background: active ? 'rgba(14,165,233,0.12)' : 'transparent',
+              border: 'none', borderLeft: active ? '2px solid #0EA5E9' : '2px solid transparent',
+              color: active ? '#F1F5F9' : '#94A3B8', cursor: 'pointer',
+              fontFamily: "'DM Sans', sans-serif", fontSize: '13px', padding: '8px 16px',
+            };
             return React.createElement('button', {
               key: f.id,
               type: 'button',
@@ -3615,13 +3635,7 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onDel
                 onSelectFacet(active ? null : f.id);
               },
               'aria-pressed': active,
-              style: {
-                width: '100%', textAlign: 'left', display: 'block',
-                background: active ? 'rgba(14,165,233,0.12)' : 'transparent',
-                border: 'none', borderLeft: active ? '2px solid #0EA5E9' : '2px solid transparent',
-                color: active ? '#F1F5F9' : '#94A3B8', cursor: 'pointer',
-                fontFamily: "'DM Sans', sans-serif", fontSize: '13px', padding: '8px 16px',
-              },
+              style: facetStyle,
             }, [
               React.createElement('span', { key: 'lbl' }, f.label),
               // OOX-001 CALENDAR-PAGE-001 §1.10 — new-events dot on the Calendar nav item.
@@ -3742,6 +3756,10 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onDel
             })()
       )
     ),
+
+    // WSUX pass 2 §4 — Remembered-matters panel, bottom-left directly ABOVE HISTORY (hub only;
+    // returns null without a hubSession, so public KL is unchanged).
+    React.createElement(HubRememberedMattersPanel, { hubSession: hubSession }),
 
     React.createElement('div', { style: { flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)' } },
       React.createElement('button', {
@@ -5800,6 +5818,27 @@ function CalendarPanel() {
 
 // ─── ResearchPanel (kl_provisions grouped by instrument + kl_cases, tabs + search) ───
 
+// WSUX pass 2 §5 — research group open-state persistence. localStorage stores an array of open
+// group ids per surface (key 'ailane_research_open_v1'); read returns a { id: true } map, write
+// serialises only the open ids. Resilient: any storage failure degrades to all-collapsed.
+function klResearchReadOpen(key) {
+  try {
+    var raw = localStorage.getItem(key);
+    if (!raw) return {};
+    var arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return {};
+    var map = {};
+    arr.forEach(function (id) { if (id != null) map[String(id)] = true; });
+    return map;
+  } catch (e) { return {}; }
+}
+function klResearchWriteOpen(key, map) {
+  try {
+    var open = Object.keys(map || {}).filter(function (k) { return !!map[k]; });
+    localStorage.setItem(key, JSON.stringify(open));
+  } catch (e) { /* non-fatal */ }
+}
+
 function ResearchPanel({ lang, klPassHolder }) {
   // KL-PARITY-004 WP1.5 — Eileen affordance bridge. Operational keeps its byte-identical
   // path: __klSendMessage seeds-and-sends while the right drawer stays open alongside the
@@ -5828,7 +5867,11 @@ function ResearchPanel({ lang, klPassHolder }) {
   var _loading = useState(true);
   var loading = _loading[0];
   var setLoading = _loading[1];
-  var _expanded = useState({});
+  // WSUX pass 2 §5 — restore per-group open state (all-collapsed on first entry). Persisted on
+  // every toggle; the same key drives all three tabs (group ids are namespaced: category slugs,
+  // instrument_ids, 'case-<id>'), so switching tabs no longer wipes a user's expansions.
+  var RESEARCH_OPEN_KEY = 'ailane_research_open_v1';
+  var _expanded = useState(function () { return klResearchReadOpen(RESEARCH_OPEN_KEY); });
   var expanded = _expanded[0];
   var setExpanded = _expanded[1];
   // Sprint F §3.3: Library tab state
@@ -5948,6 +5991,7 @@ function ResearchPanel({ lang, klPassHolder }) {
       var next = {};
       for (var k in prev) next[k] = prev[k];
       next[instId] = !prev[instId];
+      klResearchWriteOpen(RESEARCH_OPEN_KEY, next);   // §5 — persist open state per surface
       return next;
     });
   }
@@ -6207,7 +6251,7 @@ function ResearchPanel({ lang, klPassHolder }) {
         var items = grouped[cat];
         var label = CATEGORY_LABELS[cat] || cat;
         var catColor = CATEGORY_COLOURS[cat] || '#0EA5E9';
-        var isCatOpen = expanded[cat] !== false; // default open
+        var isCatOpen = !!expanded[cat]; // WSUX pass 2 §5 — default collapsed (tidy on entry), persisted
 
         return React.createElement('div', { key: cat, style: { marginBottom: '12px' } },
           React.createElement('button', {
@@ -6607,7 +6651,7 @@ function ResearchPanel({ lang, klPassHolder }) {
         return React.createElement('button', {
           key: t.id,
           type: 'button',
-          onClick: function() { setTab(t.id); setSearch(''); setExpanded({}); },
+          onClick: function() { setTab(t.id); setSearch(''); }, // WSUX pass 2 §5 — keep persisted open-state across tabs (ids are namespaced)
           style: {
             flex: 1, padding: '6px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit',
             border: tab === t.id ? '1px solid #0EA5E9' : '1px solid rgba(255,255,255,0.1)',
@@ -9129,6 +9173,8 @@ function HubMatterPanel({ hubSession, refreshKey, chatSeed, showHistory }) {
           showToast('Remembered');
           setCapOpen(false); setCapText(''); setCapCats('');
           refresh();
+          // WSUX pass 2 §4 — notify the relocated sidebar Remembered-matters panel to re-list.
+          try { window.dispatchEvent(new CustomEvent('kl-matters-changed')); } catch (e) { /* non-fatal */ }
         } else if (mr && mr.matter_error) {
           setCapErr(mr.matter_error);
         } else {
@@ -9257,6 +9303,85 @@ function HubMatterPanel({ hubSession, refreshKey, chatSeed, showHistory }) {
     className: 'kl-hub-matter-panel',
     style: { maxWidth: '860px', width: '100%', margin: '0 auto 8px' },
   }, children);
+}
+
+// WSUX pass 2 §4 — Remembered-matters panel relocated to the sidebar bottom-left, directly
+// ABOVE the HISTORY block. Self-contained: lists the org's full remembered set via the SAME
+// matter list op the landing manager used (hubSendToEileen matter_action:list), collapsed by
+// default, styled to match the sidebar HISTORY toggle. Content is unchanged (HubRememberedRow
+// rows: summary + saved date + Amend[deferred]/Delete). "+ Remember a matter" stays on the
+// welcome landing (HubMatterPanel). Re-fetches on open and on the 'kl-matters-changed' window
+// event (dispatched after a landing capture save) so it stays current without prop drilling.
+function HubRememberedMattersPanel({ hubSession }) {
+  var _open = useState(false); var open = _open[0]; var setOpen = _open[1];
+  var _matters = useState([]); var matters = _matters[0]; var setMatters = _matters[1];
+  var _loading = useState(false); var loading = _loading[0]; var setLoading = _loading[1];
+  var _toast = useState(''); var toast = _toast[0]; var setToast = _toast[1];
+  var toastTimer = useRef(null);
+
+  var refresh = useCallback(function () {
+    if (!hubSession) return;
+    setLoading(true);
+    hubSendToEileen(hubSession, { matter_action: { op: 'list' } })
+      .then(function (resp) {
+        var mr = resp && resp.matter_result;
+        setMatters((mr && !mr.matter_error && Array.isArray(mr.matters)) ? mr.matters.slice() : []);
+        setLoading(false);
+      })
+      .catch(function (e) { console.warn('[WSUX-2 §4] matter list failed', e); setMatters([]); setLoading(false); });
+  }, [hubSession]);
+
+  useEffect(function () { refresh(); }, [refresh]);
+  useEffect(function () {
+    if (typeof window === 'undefined') return function () {};
+    function onChanged() { refresh(); }
+    window.addEventListener('kl-matters-changed', onChanged);
+    return function () { window.removeEventListener('kl-matters-changed', onChanged); };
+  }, [refresh]);
+  useEffect(function () { return function () { if (toastTimer.current) clearTimeout(toastTimer.current); }; }, []);
+
+  function showToast(msg) {
+    setToast(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(function () { setToast(''); }, 3200);
+  }
+  function toggle() { var next = !open; setOpen(next); if (next) refresh(); }
+
+  if (!hubSession) return null;
+
+  var body = null;
+  if (open) {
+    var inner = [];
+    if (loading && !matters.length) {
+      inner.push(React.createElement('div', { key: 'ld', style: { padding: '8px 12px', color: '#64748B', fontSize: '12px', fontFamily: "'DM Sans', sans-serif" } }, 'Loading…'));
+    } else if (!matters.length) {
+      inner.push(React.createElement('div', { key: 'empty', style: { padding: '8px 12px', color: '#64748B', fontSize: '12px', lineHeight: 1.5, fontFamily: "'DM Sans', sans-serif" } }, 'Nothing remembered yet — save a matter and Eileen will use it to tailor her answers to your organisation.'));
+    } else {
+      matters.forEach(function (m) {
+        inner.push(React.createElement(HubRememberedRow, { key: 'rm-' + m.id, m: m, hubSession: hubSession, onDeleted: refresh, onToast: showToast }));
+      });
+    }
+    if (toast) inner.push(React.createElement('div', { key: 'toast', role: 'status', 'aria-live': 'polite', style: { padding: '4px 12px', color: '#10B981', fontSize: '11px', fontFamily: "'DM Mono', monospace" } }, toast));
+    body = React.createElement('div', { style: { maxHeight: '240px', overflowY: 'auto', padding: '0 12px 8px' } }, inner);
+  }
+
+  return React.createElement('div', { style: { flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)' } },
+    React.createElement('button', {
+      type: 'button',
+      onClick: toggle,
+      'aria-expanded': open ? 'true' : 'false',
+      style: {
+        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 12px', background: 'transparent', border: 'none',
+        color: '#64748B', fontSize: '11px', fontWeight: 500, cursor: 'pointer',
+        fontFamily: "'DM Mono', monospace", letterSpacing: '0.06em', textTransform: 'uppercase',
+      },
+    },
+      React.createElement('span', null, 'Remembered matters' + (matters.length ? ' (' + matters.length + ')' : '')),
+      React.createElement('span', { style: { fontSize: '9px', transition: 'transform 0.15s', transform: open ? 'rotate(180deg)' : 'rotate(0)' } }, '▼')
+    ),
+    body
+  );
 }
 
 // ─── OOX-001 KL-Hub: ACEI Overview facet ────────────────────────────────────
@@ -9831,9 +9956,9 @@ function HubStepUpGate({ hubSession, onElevated }) {
 // ─── NOTIF-PREFS-UI-001 (Stage C · C3) — vault in-app notification bell ─────
 // Reads vault_client_notifications (owner-scoped RLS; in-app channel only) and
 // surfaces the unread count in the hub topbar. Opening the list marks the
-// displayed unread items read (PATCH read_at via vcn_owner_update). The
-// notification-prefs section itself lives in the Documents Vault room —
-// the list footer links to /operational/documents/#notifications. Best-effort:
+// displayed unread items read (PATCH read_at via vcn_owner_update). WSUX pass 2 §6 — the
+// notification-preferences home is now Settings → Notifications (single home); the list footer
+// routes there via window.__klOpenFacet('settings','notif'). Best-effort:
 // any read/write failure degrades to a plain bell (console.warn only).
 // WSUX-SITE-002 §2 — cross-instance sync for the shared notifications read model.
 // The top-bar bell (HubNotifBell) and the Alerts-page strip (HubNotifStrip) each
@@ -9956,9 +10081,17 @@ function HubNotifBell({ hubSession }) {
         rows.length ? rows : React.createElement('div', { style: { padding: '18px 14px', color: '#64748B', fontSize: '13px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5 } },
           'No notifications yet. We’ll post here when a change in the law triggers a re-check of your monitored documents.')
       ),
-      React.createElement('a', {
-        href: '/operational/documents/#notifications',
-        style: { display: 'block', padding: '10px 14px', borderTop: '1px solid #1E3A5F', color: '#0EA5E9', fontSize: '12px', fontFamily: "'DM Sans', sans-serif", textDecoration: 'none' },
+      React.createElement('button', {
+        type: 'button',
+        // WSUX pass 2 §6 — route to the single notifications home (Settings → Notifications),
+        // replacing the former /operational/documents/#notifications link. The engine opens the
+        // Settings facet and scrolls to the Notifications block; defensive fallback to the hub.
+        onClick: function () {
+          setOpen(false);
+          if (typeof window.__klOpenFacet === 'function') window.__klOpenFacet('settings', 'notif');
+          else window.location.href = '/operational/';
+        },
+        style: { display: 'block', width: '100%', textAlign: 'left', boxSizing: 'border-box', background: 'transparent', cursor: 'pointer', padding: '10px 14px', borderTop: '1px solid #1E3A5F', borderLeft: 'none', borderRight: 'none', borderBottom: 'none', color: '#0EA5E9', fontSize: '12px', fontFamily: "'DM Sans', sans-serif" },
       }, 'Notification settings →')
     );
   }
@@ -12317,11 +12450,17 @@ function HubSettingsOrg({ org, checksLimit }) {
   rows.push(hubSetRow('Tier', klTierDisplay(org.tier), 'tier'));
   rows.push(hubSetRow('Jurisdiction', org.jurisdiction, 'jur'));
   rows.push(hubSetRow('Companies House number', org.companies_house_number, 'chn'));
-  if (org.operational_sites != null) {
-    var sites = org.operational_sites;
-    var sitesVal = Array.isArray(sites) ? (sites.length + ' site' + (sites.length === 1 ? '' : 's')) : hubSetFmtVal(sites);
-    rows.push(hubSetRow('Operational sites', sitesVal, 'sites'));
-  }
+  // §2 (WSUX pass 2) — Operational sites. SITES-FIELD-DRIFT: operational-capture-profile does
+  // NOT accept operational_sites (its field list is name/CHN + industry/sic_primary/headcount/
+  // primary_jurisdiction_code — see the onboarding room). Per the drift branch the row ships
+  // READ-ONLY (always visible) with neutral helper copy until the field is wired server-side
+  // (Chairman Path A follow-up); the Chairman then flips this to an editable input.
+  var sites = org.operational_sites;
+  var sitesVal = (sites == null) ? 'None recorded yet'
+    : (Array.isArray(sites) ? (sites.length + ' site' + (sites.length === 1 ? '' : 's')) : hubSetFmtVal(sites));
+  rows.push(hubSetRow('Operational sites', sitesVal, 'sites'));
+  rows.push(React.createElement('div', { key: 'sites-help', style: Object.assign({}, HUB_SET_SUB, { marginTop: '6px', marginBottom: '2px' }) },
+    'The sites your organisation operates from. Used to contextualise your intelligence. Editable shortly — being wired.'));
   var od = org.onboarding_data || {};
   ['employee_mix', 'trade_union_recognition', 'verification_date', 'entity_verified_clear'].forEach(function (k) {
     if (Object.prototype.hasOwnProperty.call(od, k) && od[k] != null && od[k] !== '') rows.push(hubSetRow(hubAceiHumanise(k), od[k], 'od_' + k));
@@ -12333,57 +12472,59 @@ function HubSettingsOrg({ org, checksLimit }) {
   return React.createElement('div', null, rows);
 }
 
-// §S1.2 ALIN — resolve via alin_by_company_number(companies_house_number). DETERMINISTIC:
-// if the RPC is not exposed to authenticated (verified blocked at build time), the call errors
-// and we render the Companies House number alone with "ALIN: pending" (the backend brief
-// carries the grant/fallback). Never fabricate an ALIN.
-function HubSettingsAlin({ org, hubSession }) {
-  var _st = useState({ status: 'loading', alin: null, blocked: false });
-  var st = _st[0]; var setSt = _st[1];
-  useEffect(function () {
-    var alive = true;
-    var sb = hubSession && hubSession.sb;
-    var chn = org && org.companies_house_number;
-    if (!sb || !sb.rpc || !chn) { setSt({ status: 'ready', alin: null, blocked: !chn ? false : true }); return; }
-    sb.rpc('alin_by_company_number', { p_chn: chn }).then(function (r) {
-      if (!alive) return;
-      if (r && r.error) { console.warn('[WSUX-003] alin-rpc blocked', r.error); setSt({ status: 'ready', alin: null, blocked: true }); return; }
-      var row = Array.isArray(r && r.data) ? (r.data[0] || null) : (r && r.data) || null;
-      if (!row || !row.alin) { setSt({ status: 'ready', alin: null, blocked: true }); return; }
-      setSt({ status: 'ready', alin: row, blocked: false });
-      // Enrich via the tier-matching lookup (best-effort; ignore errors).
-      var fn = String((hubSession && hubSession.orgTier) || org.tier || '') === 'governance' ? 'lookup_alin_governance' : 'lookup_alin_operational';
-      sb.rpc(fn, { p_alin: row.alin }).then(function (rr) {
-        if (!alive || !rr || rr.error) return;
-        var prof = Array.isArray(rr.data) ? (rr.data[0] || null) : rr.data;
-        if (prof) setSt(function (p) { return Object.assign({}, p, { alin: Object.assign({}, p.alin, prof) }); });
-      }).catch(function () { /* silent */ });
-    }).catch(function (e) { if (alive) { console.warn('[WSUX-003] alin-rpc error', e); setSt({ status: 'ready', alin: null, blocked: true }); } });
-    return function () { alive = false; };
-  }, [hubSession, org]);
-  if (st.status === 'loading') return React.createElement('div', { style: HUB_SET_SUB }, 'Resolving ALIN…');
+// §S1.2 ALIN — WSUX pass 2 §1 (ALIN-READPATH-DRIFT fix). Reads the org's populated `alin` +
+// `alin_assigned_at` from the `org` prop — the SAME org-scoped read path the Organisation card
+// uses (selected from `organisations` under the authenticated/RLS client in HubSettingsFacet).
+// The prior read path was the `alin_by_company_number` RPC (blocked for `authenticated` —
+// verify_jwt gated at build time), which always errored and rendered "pending" despite the
+// column being populated. That RPC path (and its best-effort lookup_alin_* enrichment) is
+// removed. States: value present → ALIN (monospace) + "Assigned <date>"; genuinely null →
+// keep the existing "pending" copy. Never fabricate an ALIN.
+function HubSettingsAlin({ org }) {
   var chn = org && org.companies_house_number;
-  if (!st.alin) {
-    var rows = [hubSetRow('Companies House number', chn, 'chn'), hubSetRow('ALIN', 'pending', 'alinp')];
+  var alin = org && org.alin;
+  var assignedAt = org && org.alin_assigned_at;
+  if (!alin) {
+    var pendRows = [hubSetRow('Companies House number', chn, 'chn'), hubSetRow('ALIN', 'pending', 'alinp')];
     return React.createElement('div', null,
-      React.createElement('div', null, rows),
+      React.createElement('div', null, pendRows),
       React.createElement('div', { style: Object.assign({}, HUB_SET_SUB, { marginTop: '10px', marginBottom: 0 }) }, 'Your ALIN is being provisioned and will appear here shortly.'));
   }
-  var a = st.alin;
-  var out = [hubSetRow('ALIN', a.alin, 'alin'), hubSetRow('Entity type', a.entity_type, 'et'), hubSetRow('Company name', a.company_name, 'cn')];
-  ['company_number', 'sic_codes', 'lei', 'paye_ern', 'charity_number', 'fca_number', 'company_status', 'alin_status', 'match_confidence'].forEach(function (k) {
-    if (a[k] != null && a[k] !== '') out.push(hubSetRow(hubAceiHumanise(k), a[k], 'a_' + k));
-  });
+  var assignedLabel = '';
+  if (assignedAt) {
+    var d = new Date(assignedAt);
+    if (!isNaN(d.getTime())) assignedLabel = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+  var out = [
+    hubSetRow('Companies House number', chn, 'chn'),
+    // ALIN rendered monospace (it is an identity number).
+    React.createElement('div', { key: 'alin', style: HUB_SET_ROW },
+      React.createElement('span', { style: HUB_SET_KEY }, 'ALIN'),
+      React.createElement('span', { style: Object.assign({}, HUB_SET_VAL, { fontFamily: "'DM Mono', monospace" }) }, String(alin))),
+  ];
+  if (assignedLabel) out.push(hubSetRow('Assigned', assignedLabel, 'assigned'));
   return React.createElement('div', null, out);
 }
 
-// §S1.3 Security — change password (auth.updateUser) + 2FA TOTP enrol/verify/unenrol
-// (auth.mfa). The aal2_required_when_enrolled policy is already live DB-side — this is the
-// enrolment UI only.
+// §S1.3 Security — set/change password (auth.updateUser) + 2FA TOTP enrol/verify/unenrol
+// (auth.mfa). WSUX pass 2 §3: a magic-link session is AAL1; GoTrue requires an AAL2 session to
+// update credentials for an MFA-enrolled user. Before updating we check the session AAL
+// (mfa.getAuthenticatorAssuranceLevel) and, when a verified TOTP factor exists but the session
+// is still AAL1, run an in-place TOTP step-up (challenge + verify) THEN update. The actual
+// GoTrue error message is surfaced (not a generic line). Non-MFA users update directly.
 function HubSettingsSecurity({ hubSession }) {
+  // §3(a) — no password-identity signal is available client-side, so track "has set a password"
+  // via a per-user localStorage flag to drive the progressive Set→Change label.
+  var PW_SET_KEY = 'ailane_pw_set_v1:' + ((hubSession && hubSession.userId) || 'anon');
   var _pw = useState(''); var pw = _pw[0]; var setPw = _pw[1];
   var _pwMsg = useState(''); var pwMsg = _pwMsg[0]; var setPwMsg = _pwMsg[1];
   var _pwBusy = useState(false); var pwBusy = _pwBusy[0]; var setPwBusy = _pwBusy[1];
+  var _pwSet = useState(function () { try { return localStorage.getItem(PW_SET_KEY) === '1'; } catch (e) { return false; } });
+  var pwSet = _pwSet[0]; var setPwSet = _pwSet[1];
+  // §3(b) — inline AAL2 step-up state. When set, the card shows a 6-digit TOTP field and the
+  // update runs only after the code verifies (challenge → verify → updateUser).
+  var _stepUp = useState(null); var stepUp = _stepUp[0]; var setStepUp = _stepUp[1]; // { factorId }
+  var _stepCode = useState(''); var stepCode = _stepCode[0]; var setStepCode = _stepCode[1];
   var _factors = useState({ status: 'loading', list: [] }); var factors = _factors[0]; var setFactors = _factors[1];
   var _enroll = useState(null); var enroll = _enroll[0]; var setEnroll = _enroll[1]; // { factorId, qr, secret }
   var _code = useState(''); var code = _code[0]; var setCode = _code[1];
@@ -12400,16 +12541,70 @@ function HubSettingsSecurity({ hubSession }) {
   }
   useEffect(function () { loadFactors(); return function () {}; }, [hubSession]);
 
+  // §3 — persist the new password, then flip the Set→Change label (per-user localStorage).
+  function doUpdatePassword() {
+    var sb = hubSession && hubSession.sb;
+    return sb.auth.updateUser({ password: pw }).then(function (r) {
+      setPwBusy(false);
+      if (r && r.error) {
+        // §3(c) — surface the ACTUAL GoTrue error, not a generic line.
+        setPwMsg((r.error && r.error.message) || 'Could not update your password.');
+        return;
+      }
+      try { localStorage.setItem(PW_SET_KEY, '1'); } catch (e) { /* non-fatal */ }
+      setPwSet(true); setStepUp(null); setStepCode('');
+      setPw(''); setPwMsg('Password updated.');
+    });
+  }
+
   function changePassword() {
     var sb = hubSession && hubSession.sb;
     if (!sb || !sb.auth) return;
     if ((pw || '').length < 8) { setPwMsg('Use at least 8 characters.'); return; }
     setPwBusy(true); setPwMsg('');
-    sb.auth.updateUser({ password: pw }).then(function (r) {
+    var mfa = sb.auth.mfa;
+    // §3 drift guard — if the SDK lacks the AAL API (AAL-API-DRIFT) update directly. supabase-js@2
+    // (in use here, per the host pages) ships the API, so this branch is inert; kept defensive.
+    if (!mfa || typeof mfa.getAuthenticatorAssuranceLevel !== 'function') {
+      console.warn('[WSUX-2 §3] AAL-API-DRIFT: getAuthenticatorAssuranceLevel unavailable; updating directly');
+      doUpdatePassword().catch(function (e) { setPwBusy(false); setPwMsg((e && e.message) || 'Could not update your password.'); });
+      return;
+    }
+    // §3(b) — AAL gate: an MFA-enrolled magic-link session is AAL1; step up before updating.
+    Promise.all([mfa.getAuthenticatorAssuranceLevel(), mfa.listFactors()]).then(function (res) {
+      var aal = res[0] && res[0].data;
+      var verified = ((res[1] && res[1].data && res[1].data.totp) || []).filter(function (f) { return f.status === 'verified'; });
+      if (aal && aal.currentLevel !== 'aal2' && verified.length > 0) {
+        // Show the inline TOTP field; the update runs from verifyStepUpThenUpdate().
+        setPwBusy(false);
+        setStepUp({ factorId: verified[0].id });
+        setPwMsg('Enter your authenticator code to confirm this change.');
+        return;
+      }
+      // §3(d) — non-MFA user (or already AAL2): update directly.
+      return doUpdatePassword();
+    }).catch(function (e) {
       setPwBusy(false);
-      if (r && r.error) { setPwMsg('Could not update your password. Please try again.'); return; }
-      setPw(''); setPwMsg('Password updated.');
-    }).catch(function () { setPwBusy(false); setPwMsg('Could not update your password. Please try again.'); });
+      setPwMsg((e && e.message) || 'Could not update your password.');
+    });
+  }
+
+  // §3(b) — in-place AAL2 step-up: challenge the verified factor, verify the code, THEN update.
+  function verifyStepUpThenUpdate() {
+    var sb = hubSession && hubSession.sb;
+    if (!sb || !sb.auth || !sb.auth.mfa || !stepUp) return;
+    if (!(stepCode || '').trim()) { setPwMsg('Enter the 6-digit code from your authenticator app.'); return; }
+    setPwBusy(true); setPwMsg('');
+    sb.auth.mfa.challenge({ factorId: stepUp.factorId }).then(function (c) {
+      if (c && c.error) throw c.error;
+      return sb.auth.mfa.verify({ factorId: stepUp.factorId, challengeId: c.data.id, code: (stepCode || '').trim() });
+    }).then(function (v) {
+      if (v && v.error) { setPwBusy(false); setPwMsg((v.error && v.error.message) || 'That code did not verify.'); return; }
+      return doUpdatePassword();   // session is now AAL2
+    }).catch(function (e) {
+      setPwBusy(false);
+      setPwMsg((e && e.message) || 'That code did not verify. Please try again.');
+    });
   }
   function startEnroll() {
     var sb = hubSession && hubSession.sb;
@@ -12448,12 +12643,27 @@ function HubSettingsSecurity({ hubSession }) {
   }
 
   var children = [];
-  // Password
-  children.push(React.createElement('div', { key: 'pw', style: { marginBottom: '18px' } },
-    React.createElement('div', { style: { color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', fontWeight: 600, marginBottom: '8px' } }, 'Change password'),
-    React.createElement('input', { type: 'password', value: pw, placeholder: 'New password', 'aria-label': 'New password', autoComplete: 'new-password', onChange: function (e) { setPw(e.target.value); }, style: HUB_NOTES_INPUT_STYLE }),
-    pwMsg ? React.createElement('div', { style: Object.assign({}, HUB_NOTES_ERR_STYLE, { color: pwMsg.indexOf('updated') >= 0 ? '#22C55E' : '#F87171' }) }, pwMsg) : null,
-    React.createElement('div', { style: HUB_NOTES_ACTIONS_STYLE }, React.createElement('button', { type: 'button', disabled: pwBusy || !pw, style: HUB_MATTER_BTN_PRIMARY, onClick: changePassword }, pwBusy ? 'Saving…' : 'Update password'))
+  // Password — §3(a) progressive Set→Change label; §3(b) inline AAL2 step-up field.
+  var pwMsgColor = pwMsg.indexOf('updated') >= 0 ? '#22C55E'
+    : (pwMsg.indexOf('authenticator code to confirm') >= 0 ? '#0EA5E9' : '#F87171');
+  var pwKids = [
+    React.createElement('div', { key: 'h', style: { color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', fontWeight: 600, marginBottom: '8px' } }, pwSet ? 'Change password' : 'Set a password'),
+    React.createElement('input', { key: 'in', type: 'password', value: pw, placeholder: 'New password', 'aria-label': 'New password', autoComplete: 'new-password', onChange: function (e) { setPw(e.target.value); }, style: HUB_NOTES_INPUT_STYLE }),
+  ];
+  if (stepUp) {
+    pwKids.push(React.createElement('input', {
+      key: 'step', type: 'text', inputMode: 'numeric', maxLength: 8, value: stepCode,
+      placeholder: '6-digit authenticator code', 'aria-label': 'Authentication code', autoComplete: 'one-time-code',
+      onChange: function (e) { setStepCode(e.target.value); },
+      style: Object.assign({}, HUB_NOTES_INPUT_STYLE, { marginTop: '8px' }),
+    }));
+  }
+  if (pwMsg) pwKids.push(React.createElement('div', { key: 'msg', style: Object.assign({}, HUB_NOTES_ERR_STYLE, { color: pwMsgColor }) }, pwMsg));
+  pwKids.push(React.createElement('div', { key: 'act', style: HUB_NOTES_ACTIONS_STYLE },
+    stepUp
+      ? React.createElement('button', { type: 'button', disabled: pwBusy || !stepCode, style: HUB_MATTER_BTN_PRIMARY, onClick: verifyStepUpThenUpdate }, pwBusy ? 'Verifying…' : 'Verify & update')
+      : React.createElement('button', { type: 'button', disabled: pwBusy || !pw, style: HUB_MATTER_BTN_PRIMARY, onClick: changePassword }, pwBusy ? 'Saving…' : (pwSet ? 'Update password' : 'Set password'))));
+  children.push(React.createElement('div', { key: 'pw', style: { marginBottom: '18px' } }, pwKids
   ));
   // 2FA
   var mfaKids = [React.createElement('div', { key: 'h', style: { color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', fontWeight: 600, marginBottom: '4px' } }, 'Two-factor authentication (TOTP)')];
@@ -12750,7 +12960,7 @@ function HubSettingsFacet({ hubSession }) {
       var orgId = (orgRes && !orgRes.error) ? orgRes.data : null;
       if (!orgId) { setSt({ status: 'ready', org: null, orgId: null, checksLimit: null }); return; }
       Promise.all([
-        sb.from('organisations').select('name,tier,jurisdiction,companies_house_number,operational_sites,onboarding_data,monitored_cap_override').eq('id', orgId).limit(1),
+        sb.from('organisations').select('name,tier,jurisdiction,companies_house_number,operational_sites,alin,alin_assigned_at,onboarding_data,monitored_cap_override').eq('id', orgId).limit(1),
         sb.from('org_check_budget').select('checks_limit').eq('org_id', orgId).eq('period_month', klFirstOfMonthStr()).limit(1),
       ]).then(function (rr) {
         if (!alive) return;
@@ -12762,8 +12972,24 @@ function HubSettingsFacet({ hubSession }) {
     return function () { alive = false; };
   }, [hubSession]);
 
+  // WSUX pass 2 §6 — when routed here from the notification bell (window.__klOpenFacet('settings',
+  // 'notif')), scroll the Notifications block into view once the sections render, then clear the
+  // one-shot flag. Resilient: no flag / no element → no-op.
+  useEffect(function () {
+    if (st.status !== 'ready') return function () {};
+    var target = null;
+    try { target = window.__klSettingsScrollTarget; } catch (e) {}
+    if (target !== 'notif') return function () {};
+    try { window.__klSettingsScrollTarget = null; } catch (e) {}
+    var t = setTimeout(function () {
+      var elx = document.getElementById('hub-settings-notif');
+      if (elx && typeof elx.scrollIntoView === 'function') elx.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+    return function () { clearTimeout(t); };
+  }, [st.status]);
+
   function section(title, sub, bodyEl, key) {
-    return React.createElement('div', { key: key, style: HUB_SET_SECTION },
+    return React.createElement('div', { key: key, id: 'hub-settings-' + key, style: HUB_SET_SECTION },
       React.createElement('div', { style: HUB_SET_H }, title),
       sub ? React.createElement('div', { style: HUB_SET_SUB }, sub) : null,
       bodyEl);
@@ -12773,7 +12999,7 @@ function HubSettingsFacet({ hubSession }) {
   }
   var sections = [
     section('Organisation', 'Your organisation profile and onboarding record.', React.createElement(HubSettingsOrg, { org: st.org, checksLimit: st.checksLimit }), 'org'),
-    section('ALIN', 'Your Ailane Legal Identity Number.', React.createElement(HubSettingsAlin, { org: st.org, hubSession: hubSession }), 'alin'),
+    section('ALIN', 'Your Ailane Legal Identity Number.', React.createElement(HubSettingsAlin, { org: st.org }), 'alin'),
     section('Security', 'Password and two-factor authentication.', React.createElement(HubSettingsSecurity, { hubSession: hubSession }), 'sec'),
     section('Team', 'Members of your organisation.', React.createElement(HubSettingsTeam, { hubSession: hubSession, orgId: st.orgId }), 'team'),
     section('Usage', 'Your allowances for the current month.', React.createElement(HubSettingsUsage, { hubSession: hubSession, orgId: st.orgId, org: st.org }), 'usage'),
@@ -13814,6 +14040,14 @@ function App() {
   // Sprint H §5.1: Expose handleFileSelect so the VaultPanel upload button
   // can invoke the App-level upload flow without prop drilling.
   window.__klHandleFileSelect = handleFileSelect;
+  // WSUX pass 2 §6 — open a "Your workspace" facet from anywhere (e.g. the notification bell
+  // routing to Settings → Notifications). Optional scrollTarget stashes a section id that
+  // HubSettingsFacet scrolls to once its sections render. Guarded on hubChrome; a no-op on
+  // public KL (currentFacet is never surfaced there).
+  window.__klOpenFacet = function(id, scrollTarget) {
+    if (scrollTarget) { try { window.__klSettingsScrollTarget = scrollTarget; } catch (e) {} }
+    handleSelectFacet(id);
+  };
 
   // §5.3: Persist user_type to kl_user_preferences via PATCH (existing) or POST (new)
   async function handleUserTypeSelect(type) {
