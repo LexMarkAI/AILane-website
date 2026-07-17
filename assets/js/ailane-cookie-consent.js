@@ -31,7 +31,7 @@
 
   var GA4_ID = 'G-NTNXWZN31C';
   var STORE_KEY = 'ailane_cookie_consent_v1'; // 'granted' | 'denied'
-  var PRIVACY_URL = '/legal/deal-room-privacy/';
+  var PRIVACY_URL = '/privacy/';
 
   // Define the dataLayer + gtag shim up front so any gtag('event', ...) calls
   // elsewhere on the page do not throw before/without consent — they simply
@@ -99,7 +99,7 @@
       '<div class="ailane-consent-inner">' +
         '<p class="ailane-consent-text">We use strictly necessary cookies to run this workspace (these keep you signed in). ' +
         'With your consent we also use Google Analytics to understand how the site is used. ' +
-        'See the <a href="' + PRIVACY_URL + '">Privacy Notice &amp; Workspace Terms</a>.</p>' +
+        'See the <a href="' + PRIVACY_URL + '">Privacy Notice</a>.</p>' +
         '<div class="ailane-consent-actions">' +
           '<button type="button" id="ailane-consent-decline" class="ailane-consent-btn ailane-consent-btn-ghost">Decline</button>' +
           '<button type="button" id="ailane-consent-accept" class="ailane-consent-btn ailane-consent-btn-primary">Accept</button>' +
