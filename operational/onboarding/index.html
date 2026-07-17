@@ -437,12 +437,23 @@
       if (loading) return '<span class="muted">Checking your two-factor status…</span>';
       if (passed) return '<div class="ok">&#10003; Two-factor authentication is on.</div>';
       var intro = 'Two-factor authentication is required for owner and administrator accounts before the workspace opens — it protects the account that can bind your organisation. Standard members are prompted at sign-in but do not hold up onboarding. If you ever lose access to your authenticator, your account security settings include a recovery route, and support@ailane.ai can verify and assist.';
+      // Per-account owner/admin two-factor status (state v6). Suppressed on a
+      // pre-v6 payload where owner_admin_total is absent (§1.3 backward-compat).
+      var m = (state && state.mfa) || {};
+      var mfaStatus = '';
+      if (m.owner_admin_total !== undefined) {
+        var oaT = m.owner_admin_total || 0, oaV = m.owner_admin_verified || 0;
+        var missing = Array.isArray(m.owner_admin_missing) ? m.owner_admin_missing : [];
+        mfaStatus = '<div class="help">' + oaV + ' of ' + oaT + ' owner and administrator accounts have two-factor authentication on.' +
+          (missing.length ? ' Still to set up: ' + missing.map(function(x){ return esc(x.email) + ' (' + esc(x.role) + ')'; }).join(', ') +
+          '. Each account completes setup under its own sign-in at /account/security/.' : '') + '</div>';
+      }
       if (mfaSkipped) {
-        return intro +
+        return intro + mfaStatus +
                '<div class="help">You’ve chosen to finish this later. For owner and administrator accounts the workspace stays closed until two-factor authentication is on — pick it up any time from your account security settings.</div>' +
                '<a class="btn" href="' + MFA_PATH + '">Set up two-factor authentication</a>';
       }
-      return intro +
+      return intro + mfaStatus +
              '<div class="actions" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px">' +
                '<a class="btn primary" href="' + MFA_PATH + '">Set up two-factor authentication</a>' +
                '<button class="btn" type="button" id="mfa-skip-btn">Skip for now</button>' +
@@ -911,7 +922,20 @@
 
     function step6Panel(unlocked, mfaPassed) {
       if (unlocked && !mfaPassed) {
+        // Per-account owner/admin two-factor status (state v6). Names who is
+        // still outstanding while the entrance is withheld (§1.2). Suppressed on
+        // a pre-v6 payload (§1.3 backward-compat).
+        var m = (state && state.mfa) || {};
+        var mfaStatus = '';
+        if (m.owner_admin_total !== undefined) {
+          var oaT = m.owner_admin_total || 0, oaV = m.owner_admin_verified || 0;
+          var missing = Array.isArray(m.owner_admin_missing) ? m.owner_admin_missing : [];
+          mfaStatus = '<div class="help">' + oaV + ' of ' + oaT + ' owner and administrator accounts have two-factor authentication on.' +
+            (missing.length ? ' Still to set up: ' + missing.map(function(x){ return esc(x.email) + ' (' + esc(x.role) + ')'; }).join(', ') +
+            '. Each account completes setup under its own sign-in at /account/security/.' : '') + '</div>';
+        }
         return '<div class="help">Your agreements and provisioning are complete, but two-factor authentication is not yet on for this organisation’s owner and administrator accounts. The workspace entrance is withheld until it is — set it up now and this step opens immediately.</div>' +
+               mfaStatus +
                '<a class="btn primary" href="/account/security/">Set up two-factor authentication</a>';
       }
       if (unlocked) {

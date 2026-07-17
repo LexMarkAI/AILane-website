@@ -99,6 +99,7 @@
     </div>
 
     <div class="card">
+      <div id="sec-onboarding-nav" class="hide" style="margin-bottom:18px"></div>
       <h2>Authenticator app</h2>
 
       <!-- Loading -->
@@ -137,6 +138,7 @@
 
       <div class="err" id="sec-err"></div>
       <div class="ok" id="sec-ok"></div>
+      <div id="sec-onboarding-success" class="hide" style="margin-top:16px"></div>
     </div>
 
     <!-- Passkey (privileged users only — owner/admin). Additive: TOTP above is unchanged. -->
@@ -175,6 +177,7 @@
 
     var currentFactorId=null;
     var canUsePasskey=false;
+    var onboardingRoom=null;   // §2 — /operational/onboarding/ or /governance/onboarding/, resolved from subscription_tier (null = no room for this tier)
 
     function el(id){return document.getElementById(id);}
     function show(id){el(id).classList.remove('hide');}
@@ -204,10 +207,43 @@
         el('sec-user-email').textContent=payload.email||'';
       }catch(e){}
       document.body.style.visibility='visible';
+      onboardingRoom=await getOnboardingRoom(session.access_token);   // §2 — tier → onboarding room
+      renderOnboardingNav();                                          // §2 — top-of-card back link
       if(PASSKEY_BETA_ENABLED){
         await setupPasskeyGate(session);
       }
       refresh();
+    }
+
+    // §2 — return-to-onboarding navigation. Shown whenever the signed-in user's
+    // subscription_tier maps to an onboarding room. RULE 2 raw-fetch (JWT decode
+    // → kl_account_profiles.subscription_tier), the canonical Authorization:
+    // Bearer pattern (NOT sb.from()). Any other tier / no tier → null → nothing.
+    async function getOnboardingRoom(token){
+      try{
+        var p=JSON.parse(atob(token.split('.')[1]));
+        var r=await fetch(SUPABASE_URL+'/rest/v1/kl_account_profiles?user_id=eq.'+p.sub+'&select=subscription_tier&limit=1',{
+          headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+token,'Accept':'application/json'}
+        });
+        if(!r.ok)return null;
+        var rows=await r.json();
+        var tier=(rows&&rows.length>0)?rows[0].subscription_tier:null;
+        if(tier==='operational'||tier==='operational_readiness')return '/operational/onboarding/';
+        if(tier==='governance'||tier==='institutional')return '/governance/onboarding/';
+        return null;
+      }catch(e){return null;}
+    }
+    function renderOnboardingNav(){
+      var nav=el('sec-onboarding-nav');
+      if(!nav||!onboardingRoom)return;
+      nav.innerHTML='<a class="btn btn-ghost" href="'+onboardingRoom+'">&larr; Back to onboarding</a>';
+      nav.classList.remove('hide');
+    }
+    function showOnboardingSuccessLink(){
+      var box=el('sec-onboarding-success');
+      if(!box||!onboardingRoom)return;
+      box.innerHTML='<a class="btn" href="'+onboardingRoom+'">Two-factor is on for this account &mdash; return to onboarding to continue.</a>';
+      box.classList.remove('hide');
     }
 
     // --- Passkey gate: only owner/admin see the passkey section ---
@@ -242,7 +278,7 @@
     // --- List current factors and render state ---
     async function refresh(){
       clearMsg();
-      hide('sec-on');hide('sec-off');hide('sec-enrol');
+      hide('sec-on');hide('sec-off');hide('sec-enrol');hide('sec-onboarding-success');
       show('sec-loading');
       var res=await sb.auth.mfa.listFactors();
       hide('sec-loading');
@@ -308,10 +344,14 @@
       currentFactorId=null;
       await refresh();
       showSuccess('Two-factor authentication is now on for your account.');
+      showOnboardingSuccessLink();   // §2 — prominent return-to-onboarding link
     }
 
     // --- Remove a factor ---
     async function removeFactor(factorId){
+      // §3 — owner/admin honesty: removal is permitted (server gate recomputes and
+      // re-locks, self-correcting), but the consequence is made explicit first.
+      if(!confirm("Removing two-factor authentication from an owner or administrator account will re-lock your organisation's workspace until it is set up again. Remove this factor?"))return;
       clearMsg();
       var res=await sb.auth.mfa.unenroll({factorId:factorId});
       if(res.error){showError(res.error.message);return;}
@@ -384,6 +424,9 @@
     }
 
     async function removePasskey(factorId){
+      // §3 — same owner/admin re-lock warning as TOTP removal (passkey is also a
+      // verified second factor). Dormant while PASSKEY_BETA_ENABLED is false.
+      if(!confirm("Removing two-factor authentication from an owner or administrator account will re-lock your organisation's workspace until it is set up again. Remove this factor?"))return;
       pkClear();
       var res=await sb.auth.mfa.unenroll({factorId:factorId});
       if(res&&res.error){pkError(res.error.message);return;}
