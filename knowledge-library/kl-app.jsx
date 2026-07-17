@@ -75,7 +75,14 @@ var HUB_FACET_LABELS = {
   settings: 'Settings',
   // GOVWS-SITE-001 §2 — governance-only in-app facet (Triad panel).
   triad: 'Triad — ACEI · RRI · CCI',
+  // GOV-MENU-FEEDBACK-SITE-001 §2 — governance/institutional-only in-app Feedback facet.
+  feedback: 'Feedback',
 };
+
+// GOV-MENU-FEEDBACK-SITE-001 §1 — AMD-precedent: governance/institutional workspace order
+// (Director, 17 Jul 2026). Institutional boots the same engine; when its mode helper lands it
+// MUST reuse this constant.
+var KL_GOVINST_FACET_ORDER = ['vault','notes','intelligence','parliament-live','ticker','cases','calendar','triad','alerts','settings','feedback'];
 
 // GOVWS-SITE-001 §2 — mode-aware "Your workspace" facet list. Operational and public
 // KL receive HUB_WORKSPACE_FACETS verbatim (byte-identical — this helper returns the
@@ -98,6 +105,21 @@ function klHubFacetsFor() {
       out.push(f);
     }
   });
+  // GOV-MENU-FEEDBACK-SITE-001 §2 — governance/institutional-only in-app Feedback facet. Added to
+  // the repointed governance set ONLY (never to the base HUB_WORKSPACE_FACETS array — operational
+  // is untouched this brief).
+  out.push({ id: 'feedback', label: 'Feedback' });
+  // GOV-MENU-FEEDBACK-SITE-001 §1 — order the repointed set by the Director's named order. Unknown
+  // ids append at the end in their current relative order (index-based tiebreak — future-proof and
+  // independent of Array.prototype.sort stability).
+  out = out
+    .map(function (f, i) { return { f: f, i: i }; })
+    .sort(function (a, b) {
+      var ia = KL_GOVINST_FACET_ORDER.indexOf(a.f.id); if (ia < 0) ia = KL_GOVINST_FACET_ORDER.length + a.i;
+      var ib = KL_GOVINST_FACET_ORDER.indexOf(b.f.id); if (ib < 0) ib = KL_GOVINST_FACET_ORDER.length + b.i;
+      return ia - ib;
+    })
+    .map(function (x) { return x.f; });
   return out;
 }
 
@@ -12442,25 +12464,107 @@ function hubSetRow(label, value, key) {
     React.createElement('span', { style: HUB_SET_VAL }, (v === '') ? '—' : v));
 }
 
+// GOV-MENU-FEEDBACK-SITE-001 §4 — normalise a textarea (one site per line) into the jsonb array the
+// operational-capture-profile EF stores: trim each line, drop empties, dedupe (case-insensitive,
+// first occurrence wins), cap each entry at 120 chars and the list at 50 entries.
+function hubNormaliseSites(text) {
+  var lines = String(text == null ? '' : text).split('\n');
+  var out = [], seen = {};
+  for (var i = 0; i < lines.length && out.length < 50; i++) {
+    var s = lines[i].trim();
+    if (!s) continue;
+    if (s.length > 120) s = s.slice(0, 120);
+    var key = s.toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(seen, key)) continue;
+    seen[key] = true; out.push(s);
+  }
+  return out;
+}
+// GOV-MENU-FEEDBACK-SITE-001 §4 — editable Operational sites. Reads the current jsonb array from the
+// org prop; saves via the onboarding room's operational-capture-profile pattern
+// (HUB_FUNCTIONS_BASE + '/operational-capture-profile', { fields: { operational_sites: [...] } }).
+// The Settings surface does not display completeness, so the recomputed `completeness` in the
+// response is intentionally not surfaced here.
+function HubSettingsSites({ org, hubSession }) {
+  function initial(o) {
+    var s = o && o.operational_sites;
+    return Array.isArray(s)
+      ? s.filter(function (x) { return x != null && String(x).trim() !== ''; }).map(function (x) { return String(x); })
+      : [];
+  }
+  var _sites = useState(function () { return initial(org); }); var sites = _sites[0]; var setSites = _sites[1];
+  var _editing = useState(false); var editing = _editing[0]; var setEditing = _editing[1];
+  var _text = useState(''); var text = _text[0]; var setText = _text[1];
+  var _busy = useState(false); var busy = _busy[0]; var setBusy = _busy[1];
+  var _msg = useState(null); var msg = _msg[0]; var setMsg = _msg[1];   // { ok, text }
+
+  function startEdit() { setText(sites.join('\n')); setMsg(null); setEditing(true); }
+  function cancelEdit() { setEditing(false); setMsg(null); }
+
+  function save() {
+    var arr = hubNormaliseSites(text);
+    setBusy(true); setMsg(null);
+    var token = hubSession && hubSession.token;
+    fetch(HUB_FUNCTIONS_BASE + '/operational-capture-profile', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: { operational_sites: arr } }),
+    }).then(function (r) {
+      setBusy(false);
+      if (r.status < 200 || r.status >= 300) { setMsg({ ok: false, text: 'Could not save your sites right now. Please try again.' }); return; }
+      // §4 — success: re-render the row from the normalised array. (The response carries a recomputed
+      // `completeness`; the Settings surface does not show it, so there is nothing else to refresh.)
+      setSites(arr); setEditing(false); setMsg({ ok: true, text: 'Sites updated.' });
+    }).catch(function () {
+      setBusy(false); setMsg({ ok: false, text: 'We could not reach the service. Please try again.' });
+    });
+  }
+
+  var kids = [];
+  kids.push(React.createElement('div', { key: 'hdr', style: Object.assign({}, HUB_SET_ROW, { alignItems: 'center' }) },
+    React.createElement('span', { style: HUB_SET_KEY }, 'Operational sites'),
+    React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
+      React.createElement('span', { style: HUB_SET_VAL }, sites.length ? (sites.length + ' site' + (sites.length === 1 ? '' : 's')) : 'None recorded yet'),
+      editing ? null : React.createElement('button', { type: 'button', style: HUB_MATTER_BTN_STYLE, onClick: startEdit }, sites.length ? 'Edit' : 'Add'))));
+
+  if (!editing) {
+    if (sites.length) {
+      kids.push(React.createElement('ul', { key: 'list', style: { margin: '8px 0 0', padding: '0 0 0 18px', color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', lineHeight: 1.7 } },
+        sites.map(function (s, i) { return React.createElement('li', { key: i, style: { wordBreak: 'break-word' } }, s); })));
+    }
+  } else {
+    kids.push(React.createElement('textarea', {
+      key: 'ta', value: text, rows: 5,
+      placeholder: 'One site per line', 'aria-label': 'Operational sites, one per line',
+      onChange: function (e) { setText(e.target.value); },
+      style: Object.assign({}, HUB_INTEL_GAP_TEXTAREA_STYLE, { marginTop: '10px' }),
+    }));
+    kids.push(React.createElement('div', { key: 'hint', style: { color: '#64748B', fontFamily: "'DM Mono', monospace", fontSize: '11px', marginTop: '6px' } }, 'One site per line · up to 50 · 120 characters each'));
+    kids.push(React.createElement('div', { key: 'act', style: HUB_NOTES_ACTIONS_STYLE },
+      React.createElement('button', { type: 'button', disabled: busy, style: Object.assign({}, HUB_MATTER_BTN_PRIMARY, busy ? { opacity: 0.5, cursor: 'default' } : {}), onClick: save }, busy ? 'Saving…' : 'Save sites'),
+      React.createElement('button', { type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: cancelEdit }, 'Cancel')));
+  }
+  // §4 — helper copy retained (minus the pass-2 "Editable shortly — being wired").
+  kids.push(React.createElement('div', { key: 'help', style: Object.assign({}, HUB_SET_SUB, { marginTop: '10px', marginBottom: '2px' }) },
+    'The sites your organisation operates from. Used to contextualise your intelligence.'));
+  if (msg) kids.push(React.createElement('div', { key: 'msg', style: { marginTop: '8px', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', color: msg.ok ? '#34D399' : '#F87171' } }, msg.text));
+  return React.createElement('div', { style: { marginTop: '2px' } }, kids);
+}
+
 // §S1.1 Organisation — org row + onboarding capture (render only keys that exist).
-function HubSettingsOrg({ org, checksLimit }) {
+function HubSettingsOrg({ org, checksLimit, hubSession }) {
   if (!org) return React.createElement('div', { style: HUB_SET_SUB }, 'Organisation details are unavailable just now.');
   var rows = [];
   rows.push(hubSetRow('Name', org.name, 'name'));
   rows.push(hubSetRow('Tier', klTierDisplay(org.tier), 'tier'));
   rows.push(hubSetRow('Jurisdiction', org.jurisdiction, 'jur'));
   rows.push(hubSetRow('Companies House number', org.companies_house_number, 'chn'));
-  // §2 (WSUX pass 2) — Operational sites. SITES-FIELD-DRIFT: operational-capture-profile does
-  // NOT accept operational_sites (its field list is name/CHN + industry/sic_primary/headcount/
-  // primary_jurisdiction_code — see the onboarding room). Per the drift branch the row ships
-  // READ-ONLY (always visible) with neutral helper copy until the field is wired server-side
-  // (Chairman Path A follow-up); the Chairman then flips this to an editable input.
-  var sites = org.operational_sites;
-  var sitesVal = (sites == null) ? 'None recorded yet'
-    : (Array.isArray(sites) ? (sites.length + ' site' + (sites.length === 1 ? '' : 's')) : hubSetFmtVal(sites));
-  rows.push(hubSetRow('Operational sites', sitesVal, 'sites'));
-  rows.push(React.createElement('div', { key: 'sites-help', style: Object.assign({}, HUB_SET_SUB, { marginTop: '6px', marginBottom: '2px' }) },
-    'The sites your organisation operates from. Used to contextualise your intelligence. Editable shortly — being wired.'));
+  // GOV-MENU-FEEDBACK-SITE-001 §4 — Operational sites are now editable in place. SITES-FIELD-DRIFT is
+  // CLOSED: the deployed operational-capture-profile v6 lists operational_sites in ORG_COLUMNS (the
+  // pass-2 drift was authored from the onboarding room's payload, which simply does not send it). The
+  // read-only row + "Editable shortly — being wired" helper are replaced by the HubSettingsSites
+  // editor (saves { fields: { operational_sites: [...] } }; helper copy retained).
+  rows.push(React.createElement(HubSettingsSites, { key: 'sites', org: org, hubSession: hubSession }));
   var od = org.onboarding_data || {};
   ['employee_mix', 'trade_union_recognition', 'verification_date', 'entity_verified_clear'].forEach(function (k) {
     if (Object.prototype.hasOwnProperty.call(od, k) && od[k] != null && od[k] !== '') rows.push(hubSetRow(hubAceiHumanise(k), od[k], 'od_' + k));
@@ -12998,7 +13102,7 @@ function HubSettingsFacet({ hubSession }) {
     return React.createElement('div', { style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', padding: '8px 0' } }, 'Loading your settings…');
   }
   var sections = [
-    section('Organisation', 'Your organisation profile and onboarding record.', React.createElement(HubSettingsOrg, { org: st.org, checksLimit: st.checksLimit }), 'org'),
+    section('Organisation', 'Your organisation profile and onboarding record.', React.createElement(HubSettingsOrg, { org: st.org, checksLimit: st.checksLimit, hubSession: hubSession }), 'org'),
     section('ALIN', 'Your Ailane Legal Identity Number.', React.createElement(HubSettingsAlin, { org: st.org }), 'alin'),
     section('Security', 'Password and two-factor authentication.', React.createElement(HubSettingsSecurity, { hubSession: hubSession }), 'sec'),
     section('Team', 'Members of your organisation.', React.createElement(HubSettingsTeam, { hubSession: hubSession, orgId: st.orgId }), 'team'),
@@ -13288,6 +13392,103 @@ function HubTickerFacet({ hubSession }) {
 // Workspace facet mounted in the main content area (KL-HUB §1.5). The ACEI, Vault,
 // Alerts, Intelligence, Ticker, Notes and Calendar facets all render live.
 // Routing/state in brief-1.
+// GOV-MENU-FEEDBACK-SITE-001 §2 — in-app Feedback facet (governance/institutional). A single-shot
+// form → the deployed submit-feedback EF; on success it renders Eileen's returned `ack` verbatim in
+// an Eileen-attributed panel. No drafts / no local persistence (§2.3). Auth reuses the engine's EF
+// pattern: raw fetch + Bearer <hubSession.token> + anon apikey (the server derives org/user/tier).
+var HUB_FEEDBACK_CATEGORIES = [
+  { value: 'general', label: 'General' },
+  { value: 'feature_request', label: 'Feature request' },
+  { value: 'praise', label: 'Praise' },
+  { value: 'issue', label: 'Issue' },
+];
+function HubFeedbackFacet({ hubSession }) {
+  var _cat = useState('general'); var cat = _cat[0]; var setCat = _cat[1];
+  var _msg = useState(''); var msg = _msg[0]; var setMsg = _msg[1];
+  var _busy = useState(false); var busy = _busy[0]; var setBusy = _busy[1];
+  var _err = useState(''); var err = _err[0]; var setErr = _err[1];
+  var _ack = useState(null); var ack = _ack[0]; var setAck = _ack[1];   // string once submitted → ack panel
+
+  function pageContext() {
+    var path = '';
+    try { path = (window.location && window.location.pathname) || ''; } catch (e) { path = ''; }
+    return ('governance workspace · feedback' + (path ? ' · ' + path : '')).slice(0, 300);
+  }
+
+  function submit() {
+    var body = (msg || '').trim();
+    if (!body) { setErr('Please enter a message before sending.'); return; }
+    if (body.length > 4000) { setErr('Please keep your feedback to 4000 characters or fewer.'); return; }
+    setBusy(true); setErr('');
+    var token = hubSession && hubSession.token;
+    fetch(SUPABASE_URL + '/functions/v1/submit-feedback', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: body, category: cat, page_context: pageContext() }),
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (data) { return { status: r.status, ok: r.ok, data: data || {} }; });
+    }).then(function (res) {
+      setBusy(false);
+      if (res.ok && res.data && res.data.ok) {
+        // §2.2 — render the server's acknowledgment verbatim (fallback only if the field is absent).
+        setAck((typeof res.data.ack === 'string' && res.data.ack) ? res.data.ack : 'Thank you — your feedback has been received.');
+        return;
+      }
+      // §2.2 — never a silent failure. 429 → the server `detail`; other errors → the server `error`
+      // code with neutral copy.
+      if (res.status === 429) {
+        setErr((res.data && res.data.detail) || 'You have sent feedback very recently — please try again shortly.');
+      } else if (res.data && res.data.error) {
+        setErr('We could not send your feedback (' + res.data.error + '). Please try again.');
+      } else {
+        setErr('We could not send your feedback right now. Please try again.');
+      }
+    }).catch(function () {
+      setBusy(false);
+      setErr('We could not reach the feedback service. Please try again.');
+    });
+  }
+
+  function reset() { setAck(null); setMsg(''); setCat('general'); setErr(''); }
+
+  // Submitted → Eileen-attributed acknowledgment panel + "Send more feedback" reset control.
+  if (ack != null) {
+    return React.createElement('div', { style: { maxWidth: '640px', margin: '0 auto', width: '100%' } },
+      React.createElement('div', { style: HUB_SET_SECTION },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' } },
+          React.createElement(EileenStaticDot, null),
+          React.createElement('span', { style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Eileen')),
+        React.createElement('div', { style: { color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word' } }, ack)),
+      React.createElement('button', { type: 'button', style: HUB_MATTER_BTN_STYLE, onClick: reset }, 'Send more feedback'));
+  }
+
+  var canSend = !busy && !!(msg || '').trim();
+  return React.createElement('div', { style: { maxWidth: '640px', margin: '0 auto', width: '100%' } },
+    React.createElement('div', { style: HUB_SET_SECTION },
+      React.createElement('div', { style: HUB_SET_H }, 'Feedback'),
+      React.createElement('div', { style: HUB_SET_SUB }, 'We value your feedback — it directly shapes how Ailane develops. Tell us what is working, what is missing, and what you would change.'),
+      React.createElement('label', { htmlFor: 'hub-feedback-cat', style: { display: 'block', color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', marginBottom: '6px' } }, 'Category'),
+      React.createElement('select', {
+        id: 'hub-feedback-cat', value: cat, 'aria-label': 'Feedback category',
+        onChange: function (e) { setCat(e.target.value); },
+        style: Object.assign({}, HUB_INTEL_SELECT_STYLE, { marginBottom: '14px', display: 'block' }),
+      }, HUB_FEEDBACK_CATEGORIES.map(function (c) { return React.createElement('option', { key: c.value, value: c.value }, c.label); })),
+      React.createElement('textarea', {
+        value: msg, maxLength: 4000, rows: 6, required: true,
+        placeholder: 'Your feedback', 'aria-label': 'Your feedback',
+        onChange: function (e) { setMsg(e.target.value); },
+        style: HUB_INTEL_GAP_TEXTAREA_STYLE,
+      }),
+      React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginTop: '8px' } },
+        React.createElement('span', { style: { color: '#64748B', fontFamily: "'DM Mono', monospace", fontSize: '11px' } }, (msg || '').length + ' / 4000'),
+        React.createElement('button', {
+          type: 'button', disabled: !canSend,
+          style: Object.assign({}, HUB_MATTER_BTN_PRIMARY, canSend ? {} : { opacity: 0.5, cursor: 'default' }),
+          onClick: submit,
+        }, busy ? 'Sending…' : 'Submit')),
+      err ? React.createElement('div', { style: { marginTop: '10px', color: '#F87171', fontFamily: "'DM Sans', sans-serif", fontSize: '13px' } }, err) : null));
+}
+
 function HubFacetView({ facet, hubSession, onBack }) {
   var label = HUB_FACET_LABELS[facet] || 'Workspace';
   // WORKSPACE-UX-PASS-SITE-001 §5 — the standalone ACEI Overview facet is retired; the
@@ -13320,6 +13521,10 @@ function HubFacetView({ facet, hubSession, onBack }) {
     : facet === 'settings'
     ? React.createElement('div', { style: { flex: 1, overflowY: 'auto', padding: '24px' } },
         React.createElement(HubSettingsFacet, { hubSession: hubSession }))
+    // GOV-MENU-FEEDBACK-SITE-001 §2 — governance/institutional in-app Feedback surface.
+    : facet === 'feedback'
+    ? React.createElement('div', { style: { flex: 1, overflowY: 'auto', padding: '24px' } },
+        React.createElement(HubFeedbackFacet, { hubSession: hubSession }))
     : React.createElement('div', { style: { flex: 1, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px' } },
         React.createElement('div', { className: 'kl-placeholder-panel', style: { maxWidth: '420px' } },
           React.createElement('div', { className: 'kl-placeholder-icon' }, '🛠️'),
@@ -13380,6 +13585,21 @@ function App() {
     var alive = true;
     detectHubSession().then(function (s) { if (alive) setHubSession(s); });
     return function () { alive = false; };
+  }, []);
+  // GOV-MENU-FEEDBACK-SITE-001 §5.2 — the documents rooms' "Notification settings" links now point
+  // at /operational/#settings-notif or /governance/#settings-notif. Honour that hash ONCE at boot:
+  // open the Settings facet at its Notifications block (pass-2 __klOpenFacet + hub-settings-notif
+  // anchor), then clear the one-shot hash so a refresh / New Conversation does not re-trigger it.
+  useEffect(function () {
+    var h = '';
+    try { h = (window.location && window.location.hash) || ''; } catch (e) { h = ''; }
+    if (h !== '#settings-notif') return function () {};
+    // Clear FIRST (replaceState — no hashchange, no history entry) so handleSelectFacet's own hash
+    // reset sees an empty hash and does not fight this.
+    try { window.history.replaceState(null, '', window.location.pathname + (window.location.search || '')); }
+    catch (e) { try { window.location.hash = '/'; } catch (e2) { /* ignore */ } }
+    if (typeof window.__klOpenFacet === 'function') window.__klOpenFacet('settings', 'notif');
+    return function () {};
   }, []);
   // KL-VAULT-INTEGRATION-001 §2.1 — active-KL-pass signal (kl_session_entitlement),
   // read at the app's existing authenticated-read readiness point. Fails closed to false.

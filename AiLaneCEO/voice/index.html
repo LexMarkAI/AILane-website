@@ -227,10 +227,74 @@ function VaultIssues({rows}){
   );
 }
 
+// ── Workspace Feedback (GOV-MENU-FEEDBACK-SITE-001 §3) ──
+// Live read of public.workspace_feedback (CEO RLS: SELECT all rows, UPDATE status). Mirrors the
+// VaultIssues read shape, plus tier/org/email and a per-row "Mark reviewed" (status new→reviewed).
+// DISTINCT from the s.164A complaints register (SECTION 1) — no overlap with ceo-dashboard-data.
+const WS_FEEDBACK_STATUS_COLOR={new:'var(--accent-amber)',reviewed:'var(--accent-cyan)',actioned:'var(--accent-purple)',closed:'var(--text-muted)'};
+const WS_FEEDBACK_CAT_LABEL={general:'General',feature_request:'Feature request',praise:'Praise',issue:'Issue'};
+function WorkspaceFeedback({rows,setRows,token,onToast}){
+  const[expanded,setExpanded]=useState({});
+  const[busyId,setBusyId]=useState(null);
+  const[errId,setErrId]=useState(null);
+  async function markReviewed(id){
+    setBusyId(id);setErrId(null);
+    const prev=rows;
+    setRows(rows.map(r=>(r.id===id?{...r,status:'reviewed'}:r)));   // optimistic
+    try{
+      const r=await fetch(`${SUPABASE_URL}/rest/v1/workspace_feedback?id=eq.${id}`,{method:'PATCH',headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({status:'reviewed'})});
+      if(!r.ok){setRows(prev);setErrId(id);onToast('Could not mark reviewed');}
+      else onToast('Marked reviewed');
+    }catch(e){setRows(prev);setErrId(id);onToast('Network error');}
+    setBusyId(null);
+  }
+  return(
+    <div className="card" id="workspace-feedback">
+      <div className="card-head"><div className="card-head-title">Workspace Feedback</div><div className="card-head-badge">{rows==null?'—':rows.length+' total'}</div></div>
+      <div className="card-body">
+        {rows==null&&<div className="ts">Loading workspace feedback…</div>}
+        {rows!=null&&rows.length===0&&<div className="ts">No workspace feedback yet.</div>}
+        {rows!=null&&rows.map((v,i)=>{
+          const status=String(v.status||'new');
+          const msg=String(v.message||'');
+          const long=msg.length>280;
+          const open=!!expanded[v.id];
+          const shown=(long&&!open)?msg.slice(0,280)+'…':msg;
+          const org=(v.organisations&&v.organisations.name)||'—';
+          return(
+            <div key={v.id||i} style={{borderBottom:i<rows.length-1?'1px solid var(--border-subtle)':'none',padding:'9px 0'}}>
+              <div style={{display:'flex',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
+                <div style={{minWidth:0,flex:1}}>
+                  <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                    <span className="ts">{shortDate(v.created_at)}</span>
+                    <span style={{fontSize:'0.68rem',color:'var(--text-secondary)',wordBreak:'break-word'}}>{org}</span>
+                    {v.tier&&<span className="leg-tag partial" style={{fontSize:'0.55rem',padding:'2px 7px'}}>{friendlyCat(v.tier)}</span>}
+                    <span className="case-cat">{WS_FEEDBACK_CAT_LABEL[v.category]||friendlyCat(v.category)}</span>
+                  </div>
+                  <div style={{fontSize:'0.68rem',color:'var(--text-secondary)',marginTop:4,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>{shown}{long&&<button onClick={()=>setExpanded(e=>({...e,[v.id]:!open}))} style={{marginLeft:6,background:'none',border:'none',color:'var(--text-accent)',cursor:'pointer',fontSize:'0.66rem',fontFamily:'var(--font-body)',padding:0}}>{open?'less':'more'}</button>}</div>
+                  <div className="ts" style={{marginTop:4,wordBreak:'break-word'}}>{v.user_email||'—'}</div>
+                  {errId===v.id&&<div style={{marginTop:4,fontSize:'0.62rem',color:'var(--accent-red)'}}>Could not update — try again.</div>}
+                </div>
+                <div style={{flexShrink:0,display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6}}>
+                  <span style={{fontFamily:'var(--font-mono)',fontSize:'0.62rem',color:WS_FEEDBACK_STATUS_COLOR[status]||'var(--text-muted)'}}>{status.replace(/_/g,' ')}</span>
+                  {status==='new'&&<button disabled={busyId===v.id} onClick={()=>markReviewed(v.id)} style={{padding:'4px 10px',borderRadius:'var(--radius-sm)',border:'1px solid var(--border-accent)',background:'var(--accent-cyan-dim)',color:'var(--accent-cyan)',fontSize:'0.62rem',fontWeight:600,cursor:busyId===v.id?'default':'pointer',fontFamily:'var(--font-body)',opacity:busyId===v.id?0.6:1}}>{busyId===v.id?'…':'Mark reviewed'}</button>}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        {/* Relocated from the retired static "Feedback Signals" card (§3). */}
+        <div className="muted-note">Finding feedback 0 · LOVR feedback 0 — awaiting first client.</div>
+      </div>
+    </div>
+  );
+}
+
 function App(){
   const[auth,setAuth]=useState('checking');const[token,setToken]=useState(null);
   const[data,setData]=useState(null);      // legal_detail (future: voice_detail) — dp_complaints + dp_summary
   const[vaultIssues,setVaultIssues]=useState(null);   // VAULT-TRUST-ROOM-001 §4 — vault_issue_reports (direct read)
+  const[wsFeedback,setWsFeedback]=useState(null);     // GOV-MENU-FEEDBACK-SITE-001 §3 — workspace_feedback (direct read)
   const[toasts,setToasts]=useState([]);
 
   useEffect(()=>{(async()=>{const{data:{session}}=await sb.auth.getSession();if(session){const p=JSON.parse(atob(session.access_token.split('.')[1]));if(p.email===CEO_EMAIL){setToken(session.access_token);setAuth('ok');return;}}const t=setTimeout(()=>{window.location.href='/';},3000);sb.auth.onAuthStateChange((ev,sess)=>{if(sess){clearTimeout(t);const p=JSON.parse(atob(sess.access_token.split('.')[1]));if(p.email===CEO_EMAIL){setToken(sess.access_token);setAuth('ok');}else window.location.href='/';}});})();},[]);
@@ -250,7 +314,15 @@ function App(){
       if(r.ok)setVaultIssues(await r.json());else setVaultIssues([]);
     }catch(e){setVaultIssues([]);}
   }
-  useEffect(()=>{if(auth==='ok'&&token){load(token);loadVI(token);}},[auth,token]);
+  // GOV-MENU-FEEDBACK-SITE-001 §3 — direct read of workspace_feedback (newest first), embedding
+  // organisations(name) via the org_id FK. CEO RLS grants SELECT on all rows. Empty-tolerant.
+  async function loadWF(tk){
+    try{
+      const r=await fetch(`${SUPABASE_URL}/rest/v1/workspace_feedback?select=id,created_at,tier,category,message,status,user_email,organisations(name)&order=created_at.desc&limit=100`,{headers:{'Authorization':`Bearer ${tk}`,'apikey':SUPABASE_ANON_KEY,'Accept':'application/json'}});
+      if(r.ok)setWsFeedback(await r.json());else setWsFeedback([]);
+    }catch(e){setWsFeedback([]);}
+  }
+  useEffect(()=>{if(auth==='ok'&&token){load(token);loadVI(token);loadWF(token);}},[auth,token]);
 
   function addToast(m){setToasts(p=>[...p,m]);setTimeout(()=>setToasts(p=>p.slice(1)),4000);}
 
@@ -280,16 +352,11 @@ function App(){
         <div className="sec-head"><div className="t">Document Vault Issues</div><div className="rule"/></div>
         <VaultIssues rows={vaultIssues}/>
 
-        {/* SECTION 2 — feedback estates (static-honest until voice_detail ships them) */}
+        {/* SECTION 2 — Client Feedback. GOV-MENU-FEEDBACK-SITE-001 §3: the live Workspace Feedback
+            card replaces the static "Feedback Signals" card; the CSAT card + heading are unchanged. */}
         <div className="sec-head"><div className="t">Client Feedback</div><div className="rule"/></div>
         <div className="two-col">
-          <div className="card">
-            <div className="card-head"><div className="card-head-title">Feedback Signals</div><div className="card-head-badge">pre-revenue</div></div>
-            <div className="card-body">
-              <div style={{fontSize:'0.74rem',color:'var(--text-secondary)'}}>Finding feedback 0 · LOVR feedback 0 — awaiting first client</div>
-              <div className="muted-note">Live wiring lands when voice_detail ships these estates.</div>
-            </div>
-          </div>
+          <WorkspaceFeedback rows={wsFeedback} setRows={setWsFeedback} token={token} onToast={addToast}/>
           <div className="card">
             <div className="card-head"><div className="card-head-title">CSAT</div><div className="card-head-badge">not instrumented</div></div>
             <div className="card-body">
