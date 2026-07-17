@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Governance Onboarding — Ailane</title>
+
+  <script src="/assets/js/ailane-cookie-consent.js"></script>
+
+  <!-- CSP (AILANE-SPEC-SEC-001 §3.2) — canonical; this page is CSP-clean (no unpkg/Babel/React) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <!-- Supabase JS — FIRST among scripts (RULE 26 auth-guard prerequisite) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --op-cyan: #22d3ee;
+      --op-green: #22c55e;
+      --bg: #060D1B;
+      --panel: #0A1628;
+      --panel-2: #0d1b30;
+      --line: rgba(34,211,238,0.16);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', system-ui, sans-serif; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+
+    /* Loading splash (shown until auth guard reveals body) */
+    #boot { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg); z-index: 50; }
+    .spinner { width: 34px; height: 34px; border: 3px solid rgba(34,211,238,0.15); border-top-color: var(--op-cyan); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .wrap { max-width: 880px; margin: 0 auto; padding: 40px 20px 80px; }
+
+    header.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
+    .brand { font-weight: 700; letter-spacing: 0.18em; font-size: 1.05rem; }
+    .brand small { display: block; letter-spacing: 0.04em; font-size: 0.72rem; color: var(--muted); font-weight: 500; margin-top: 4px; }
+    .tierpill { font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--op-cyan); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; background: rgba(34,211,238,0.06); }
+
+    .lede { color: var(--muted); font-size: 0.98rem; line-height: 1.6; margin-bottom: 26px; max-width: 640px; }
+
+    /* Degraded banner */
+    #banner { display: none; align-items: center; gap: 10px; background: rgba(34,211,238,0.07); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin-bottom: 24px; color: var(--text); font-size: 0.9rem; }
+    #banner .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--op-cyan); flex: 0 0 auto; animation: pulse 1.4s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity: 0.35; } 50% { opacity: 1; } }
+
+    /* Step rail */
+    .rail { display: flex; flex-direction: column; gap: 14px; }
+    .step { display: flex; gap: 16px; background: var(--panel); border: 1px solid rgba(148,163,184,0.12); border-radius: 14px; padding: 18px 20px; }
+    .step.active { border-color: var(--line); box-shadow: 0 0 0 1px rgba(34,211,238,0.06) inset; }
+    .step.complete { border-color: rgba(34,197,94,0.28); }
+    .step.locked { opacity: 0.62; }
+
+    .marker { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.95rem; border: 1px solid rgba(148,163,184,0.3); color: var(--muted); }
+    .step.active .marker { border-color: var(--op-cyan); color: var(--op-cyan); background: rgba(34,211,238,0.08); }
+    .step.complete .marker { border-color: var(--op-green); color: #06210f; background: var(--op-green); }
+    .step.pending .marker { border-color: rgba(148,163,184,0.3); color: var(--muted); }
+
+    .body { flex: 1 1 auto; min-width: 0; }
+    .head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .title { font-weight: 600; font-size: 1.02rem; }
+    .badge { font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; font-weight: 700; }
+    .badge.gate { color: var(--op-cyan); background: rgba(34,211,238,0.1); border: 1px solid var(--line); }
+    .badge.soon { color: var(--muted); background: rgba(148,163,184,0.08); border: 1px solid rgba(148,163,184,0.2); }
+    .badge.done { color: var(--op-green); background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.28); }
+
+    .panel { margin-top: 12px; font-size: 0.92rem; line-height: 1.55; color: var(--muted); }
+    .panel .ok { color: var(--op-green); font-weight: 600; }
+
+    .btn { display: inline-block; font-family: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer; border-radius: 10px; padding: 11px 18px; border: 1px solid var(--op-cyan); background: rgba(34,211,238,0.1); color: var(--op-cyan); text-decoration: none; transition: background 0.15s ease; margin-top: 12px; }
+    .btn:hover { background: rgba(34,211,238,0.18); }
+    .btn.primary { background: var(--op-cyan); color: #04141a; border-color: var(--op-cyan); }
+    .btn.primary:hover { background: #67e8f9; }
+    .btn[disabled], .btn.is-disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+
+    .help { margin-top: 10px; font-size: 0.85rem; color: var(--muted); }
+
+    /* Agreement cards */
+    .cards { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+    .card { background: var(--panel-2); border: 1px solid rgba(148,163,184,0.14); border-radius: 12px; padding: 16px; }
+    .card h3 { font-size: 0.98rem; color: var(--text); font-weight: 600; margin-bottom: 4px; }
+    .card .ver { font-size: 0.78rem; color: var(--muted); }
+    .viewer { margin: 12px 0; font-size: 0.88rem; min-height: 20px; }
+    .doc-link { color: var(--op-cyan); text-decoration: underline; font-weight: 600; }
+    .card-msg { margin-top: 8px; font-size: 0.85rem; color: var(--op-cyan); }
+    .card .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .card .btn { margin-top: 0; }
+    .muted { color: var(--muted); }
+    .card-msg.ok-msg { color: var(--op-green); }
+    .signpost { border-left: 3px solid var(--op-cyan); padding: 8px 12px; margin: 10px 0 4px; font-size: 0.85rem; }
+
+    /* Members & roles (OOX Step 4) */
+    .members { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; margin-bottom: 16px; }
+    .member { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--panel-2); border: 1px solid rgba(148,163,184,0.14); border-radius: 11px; padding: 12px 14px; flex-wrap: wrap; }
+    .m-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .m-name { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .m-email { color: var(--muted); font-size: 0.82rem; }
+    .m-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .m-role { font-size: 0.74rem; letter-spacing: 0.04em; color: var(--op-cyan); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; background: rgba(34,211,238,0.06); }
+    .chip { font-size: 0.7rem; letter-spacing: 0.04em; border-radius: 999px; padding: 3px 9px; border: 1px solid rgba(148,163,184,0.25); color: var(--muted); }
+    .chip.on { color: var(--op-green); border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.08); }
+    .chip.pending { color: var(--muted); background: rgba(148,163,184,0.08); }
+
+    /* Invite form (OOX Step 4) */
+    .invite-form { margin-top: 4px; }
+    .field-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .field { display: flex; flex-direction: column; gap: 5px; flex: 1 1 160px; min-width: 0; }
+    .field label { font-size: 0.78rem; color: var(--muted); }
+    .field input, .field select { font-family: inherit; font-size: 0.9rem; color: var(--text); background: var(--panel-2); border: 1px solid rgba(148,163,184,0.2); border-radius: 9px; padding: 10px 12px; }
+    .field input:focus, .field select:focus { outline: none; border-color: var(--op-cyan); }
+    .field input[disabled], .field select[disabled] { opacity: 0.5; cursor: not-allowed; }
+    .invite-form .btn { margin-top: 14px; }
+
+    /* Identity resolution — "Your organisation" (OOX room identity) */
+    .field input.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.08em; }
+    .identity-result { margin-top: 16px; }
+    .alin-num { margin-top: 8px; font-size: 0.9rem; color: var(--text); }
+    .alin-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.06em; color: var(--op-cyan); font-weight: 700; }
+    details.profile-extra { margin-top: 18px; border-top: 1px solid rgba(148,163,184,0.12); padding-top: 14px; }
+    details.profile-extra > summary { cursor: pointer; font-size: 0.9rem; font-weight: 600; color: var(--op-cyan); list-style: none; }
+    details.profile-extra > summary::-webkit-details-marker { display: none; }
+    details.profile-extra > summary::before { content: "+ "; color: var(--op-cyan); font-weight: 700; }
+    details.profile-extra[open] > summary::before { content: "\2212 "; }
+    details.profile-extra .invite-form { margin-top: 4px; }
+
+    footer.foot { margin-top: 40px; padding-top: 22px; border-top: 1px solid rgba(148,163,184,0.12); color: var(--muted); font-size: 0.8rem; line-height: 1.6; }
+
+    @media (max-width: 560px) {
+      .step { padding: 16px; gap: 12px; }
+      .wrap { padding: 28px 16px 60px; }
+    }
+  </style>
+  <!-- Ailane favicon / app icons — estate head standard (AMD-246) -->
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#0a0e1a">
+</head>
+<body style="visibility:hidden">
+  <div id="boot">
+    <div style="text-align:center">
+      <div class="spinner"></div>
+      <div style="font-size:1.3rem;font-weight:700;letter-spacing:0.16em;margin-bottom:6px">AILANE</div>
+      <div style="font-size:0.86rem;color:#64748b">Preparing your onboarding room…</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <header class="top">
+      <div class="brand">AILANE<small>Governance onboarding</small></div>
+      <span class="tierpill">Governance</span>
+    </header>
+
+    <p class="lede">Your governance subscription is active. A few short steps prepare your organisation's workspace before it opens. Two required steps stand between you and your workspace: accepting your agreements, and — for owner and administrator accounts — turning on two-factor authentication. Inviting teammates is optional and can wait. Once your agreements are accepted, two-factor authentication is on for owner and administrator accounts, and your workspace is provisioned, your governance workspace opens below.</p>
+
+    <div id="banner"><span class="dot"></span><span>Connecting to your onboarding service…</span></div>
+
+    <div class="rail" id="rail"></div>
+
+    <footer class="foot">
+      Your agreement acceptances and any two-factor setup are recorded securely against your organisation. Your workspace opens once your agreements are accepted, two-factor authentication is on for your owner and administrator accounts, and your workspace is provisioned. Teammates can be invited at any time, and standard members can turn on two-factor authentication whenever they choose.
+    </footer>
+  </div>
+
+  <script>
+  (function () {
+    var SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+    var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+    var FNS = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co';
+    var MFA_PATH = '/account/security/';            // §0.2(2) enrolment flow
+    var ADMITTED = ['operational', 'operational_readiness', 'governance', 'enterprise', 'institutional']; // OOX §1 — matches /operational/ guard (account/billing tier axis) + institutional (forward-compat)
+
+    var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    var T = null;            // access token
+    var USER = null;         // { id, email, tier }
+    var state = null;        // EF state response
+    var agreements = null;   // live register: key -> { version, source_page_url } (OOX §2)
+    var degraded = false;    // backend unreachable
+    var loading = true;      // initial state fetch in flight
+    var members = null;          // OOX §1 — organisation members list
+    var membersError = false;    // operational-list-members unreachable / not yet deployed
+    var inviteForbidden = false; // 403 not_admin returned by operational-invite-member
+    var inviteMsg = null;        // persisted invite confirmation / inline message: { text, ok }
+    var provisionForbidden = false; // 403 not_admin returned by operational-provision-tenant
+    var acceptedLocal = {};      // OOX §1.3 — keys accepted this session: lower(key) -> display date (immediate acknowledgement + dedupe)
+    var acceptedDB = {};         // OOX §1.1 — accepted status hydrated from the DB on load: lower(key) -> { content_hash -> accepted_at }
+    var mfaSkipped = false;      // OOX §1.1 — user chose "set up two-factor later" (2FA is optional, not a gate)
+    var membersSkipped = false;  // OOX §1.2 — user chose "invite teammates later" (members are optional)
+    var identity = null;         // room identity — last operational-capture-profile response for name/CHN (alin, alin_outcome, company_number_normalised, completeness, acei_sector_code, …)
+    var identityForm = { name: '', chn: '' };   // last-entered identity inputs, re-populated across re-renders
+    var profileExtra = null;     // last operational-capture-profile response for the optional Tier A fields (completeness, acei_sector_code)
+    var profileForm = { industry: '', sic_primary: '', headcount: '', primary_jurisdiction_code: '' }; // last-entered Tier A inputs
+    var profileExtraOpen = false; // whether the "Strengthen your intelligence profile" group is expanded (preserved across re-renders)
+
+    function safeId(s) { return String(s).replace(/[^a-zA-Z0-9_-]/g, '_'); }
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    // Human titles for the five agreement keys (with key-humanising fallback)
+    var TITLES = {
+      terms: 'Terms', terms_of_service: 'Terms', tos: 'Terms',
+      privacy: 'Privacy Notice', privacy_notice: 'Privacy Notice',
+      msa: 'Master Services Agreement', master_services_agreement: 'Master Services Agreement',
+      dpa: 'Data Processing Agreement', data_processing_agreement: 'Data Processing Agreement',
+      aup: 'Acceptable-Use Policy', acceptable_use: 'Acceptable-Use Policy', acceptable_use_policy: 'Acceptable-Use Policy'
+    };
+    function agreementTitle(key) {
+      if (!key) return 'Agreement';
+      var k = String(key).toLowerCase();
+      if (TITLES[k]) return TITLES[k];
+      return k.replace(/[_-]+/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+    }
+
+    // ── Auth guard (RULE 26) ─────────────────────────────────────────────
+    function fail() { window.location.replace('/login/'); }
+
+    async function gate(session) {
+      try {
+        if (!session || !session.access_token) { fail(); return; }
+        var payload = JSON.parse(atob(session.access_token.split('.')[1]));
+        var userId = payload.sub;
+        var resp = await fetch(
+          SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
+          { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + session.access_token, 'Accept': 'application/json' } }
+        );
+        if (!resp.ok) { fail(); return; }
+        var rows = await resp.json();
+        if (!rows.length) { fail(); return; }
+        var tier = rows[0].subscription_tier;
+        if (ADMITTED.indexOf(tier) === -1) { fail(); return; }
+
+        T = session.access_token;
+        USER = { id: userId, email: payload.email, tier: tier };
+
+        // Reveal
+        var boot = document.getElementById('boot');
+        if (boot) boot.style.display = 'none';
+        document.body.style.visibility = 'visible';
+
+        render();
+        fetchState();
+      } catch (e) { fail(); }
+    }
+
+    function start() {
+      sb.auth.getSession().then(function (gs) {
+        if (gs && gs.data && gs.data.session) { gate(gs.data.session); return; }
+        // Fallback: onAuthStateChange with a 6-second timeout
+        var settled = false;
+        var to = setTimeout(function () { if (!settled) { settled = true; fail(); } }, 6000);
+        sb.auth.onAuthStateChange(function (_evt, session) {
+          if (settled) return;
+          if (session) { settled = true; clearTimeout(to); gate(session); }
+        });
+      }).catch(function () { fail(); });
+    }
+
+    // ── State (§1.4) ─────────────────────────────────────────────────────
+    async function fetchState() {
+      loading = true;
+      try {
+        var resp = await fetch(FNS + '/operational-onboarding-state', {
+          method: 'GET',
+          headers: { 'Authorization': 'Bearer ' + T, 'apikey': SUPABASE_ANON, 'Accept': 'application/json' }
+        });
+        if (!resp.ok) { degraded = true; state = null; loading = false; render(); return; }
+        state = await resp.json();
+        agreements = await fetchAgreements();   // live canonical source register (OOX §2.1)
+        acceptedDB = await fetchAcceptances();  // hydrate accepted status from the DB (OOX §1.1)
+        await fetchMembers();                    // org members (OOX §1.1) — own try/catch, never throws
+        degraded = false;
+        loading = false;
+        render();
+      } catch (e) {
+        // Network error / backend not deployed → graceful degradation (§4)
+        degraded = true;
+        state = null;
+        loading = false;
+        render();
+      }
+    }
+
+    // ── Agreements register (OOX §2.1) ───────────────────────────────────
+    // Live, canonical agreements: each ready row carries its register version and
+    // source_page_url (the real RSG-maintained legal page, e.g. https://ailane.ai/terms/).
+    // Shared-read with the user's bearer token. A failure degrades to an empty register
+    // (cards fall back to the "once published" copy) without flagging the onboarding
+    // service itself as unreachable.
+    async function fetchAgreements() {
+      try {
+        var resp = await fetch(
+          SUPABASE_URL + '/rest/v1/operational_agreements?is_current=eq.true&ready=eq.true&select=agreement_key,version,content_hash,source_page_url',
+          { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + T, 'Accept': 'application/json' } }
+        );
+        if (!resp.ok) return {};
+        var rows = await resp.json();
+        var map = {};
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          if (r && r.agreement_key && r.source_page_url) {
+            map[String(r.agreement_key).toLowerCase()] = { version: r.version, content_hash: r.content_hash, source_page_url: r.source_page_url, key: r.agreement_key };
+          }
+        }
+        return map;
+      } catch (e) { return {}; }
+    }
+
+    // ── Accepted-agreement hydration (OOX §1.1) ──────────────────────────
+    // The user's own non-superseded acceptances, read with their bearer token
+    // (RLS auto-scopes to their organisation/user — the same shared-read pattern
+    // this page uses for the register). Keyed lower(agreement_key) -> { content_hash
+    // -> accepted_at }, so an agreement counts as accepted exactly when a non-
+    // superseded acceptance exists at the register's CURRENT content_hash — the same
+    // rule as the DB view v_operational_agreement_gaps (accepted ⇔ no gap). A failure
+    // degrades to an empty map (cards fall back to Accept; never a false "accepted").
+    async function fetchAcceptances() {
+      try {
+        var resp = await fetch(
+          SUPABASE_URL + '/rest/v1/operational_agreement_acceptances?superseded=eq.false&select=agreement_key,agreement_version,content_hash,accepted_at',
+          { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + T, 'Accept': 'application/json' } }
+        );
+        if (!resp.ok) return {};
+        var rows = await resp.json();
+        var map = {};
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          if (!r || !r.agreement_key) continue;
+          var k = String(r.agreement_key).toLowerCase();
+          var h = r.content_hash == null ? '' : String(r.content_hash);   // '' = no content hash on the row
+          var at = r.accepted_at ? String(r.accepted_at) : '';
+          if (!map[k]) map[k] = {};
+          var prev = map[k][h];
+          // Record the acceptance (key presence = accepted at this hash); keep the
+          // most recent accepted_at for display. ISO timestamps compare lexically.
+          if (prev === undefined || (at && at > prev)) map[k][h] = at;
+        }
+        return map;
+      } catch (e) { return {}; }
+    }
+
+    // ── Members (OOX §1.1) ───────────────────────────────────────────────
+    // Lists the organisation's members with the user's bearer token. Reused on
+    // page open and after any membership change (via refreshState). A failure or
+    // 404 (EF not yet deployed) sets membersError so Step 4 degrades gracefully
+    // and disables the invite form, without flagging the whole onboarding service.
+    async function fetchMembers() {
+      try {
+        var resp = await fetch(FNS + '/operational-list-members', {
+          method: 'GET',
+          headers: { 'Authorization': 'Bearer ' + T, 'apikey': SUPABASE_ANON, 'Accept': 'application/json' }
+        });
+        if (!resp.ok) { membersError = true; members = null; return; }
+        var data = await resp.json();
+        if (Array.isArray(data)) members = data;
+        else if (data && Array.isArray(data.members)) members = data.members;
+        else members = [];
+        membersError = false;
+      } catch (e) {
+        membersError = true; members = null;
+      }
+    }
+
+    async function refreshState() { await fetchState(); }
+
+    // ── Unlock (OOX §1.3/§1.4) ───────────────────────────────────────────
+    // landing_unlocked is a SERVER-GENERATED column — (agreements_gate_passed AND
+    // provisioning_complete). The front-end cannot and must not write it; it is
+    // read-only here. Step 6 reads state.landing_unlocked (server truth) and is
+    // never gated on the local acceptance UI. (The earlier front-end PATCH was
+    // dead — the column has no authenticated UPDATE policy — and was removed.)
+
+    // ── Render ───────────────────────────────────────────────────────────
+    function render() {
+      document.getElementById('banner').style.display = degraded ? 'flex' : 'none';
+
+      var mfaPassed = !!(state && state.mfa_gate_passed === true);
+      var agreementsPassed = !!(state && state.agreements_gate_passed === true);
+      var gaps = (state && Array.isArray(state.gaps)) ? state.gaps : [];
+      var unlocked = !!(state && state.landing_unlocked === true);
+
+      var steps = [
+        { n: 0, title: 'Subscription activated', cls: 'complete', panel: '<div class="ok">Payment received — a receipt has been emailed to you.</div>' },
+        { n: 1, title: 'Create organisation', cls: 'complete', panel: '<div class="ok">Your governance workspace was created when your subscription started.</div>' },
+        { n: 2, title: 'Two-factor authentication', requiredLabel: 'Required — owner & admin',
+          cls: mfaPassed ? 'complete' : (mfaSkipped ? 'pending' : 'active'),
+          panel: step2Panel(mfaPassed) },
+        { n: 3, title: 'Your organisation',
+          cls: identityResolved() ? 'complete' : 'active',
+          panel: stepIdentityPanel() },
+        { n: 4, title: 'Agreement Vault', gate: true,
+          cls: agreementsAllAccepted(agreementsPassed, gaps) ? 'complete' : 'active',
+          panel: step3Panel(agreementsPassed, gaps) },
+        { n: 5, title: 'Members & roles', optional: true, optionalLabel: 'Optional',
+          cls: membersSkipped ? 'pending' : 'active',
+          panel: step4Panel() },
+        { n: 6, title: 'Tenant provisioning',
+          cls: (state && state.provisioning_complete === true) ? 'complete' : 'active',
+          panel: step5Panel() },
+        { n: 7, title: 'Landing unlocked',
+          cls: unlocked ? 'complete' : 'pending',
+          panel: step6Panel(unlocked, mfaPassed) }
+      ];
+
+      var html = '';
+      for (var i = 0; i < steps.length; i++) {
+        var s = steps[i];
+        var marker = s.cls === 'complete' ? '&#10003;' : String(s.n);
+        var badge = '';
+        if (s.gate) badge += ' <span class="badge ' + (s.cls === 'complete' ? 'done' : 'gate') + '">' + (s.cls === 'complete' ? 'Complete' : 'Required') + '</span>';
+        if (s.optional) badge += ' <span class="badge ' + (s.cls === 'complete' ? 'done' : 'soon') + '">' + (s.cls === 'complete' ? 'On' : esc(s.optionalLabel || 'Optional')) + '</span>';
+        if (s.requiredLabel) badge += ' <span class="badge ' + (s.cls === 'complete' ? 'done' : 'gate') + '">' + (s.cls === 'complete' ? 'On' : esc(s.requiredLabel)) + '</span>';
+        if (s.soon) badge += ' <span class="badge soon">Coming next</span>';
+        html += '<div class="step ' + s.cls + '">' +
+                  '<div class="marker">' + marker + '</div>' +
+                  '<div class="body">' +
+                    '<div class="head"><span class="title">' + s.n + ' &middot; ' + esc(s.title) + '</span>' + badge + '</div>' +
+                    '<div class="panel">' + s.panel + '</div>' +
+                  '</div>' +
+                '</div>';
+      }
+      document.getElementById('rail').innerHTML = html;
+
+      bindEvents(gaps);
+    }
+
+    function step2Panel(passed) {
+      if (loading) return '<span class="muted">Checking your two-factor status…</span>';
+      if (passed) return '<div class="ok">&#10003; Two-factor authentication is on.</div>';
+      var intro = 'Two-factor authentication is required for owner and administrator accounts before the workspace opens — it protects the account that can bind your organisation. Standard members are prompted at sign-in but do not hold up onboarding. If you ever lose access to your authenticator, your account security settings include a recovery route, and support@ailane.ai can verify and assist.';
+      if (mfaSkipped) {
+        return intro +
+               '<div class="help">You’ve chosen to finish this later. For owner and administrator accounts the workspace stays closed until two-factor authentication is on — pick it up any time from your account security settings.</div>' +
+               '<a class="btn" href="' + MFA_PATH + '">Set up two-factor authentication</a>';
+      }
+      return intro +
+             '<div class="actions" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px">' +
+               '<a class="btn primary" href="' + MFA_PATH + '">Set up two-factor authentication</a>' +
+               '<button class="btn" type="button" id="mfa-skip-btn">Skip for now</button>' +
+             '</div>';
+    }
+
+    // ── "Your organisation" — identity resolution + ALIN (OOX room identity) ──
+    // Additive, non-blocking step rendered above the Agreement Vault. Captures the
+    // organisation's legal name + Companies House number through the deployed
+    // operational-capture-profile EF (partial, idempotent, resumable) and renders
+    // the returned ALIN assignment. Never wired into the agreements gate or unlock.
+    function identityResolved() {
+      return !!(identity && identity.alin && (
+        identity.alin_outcome === 'minted' ||
+        identity.alin_outcome === 'applied_existing' ||
+        identity.alin_outcome === 'already_assigned'));
+    }
+
+    function stepIdentityPanel() {
+      if (loading) return '<span class="muted">Loading your organisation details…</span>';
+
+      var intro = 'Confirm your organisation’s identity so we can link it to its record in the Ailane intelligence estate. This is optional and won’t hold up your onboarding — you can add or update it at any time.';
+      var disabledAttr = degraded ? ' disabled' : '';
+      var nameVal = esc(identityForm.name || '');
+      var chnVal  = esc(identityForm.chn || '');
+
+      var html = intro +
+        '<form class="invite-form" id="identity-form" novalidate>' +
+          '<div class="field-row">' +
+            '<div class="field"><label for="org-name">Organisation legal name</label>' +
+              '<input type="text" id="org-name" name="org_name" placeholder="Your organisation’s registered name" autocomplete="off" value="' + nameVal + '"' + disabledAttr + '></div>' +
+            '<div class="field"><label for="org-chn">Companies House number</label>' +
+              '<input type="text" id="org-chn" name="companies_house_number" class="mono" placeholder="e.g. 01234567" maxlength="8" autocomplete="off" value="' + chnVal + '"' + disabledAttr + '></div>' +
+          '</div>' +
+          '<button type="submit" class="btn primary" id="identity-btn"' + disabledAttr + '>Confirm organisation</button>' +
+          '<div class="card-msg" id="identity-msg"></div>' +
+        '</form>';
+
+      html += identityOutcomeHtml();
+      html += profileExtraHtml();
+      return html;
+    }
+
+    // Render the ALIN assignment by alin_outcome (deterministic copy — verbatim, OOX §3.3).
+    function identityOutcomeHtml() {
+      if (!identity) return '';
+      var outcome = identity.alin_outcome;
+      var alin = identity.alin ? esc(identity.alin) : '';
+      var alinLine = alin ? '<div class="alin-num">Ailane Intelligence Number: <span class="alin-code">' + alin + '</span></div>' : '';
+
+      if (outcome === 'applied_existing') {
+        return '<div class="identity-result"><div class="card-msg ok-msg">Recognised. Your organisation is already held in the Ailane intelligence estate.</div>' + alinLine + '</div>';
+      }
+      if (outcome === 'minted') {
+        return '<div class="identity-result"><div class="card-msg ok-msg">Welcome. Your Ailane Intelligence Number has been assigned.</div>' + alinLine + '</div>';
+      }
+      if (outcome === 'already_assigned') {
+        return '<div class="identity-result">' + alinLine + '</div>';
+      }
+      if (outcome === 'pending') {
+        return '<div class="identity-result"><div class="help">Add your Companies House number when ready — it links your organisation to its intelligence record.</div></div>';
+      }
+      if (outcome === 'rejected') {
+        return '<div class="identity-result"><div class="card-msg">That Companies House number does not look right — please check the 8-character number as registered.</div></div>';
+      }
+      if (outcome === 'conflict') {
+        return '<div class="identity-result"><div class="card-msg">Your organisation record needs a manual check — no action needed from you; our team has been flagged.</div></div>';
+      }
+      return '';
+    }
+
+    // Optional Tier A profile fields — collapsible "Strengthen your intelligence
+    // profile" group. Same EF call pattern; renders completeness + sector note (OOX §3.4).
+    function profileExtraHtml() {
+      var disabledAttr = degraded ? ' disabled' : '';
+      var jurisdictions = ['GB', 'GB-ENG', 'GB-WLS', 'GB-SCT', 'GB-NIR'];
+      var opts = '<option value="">Select jurisdiction</option>';
+      for (var i = 0; i < jurisdictions.length; i++) {
+        var jc = jurisdictions[i];
+        opts += '<option value="' + jc + '"' + (profileForm.primary_jurisdiction_code === jc ? ' selected' : '') + '>' + jc + '</option>';
+      }
+
+      var result = '';
+      if (profileExtra) {
+        if (profileExtra.completeness != null) {
+          result += '<div class="card-msg ok-msg">Profile completeness: ' + esc(String(profileExtra.completeness)) + '%</div>';
+        }
+        if (profileExtra.acei_sector_code != null && profileExtra.acei_sector_code !== '') {
+          result += '<div class="help">Sector profile applied to your exposure scoring.</div>';
+        }
+      }
+
+      var open = (profileExtraOpen || profileExtra) ? ' open' : '';
+      return '<details class="profile-extra" id="profile-extra-details"' + open + '>' +
+               '<summary>Strengthen your intelligence profile</summary>' +
+               '<form class="invite-form" id="profile-extra-form" novalidate>' +
+                 '<div class="field-row">' +
+                   '<div class="field"><label for="pf-industry">Industry</label>' +
+                     '<input type="text" id="pf-industry" name="industry" placeholder="e.g. Facilities management" autocomplete="off" value="' + esc(profileForm.industry || '') + '"' + disabledAttr + '></div>' +
+                   '<div class="field"><label for="pf-sic">Primary SIC code</label>' +
+                     '<input type="text" id="pf-sic" name="sic_primary" class="mono" placeholder="5-digit, e.g. 81100" maxlength="5" autocomplete="off" value="' + esc(profileForm.sic_primary || '') + '"' + disabledAttr + '></div>' +
+                 '</div>' +
+                 '<div class="field-row">' +
+                   '<div class="field"><label for="pf-headcount">Headcount</label>' +
+                     '<input type="number" id="pf-headcount" name="headcount" min="0" placeholder="e.g. 250" autocomplete="off" value="' + esc(profileForm.headcount || '') + '"' + disabledAttr + '></div>' +
+                   '<div class="field"><label for="pf-jur">Primary jurisdiction</label>' +
+                     '<select id="pf-jur" name="primary_jurisdiction_code"' + disabledAttr + '>' + opts + '</select></div>' +
+                 '</div>' +
+                 '<button type="submit" class="btn" id="profile-extra-btn"' + disabledAttr + '>Save profile details</button>' +
+                 '<div class="card-msg" id="profile-extra-msg"></div>' +
+                 result +
+               '</form>' +
+             '</details>';
+    }
+
+    function setIdentityMsg(text) {
+      var el = document.getElementById('identity-msg');
+      if (el) el.textContent = text || '';
+    }
+    function setProfileExtraMsg(text) {
+      var el = document.getElementById('profile-extra-msg');
+      if (el) el.textContent = text || '';
+    }
+    function fieldVal(id) { var el = document.getElementById(id); return el ? String(el.value).trim() : ''; }
+
+    // Submit organisation identity (name + Companies House number) → ALIN (OOX §3.2/§3.3).
+    async function submitIdentity(btn) {
+      var name = fieldVal('org-name');
+      var chn  = fieldVal('org-chn');
+      identityForm.name = name;
+      identityForm.chn  = chn;
+
+      setIdentityMsg('');
+      if (!name) { setIdentityMsg('Please enter your organisation’s legal name.'); return; }
+      if (!btn) return;
+
+      var label = btn.textContent;
+      btn.disabled = true; btn.classList.add('is-disabled'); btn.textContent = 'Checking…';
+      try {
+        var resp = await fetch(FNS + '/operational-capture-profile', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + T, 'apikey': SUPABASE_ANON, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: { name: name, companies_house_number: chn } })
+        });
+        if (!resp.ok) {   // network-level / 500 — idempotent backend, safe to resubmit (§3.2)
+          btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+          setIdentityMsg('We could not reach the onboarding service — your details are safe to resubmit.');
+          return;
+        }
+        var data = {};
+        try { data = await resp.json(); } catch (e) {}
+        identity = data;
+        if (data && data.company_number_normalised) identityForm.chn = String(data.company_number_normalised);
+        if (data && data.alin_outcome === 'conflict') { try { console.warn('operational-capture-profile conflict', data); } catch (e) {} }
+        render();   // re-render to show the ALIN outcome row
+      } catch (e) {
+        btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+        setIdentityMsg('We could not reach the onboarding service — your details are safe to resubmit.');
+      }
+    }
+
+    // Submit optional Tier A profile fields → completeness + sector profile (OOX §3.4).
+    async function submitProfileExtra(btn) {
+      var industry  = fieldVal('pf-industry');
+      var sic       = fieldVal('pf-sic');
+      var headcount = fieldVal('pf-headcount');
+      var jur       = fieldVal('pf-jur');
+      profileForm.industry = industry;
+      profileForm.sic_primary = sic;
+      profileForm.headcount = headcount;
+      profileForm.primary_jurisdiction_code = jur;
+
+      var fields = {};
+      if (industry) fields.industry = industry;
+      if (sic) fields.sic_primary = sic;
+      if (headcount && !isNaN(Number(headcount))) fields.headcount = Number(headcount);
+      if (jur) fields.primary_jurisdiction_code = jur;   // submit the chosen string verbatim (§3.4)
+
+      setProfileExtraMsg('');
+      if (Object.keys(fields).length === 0) { setProfileExtraMsg('Add at least one detail to strengthen your profile.'); return; }
+      if (!btn) return;
+
+      var label = btn.textContent;
+      btn.disabled = true; btn.classList.add('is-disabled'); btn.textContent = 'Saving…';
+      try {
+        var resp = await fetch(FNS + '/operational-capture-profile', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + T, 'apikey': SUPABASE_ANON, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: fields })
+        });
+        if (!resp.ok) {
+          btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+          setProfileExtraMsg('We could not reach the onboarding service — your details are safe to resubmit.');
+          return;
+        }
+        var data = {};
+        try { data = await resp.json(); } catch (e) {}
+        profileExtra = data;
+        profileExtraOpen = true;   // keep the group open to show the result after re-render
+        render();
+      } catch (e) {
+        btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+        setProfileExtraMsg('We could not reach the onboarding service — your details are safe to resubmit.');
+      }
+    }
+
+    // ── Step 3 — Agreement Vault (OOX §1.1/§1.2) ─────────────────────────
+    // One status row per current+ready+published agreement. Accepted status is
+    // HYDRATED from the DB on load: an agreement is accepted when a non-superseded
+    // acceptance exists at its current content_hash (mirrors v_operational_agreement_gaps:
+    // accepted ⇔ no gap), merged with any in-session acceptance so a fresh accept
+    // shows ✓ immediately. Accepted rows show "Accepted ✓ — recorded <date>" with no
+    // Accept button; only genuinely-outstanding rows show Accept — so an already-
+    // accepted version cannot be submitted twice and reloads create no duplicate
+    // rows. A plain-words summary names only what genuinely remains outstanding.
+    // ── Fail-closed agreement gaps (OOX §5) ──────────────────────────────
+    // A required agreement whose current version is not yet published arrives in
+    // state.gaps with required_version === 'UNPUBLISHED — BLOCKING'. It has no
+    // published register row to accept, so it renders defensively (no accept action).
+    function blockingGaps(gaps) {
+      var out = [];
+      if (!Array.isArray(gaps)) return out;
+      for (var i = 0; i < gaps.length; i++) {
+        if (gaps[i] && gaps[i].required_version === 'UNPUBLISHED — BLOCKING') out.push(gaps[i]);
+      }
+      return out;
+    }
+    function blockingCardsHtml(blocking) {
+      var html = '';
+      for (var i = 0; i < blocking.length; i++) {
+        var title = agreementTitle(blocking[i] && blocking[i].agreement_key);
+        html += '<div class="card">' +
+                  '<h3>' + esc(title) + '</h3>' +
+                  '<div class="card-msg">Awaiting publication — this document will appear here for acceptance before your workspace can open.</div>' +
+                '</div>';
+      }
+      return html;
+    }
+
+    function step3Panel(passed, gaps) {
+      if (loading) return '<span class="muted">Loading your agreements…</span>';
+      if (degraded) return '<span class="muted">Your agreements will appear here once the onboarding service reconnects.</span>';
+
+      var reg = agreements || {};
+      var regKeys = Object.keys(reg);
+      var blocking = blockingGaps(gaps);              // OOX §5 — unpublished-required (fail-closed) gaps
+      var blockingCards = blockingCardsHtml(blocking); // '' when none
+
+      // No published register yet — fall back to the "once published" copy, but
+      // still name anything the server reports outstanding so the user is never
+      // left in silence. Fail-closed (blocking) gaps render defensively (OOX §5),
+      // not as a plain "awaiting acceptance" name.
+      if (regKeys.length === 0) {
+        if (passed && gaps.length === 0) return '<div class="ok">&#10003; All required agreements have been accepted.</div>';
+        var nonBlocking = [];
+        for (var b = 0; b < gaps.length; b++) {
+          if (!(gaps[b] && gaps[b].required_version === 'UNPUBLISHED — BLOCKING')) nonBlocking.push(gaps[b]);
+        }
+        var pending = outstandingNames(nonBlocking);
+        var lead = pending
+          ? '<span class="muted">Your agreements will appear here once published. Awaiting: ' + esc(pending) + '.</span>'
+          : '<span class="muted">Your agreements will appear here once published.</span>';
+        return (blockingCards ? '<div class="cards">' + blockingCards + '</div>' : '') + lead;
+      }
+
+      regKeys.sort();
+      var outstanding = [];   // human titles still awaiting acceptance (hydrated truth, OOX §1.2)
+      var cards = '<div class="cards">';
+      for (var j = 0; j < regKeys.length; j++) {
+        var lkey = regKeys[j];
+        var row = reg[lkey];
+        var origKey = row.key || lkey;             // original-case key (sent to the accept EF)
+        var ver = row.version;                      // live register version (also sent on Accept)
+        var url = row.source_page_url;              // live canonical legal page
+        var acceptedDate = acceptedDateFor(lkey, row); // null = outstanding; string (maybe '') = accepted (OOX §1.1)
+        cards += '<div class="card">' +
+                   '<h3>' + esc(agreementTitle(lkey)) + '</h3>' +
+                   '<div class="ver">' + esc(ver) + '</div>' +
+                   '<div class="viewer"><a class="doc-link" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">Read the agreement</a></div>';
+        if (acceptedDate !== null) {
+          cards += '<div class="card-msg ok-msg">&#10003; Accepted' + (acceptedDate ? ' — recorded ' + esc(acceptedDate) : '') + '</div>';
+        } else {
+          outstanding.push(agreementTitle(lkey));
+          if (lkey === 'msa') {
+            cards += '<div class="card-msg signpost" role="note">Before you accept, three terms of this Agreement are specifically signposted: ' +
+                     'AI Lane\'s liability is capped (clauses 13.2–13.4); ' +
+                     'Fees are non-refundable except as clause 7.4 states; ' +
+                     'and access can be suspended or re-locked in the circumstances set out in clauses 5.3, 5.4 and 14. ' +
+                     'The full text is one click away above — read it before accepting.</div>';
+          }
+          cards += '<div class="actions">' +
+                     '<button class="btn primary accept-btn" data-key="' + esc(origKey) + '" data-version="' + esc(ver) + '">Accept</button>' +
+                     '<span class="muted">Awaiting your acceptance</span>' +
+                   '</div>' +
+                   '<div class="card-msg" id="msg-' + safeId(origKey) + '"></div>';
+        }
+        cards += '</div>';
+      }
+      cards += blockingCards;   // OOX §5 — fail-closed rows sit alongside the register cards
+      cards += '</div>';
+
+      // Plain-words status summary (OOX §1.2) — name only what is genuinely
+      // outstanding after hydration. A quiet all-clear shows only when nothing is
+      // outstanding AND nothing is awaiting publication (OOX §5).
+      var summary = '';
+      if (outstanding.length === 0 && blocking.length === 0) {
+        summary = '<div class="ok" style="margin-top:12px">&#10003; All agreements accepted.</div>';
+      } else if (outstanding.length) {
+        summary = '<div class="help" style="margin-top:12px">Awaiting your acceptance of: ' + esc(outstanding.join(', ')) + '.</div>';
+      }
+      return cards + summary;
+    }
+
+    // Accepted date for a register agreement (OOX §1.1). Returns:
+    //   • a string (possibly '') when accepted — '' means the date is unknown;
+    //   • null when still outstanding.
+    // Accepted ⇔ accepted in-session OR a hydrated non-superseded DB acceptance
+    // exists at the agreement's CURRENT content_hash. Existence (not truthiness)
+    // is what marks "accepted", so a null/blank accepted_at is still accepted.
+    function acceptedDateFor(lkey, row) {
+      if (acceptedLocal[lkey]) return acceptedLocal[lkey];          // accepted this session — show today's date
+      var hash = (row && row.content_hash != null) ? String(row.content_hash) : '';
+      var byHash = acceptedDB[lkey];
+      if (byHash && Object.prototype.hasOwnProperty.call(byHash, hash)) {
+        var at = byHash[hash];
+        return at ? formatAcceptedDate(at) : '';
+      }
+      return null;
+    }
+
+    // True when every current+ready register agreement is accepted (hydrated
+    // truth). With no register yet, defer to the server gate. Drives Step 3's
+    // marker and the awaiting summary off the same source (OOX §1.1/§1.2).
+    function agreementsAllAccepted(passed, gaps) {
+      var reg = agreements || {};
+      var keys = Object.keys(reg);
+      if (keys.length === 0) return !!(passed && gaps.length === 0);
+      for (var i = 0; i < keys.length; i++) {
+        if (acceptedDateFor(keys[i], reg[keys[i]]) === null) return false;
+      }
+      return true;
+    }
+
+    // Human-titled, deduped list of agreements the server still reports
+    // outstanding, excluding any accepted in this session (optimistic). Used only
+    // in the no-register fallback (the main path uses hydrated truth). OOX §1.2.
+    function outstandingNames(gaps) {
+      var seen = {}, names = [];
+      for (var i = 0; i < gaps.length; i++) {
+        var k = (gaps[i] && gaps[i].agreement_key) ? String(gaps[i].agreement_key).toLowerCase() : '';
+        if (!k || seen[k] || acceptedLocal[k]) continue;
+        seen[k] = true;
+        names.push(agreementTitle(k));
+      }
+      return names.join(', ');
+    }
+
+    function formatToday() {
+      try { return new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); }
+      catch (e) { return 'today'; }
+    }
+
+    // Format a DB accepted_at timestamp for display (OOX §1.1). Returns '' on a
+    // missing/unparseable value so the card still reads "Accepted ✓" without a date.
+    function formatAcceptedDate(iso) {
+      if (!iso) return '';
+      try {
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return '';
+        return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      } catch (e) { return ''; }
+    }
+
+    // ── Step 4 — Members & roles (OOX §1) ────────────────────────────────
+    function step4Panel() {
+      if (loading) return '<span class="muted">Loading your members…</span>';
+
+      var intro = 'Invite teammates to your governance workspace. This is optional — you can do it now, or any time later from your workspace settings. It won’t hold up your onboarding.';
+
+      if (membersSkipped) {
+        return intro +
+               '<div class="help">You’ve chosen to invite teammates later.</div>' +
+               '<button class="btn" type="button" id="members-unskip-btn">Invite a teammate now</button>';
+      }
+
+      var blocked = (degraded || membersError);   // members EF unreachable / not yet deployed
+      var html = intro;
+
+      if (blocked || members === null) {
+        html += '<div class="muted" style="margin-top:10px">Your members will appear here once the onboarding service reconnects.</div>';
+      } else {
+        html += renderMembersList(members);
+      }
+
+      if (inviteForbidden) {
+        html += '<div class="card-msg">Only an organisation admin can invite members.</div>';
+      } else {
+        html += inviteFormHtml(blocked ? ' disabled' : '');
+      }
+
+      html += '<div class="actions" style="margin-top:12px"><button class="btn" type="button" id="members-skip-btn">Skip for now</button></div>';
+      return html;
+    }
+
+    function renderMembersList(list) {
+      if (!list || list.length === 0) {
+        return '<div class="muted">No members yet — invite your first colleague below.</div>';
+      }
+      var rows = '<div class="members">';
+      for (var i = 0; i < list.length; i++) {
+        var m = list[i] || {};
+        var name = m.full_name || m.email || 'Member';
+        var role = m.role === 'admin' ? 'Admin' : (m.role === 'standard' ? 'Standard' : (m.role ? String(m.role) : '—'));
+        var chip = m.mfa_verified
+          ? '<span class="chip on">2FA on</span>'
+          : '<span class="chip pending">2FA pending</span>';
+        rows += '<div class="member">' +
+                  '<div class="m-main">' +
+                    '<span class="m-name">' + esc(name) + '</span>' +
+                    '<span class="m-email">' + esc(m.email || '') + '</span>' +
+                  '</div>' +
+                  '<div class="m-meta">' +
+                    '<span class="m-role">' + esc(role) + '</span>' + chip +
+                  '</div>' +
+                '</div>';
+      }
+      rows += '</div>';
+      return rows;
+    }
+
+    function inviteFormHtml(disabledAttr) {
+      var msg = inviteMsg ? esc(inviteMsg.text) : '';
+      var msgCls = 'card-msg' + (inviteMsg && inviteMsg.ok ? ' ok-msg' : '');
+      return '<form class="invite-form" id="invite-form" novalidate>' +
+               '<div class="field-row">' +
+                 '<div class="field"><label for="inv-name">Full name</label>' +
+                   '<input type="text" id="inv-name" name="full_name" placeholder="e.g. Jordan Patel" autocomplete="off"' + disabledAttr + '></div>' +
+                 '<div class="field"><label for="inv-email">Email</label>' +
+                   '<input type="email" id="inv-email" name="email" placeholder="name@company.co.uk" autocomplete="off"' + disabledAttr + '></div>' +
+                 '<div class="field"><label for="inv-role">Role</label>' +
+                   '<select id="inv-role" name="role"' + disabledAttr + '>' +
+                     '<option value="standard" selected>Standard</option>' +
+                     '<option value="admin">Admin</option>' +
+                   '</select></div>' +
+               '</div>' +
+               '<button type="submit" class="btn primary" id="invite-btn"' + disabledAttr + '>Send invitation</button>' +
+               '<div class="' + msgCls + '" id="invite-msg">' + msg + '</div>' +
+             '</form>';
+    }
+
+    // ── Step 5 — Tenant provisioning (OOX §2) ────────────────────────────
+    function step5Panel() {
+      if (loading) return '<span class="muted">Checking your workspace…</span>';
+      if (state && state.provisioning_complete === true) {
+        return '<div class="ok">&#10003; Your workspace has been provisioned.</div>';
+      }
+      if (provisionForbidden) {
+        return '<div class="muted">Your organisation admin will provision the workspace.</div>' +
+               '<div class="help">Provisioning enables your compliance modules and prepares your workspace.</div>';
+      }
+      var disabledAttr = degraded ? ' disabled' : '';
+      return '<button class="btn primary' + (degraded ? ' is-disabled' : '') + '" id="provision-btn"' + disabledAttr + '>Provision workspace</button>' +
+             '<div class="help">Provisioning enables your compliance modules and prepares your workspace.</div>' +
+             '<div class="card-msg" id="provision-msg"></div>';
+    }
+
+    function step6Panel(unlocked, mfaPassed) {
+      if (unlocked && !mfaPassed) {
+        return '<div class="help">Your agreements and provisioning are complete, but two-factor authentication is not yet on for this organisation’s owner and administrator accounts. The workspace entrance is withheld until it is — set it up now and this step opens immediately.</div>' +
+               '<a class="btn primary" href="/account/security/">Set up two-factor authentication</a>';
+      }
+      if (unlocked) {
+        return 'Everything is in place.' +
+               '<br><a class="btn primary' + (degraded ? ' is-disabled' : '') + '" id="enter-btn" href="/governance/">Enter your governance workspace</a>';
+      }
+      return '<button class="btn is-disabled" disabled>Enter your governance workspace</button>' +
+             '<div class="help">Accept your agreements, turn on two-factor authentication (owner and administrator accounts), and provision your workspace to open it. Inviting teammates is optional.</div>';
+    }
+
+    function bindEvents(gaps) {
+      var btns = document.querySelectorAll('.accept-btn');
+      for (var i = 0; i < btns.length; i++) {
+        btns[i].addEventListener('click', function () {
+          acceptAgreement(this.getAttribute('data-key'), this.getAttribute('data-version'), this);
+        });
+        if (degraded) { btns[i].disabled = true; btns[i].classList.add('is-disabled'); }
+      }
+      var enter = document.getElementById('enter-btn');
+      if (enter) {
+        enter.addEventListener('click', function (e) {
+          if (degraded) { e.preventDefault(); return; }
+          e.preventDefault();
+          window.location.href = '/governance/';
+        });
+      }
+
+      // Step 4 — invite form (OOX §1.2)
+      var inviteForm = document.getElementById('invite-form');
+      if (inviteForm) {
+        inviteForm.addEventListener('submit', function (e) {
+          e.preventDefault();
+          submitInvite(document.getElementById('invite-btn'));
+        });
+      }
+
+      // Step 5 — provision (OOX §2)
+      var prov = document.getElementById('provision-btn');
+      if (prov) {
+        prov.addEventListener('click', function () { provisionTenant(prov); });
+      }
+
+      // Step 2 — two-factor skip (OOX §1.1 — optional, advances the flow)
+      var mfaSkip = document.getElementById('mfa-skip-btn');
+      if (mfaSkip) mfaSkip.addEventListener('click', function () { mfaSkipped = true; render(); });
+
+      // Step 4 — members skip / un-skip (OOX §1.2 — optional, advances the flow)
+      var memSkip = document.getElementById('members-skip-btn');
+      if (memSkip) memSkip.addEventListener('click', function () { membersSkipped = true; render(); });
+      var memUnskip = document.getElementById('members-unskip-btn');
+      if (memUnskip) memUnskip.addEventListener('click', function () { membersSkipped = false; render(); });
+
+      // "Your organisation" — identity + optional Tier A profile (OOX §3)
+      var idForm = document.getElementById('identity-form');
+      if (idForm) idForm.addEventListener('submit', function (e) { e.preventDefault(); submitIdentity(document.getElementById('identity-btn')); });
+      var pxForm = document.getElementById('profile-extra-form');
+      if (pxForm) pxForm.addEventListener('submit', function (e) { e.preventDefault(); submitProfileExtra(document.getElementById('profile-extra-btn')); });
+      var pxDetails = document.getElementById('profile-extra-details');
+      if (pxDetails) pxDetails.addEventListener('toggle', function () { profileExtraOpen = pxDetails.open; });
+    }
+
+    function setMsg(key, text) {
+      var el = document.getElementById('msg-' + safeId(key));
+      if (el) el.textContent = text || '';
+    }
+
+    // ── Accept (§1.6) ────────────────────────────────────────────────────
+    async function acceptAgreement(key, version, btn) {
+      if (degraded) return;
+      var lkey = String(key).toLowerCase();
+      if (acceptedLocal[lkey]) return;                       // already accepted this session — no duplicate submit (§1.3)
+      btn.disabled = true; btn.classList.add('is-disabled');
+      var label = btn.textContent; btn.textContent = 'Recording acceptance…';
+      setMsg(key, '');
+      try {
+        var resp = await fetch(FNS + '/operational-accept-agreement', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + T, 'apikey': SUPABASE_ANON, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ agreement_key: key, agreement_version: version })
+        });
+        if (resp.status === 200) {
+          acceptedLocal[lkey] = formatToday();               // acknowledge immediately + block re-acceptance (§1.3)
+          await refreshState();                              // server trigger recomputes the gate; re-read + re-render
+          return;
+        }
+        if (resp.status === 409) {
+          delete acceptedLocal[lkey];                        // content changed — the latest version must be reviewed afresh
+          setMsg(key, 'This agreement was just updated — loading the latest version to review.');
+          await refreshState();
+          return;
+        }
+        btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+        setMsg(key, 'We couldn’t record your acceptance just now. Please try again.');
+      } catch (e) {
+        btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+        setMsg(key, 'We couldn’t reach the onboarding service. Please try again.');
+      }
+    }
+
+    // ── Step 4 / Step 5 message + banner helpers ─────────────────────────
+    function setInviteMsg(text, ok) {
+      inviteMsg = text ? { text: text, ok: !!ok } : null;
+      var el = document.getElementById('invite-msg');
+      if (el) { el.textContent = text || ''; el.className = 'card-msg' + (ok ? ' ok-msg' : ''); }
+    }
+    function setProvisionMsg(text) {
+      var el = document.getElementById('provision-msg');
+      if (el) el.textContent = text || '';
+    }
+    function showBanner(show) {
+      var b = document.getElementById('banner');
+      if (b) b.style.display = show ? 'flex' : 'none';
+    }
+
+    // ── Invite a member (OOX §1.2) ───────────────────────────────────────
+    async function submitInvite(btn) {
+      var nameEl  = document.getElementById('inv-name');
+      var emailEl = document.getElementById('inv-email');
+      var roleEl  = document.getElementById('inv-role');
+      var full_name = nameEl  ? nameEl.value.trim()  : '';
+      var email     = emailEl ? emailEl.value.trim() : '';
+      var role      = (roleEl && roleEl.value === 'admin') ? 'admin' : 'standard';
+
+      setInviteMsg('', false);
+      if (!full_name || !email) { setInviteMsg('Please enter both a name and an email address.', false); return; }
+      if (!btn) return;
+
+      var label = btn.textContent;
+      btn.disabled = true; btn.classList.add('is-disabled'); btn.textContent = 'Sending invitation…';
+
+      try {
+        var resp = await fetch(FNS + '/operational-invite-member', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + T, 'apikey': SUPABASE_ANON, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, full_name: full_name, role: role })
+        });
+
+        if (resp.status === 200) {
+          var data = {};
+          try { data = await resp.json(); } catch (e) {}
+          // refreshState() re-fetches both the members list and onboarding state.
+          // (A new member without 2FA may show mfa_gate_passed=false server-side,
+          // but 2FA is not an unlock gate; landing_unlocked is a server-generated
+          // column, so adding a teammate cannot re-lock an open workspace, OOX §1.4.)
+          inviteMsg = (data && data.invite_email_sent === false)
+            ? { text: 'Member added — share their sign-in link from your admin tools.', ok: true }
+            : { text: 'Invitation sent to ' + email + '.', ok: true };
+          await refreshState();
+          return;
+        }
+
+        if (resp.status === 403) {           // not_admin
+          inviteForbidden = true; inviteMsg = null;
+          render();
+          return;
+        }
+
+        if (resp.status === 409) {           // member_email_exists
+          btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+          setInviteMsg('That email is already a member.', false);
+          return;
+        }
+
+        // other error → degradation banner; leave the form enabled to retry
+        btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+        showBanner(true);
+        setInviteMsg('We couldn’t send that invitation just now. Please try again.', false);
+      } catch (e) {
+        btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+        showBanner(true);
+        setInviteMsg('We couldn’t reach the onboarding service. Please try again.', false);
+      }
+    }
+
+    // ── Provision tenant (OOX §2) ────────────────────────────────────────
+    async function provisionTenant(btn) {
+      if (!btn || degraded) return;
+      var label = btn.textContent;
+      btn.disabled = true; btn.classList.add('is-disabled'); btn.textContent = 'Provisioning…';
+      setProvisionMsg('');
+
+      try {
+        var resp = await fetch(FNS + '/operational-provision-tenant', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + T, 'apikey': SUPABASE_ANON }
+        });
+
+        // 200: re-fetch state. landing_unlocked is a server-generated column
+        // (agreements_gate_passed AND provisioning_complete); refreshState() re-reads
+        // it, so Step 6 lights up once provisioning completes the unlock condition.
+        if (resp.status === 200) { await refreshState(); return; }
+
+        if (resp.status === 403) {           // not_admin
+          provisionForbidden = true;
+          render();
+          return;
+        }
+
+        // error / 404 → degradation banner; keep the button enabled to retry
+        btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+        showBanner(true);
+        setProvisionMsg('We couldn’t start provisioning just now. Please try again.');
+      } catch (e) {
+        btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+        showBanner(true);
+        setProvisionMsg('We couldn’t reach the onboarding service. Please try again.');
+      }
+    }
+
+    start();
+  })();
+  </script>
+</body>
+</html>
