@@ -551,9 +551,25 @@
         .catch(function () { /* badge is cosmetic; ignore */ });
     }
 
+    // WSUX pass 2 §5 — per-surface open-state persistence (localStorage). Groups render collapsed
+    // on first entry; a user's expansions are restored on return. Key is per surface.
+    var RESEARCH_OPEN_KEY = 'ailane_research_open_v1:governance-cases';
+    function researchReadOpen() {
+      try { var a = JSON.parse(localStorage.getItem(RESEARCH_OPEN_KEY) || '[]'); return Array.isArray(a) ? a : []; }
+      catch (e) { return []; }
+    }
+    function researchSetOpen(groupId, isOpen) {
+      var ids = researchReadOpen();
+      var i = ids.indexOf(groupId);
+      if (isOpen && i === -1) ids.push(groupId);
+      else if (!isOpen && i !== -1) ids.splice(i, 1);
+      try { localStorage.setItem(RESEARCH_OPEN_KEY, JSON.stringify(ids)); } catch (e) { /* non-fatal */ }
+    }
+
     // ---- Collapsible dropdown (toggle + card idiom) ----
-    function makeDrop(title, openByDefault) {
+    function makeDrop(title, groupId) {
       var section = el('section', 'drop');
+      var openByDefault = researchReadOpen().indexOf(groupId) !== -1;   // §5 — collapsed unless remembered
       if (openByDefault) section.classList.add('open');
       var head = document.createElement('button');
       head.type = 'button'; head.className = 'drop-head';
@@ -567,6 +583,7 @@
       head.addEventListener('click', function () {
         var open = section.classList.toggle('open');
         head.setAttribute('aria-expanded', open ? 'true' : 'false');
+        researchSetOpen(groupId, open);   // §5 — persist per surface
       });
       return {
         section: section,
@@ -664,8 +681,8 @@
     // ---- Boot ----
     loadTierBadge();
 
-    var casesDrop = makeDrop('Recent Cases', true);
-    var enfDrop = makeDrop('Enforcement & Regulatory', false);
+    var casesDrop = makeDrop('Recent Cases', 'recent-cases');
+    var enfDrop = makeDrop('Enforcement & Regulatory', 'enforcement');
     clear(rootEl);
     rootEl.appendChild(casesDrop.section);
     rootEl.appendChild(enfDrop.section);

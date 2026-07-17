@@ -4089,7 +4089,7 @@
         letterSpacing: "0.06em",
         marginBottom: "24px",
         textAlign: "center"
-      } }, "Eileen \xB7 UK Employment Law Intelligence"), /* @__PURE__ */ React.createElement("div", { className: "kl-welcome-input" }, /* @__PURE__ */ React.createElement(MessageInput, { onSend, disabled: isLoading, onInputChange, nexusState, tier, prefersReducedMotion })), hubMode && hubSession && /* @__PURE__ */ React.createElement(HubMatterPanel, { hubSession, refreshKey: matterRefreshKey, showHistory: true }), /* @__PURE__ */ React.createElement(HorizonAlert, null), /* @__PURE__ */ React.createElement(ForwardRail, null), /* @__PURE__ */ React.createElement("div", { className: "kl-domain-card-grid" }, DOMAINS.map(function(domain) {
+      } }, "Eileen \xB7 UK Employment Law Intelligence"), /* @__PURE__ */ React.createElement("div", { className: "kl-welcome-input" }, /* @__PURE__ */ React.createElement(MessageInput, { onSend, disabled: isLoading, onInputChange, nexusState, tier, prefersReducedMotion })), hubMode && hubSession && /* @__PURE__ */ React.createElement(HubMatterPanel, { hubSession, refreshKey: matterRefreshKey }), /* @__PURE__ */ React.createElement(HorizonAlert, null), /* @__PURE__ */ React.createElement(ForwardRail, null), /* @__PURE__ */ React.createElement("div", { className: "kl-domain-card-grid" }, DOMAINS.map(function(domain) {
         var navToDomain = function() {
           window.location.hash = "/domain/" + domain.slug;
         };
@@ -4468,6 +4468,35 @@
           var active = currentFacet === f.id;
           var href = f.href;
           if (f.id === "vault" && hasKLSession && !hasSubscription) href = "/knowledge-library/vault/";
+          var isVault = f.id === "vault";
+          var facetStyle = isVault ? {
+            width: "calc(100% - 16px)",
+            margin: "4px 8px",
+            textAlign: "left",
+            display: "block",
+            background: active ? "rgba(245,158,11,0.20)" : "rgba(245,158,11,0.10)",
+            border: "1px solid #F59E0B",
+            borderLeft: "3px solid #F59E0B",
+            borderRadius: "6px",
+            color: "#F8FAFC",
+            cursor: "pointer",
+            fontWeight: 600,
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: "13px",
+            padding: "8px 13px"
+          } : {
+            width: "100%",
+            textAlign: "left",
+            display: "block",
+            background: active ? "rgba(14,165,233,0.12)" : "transparent",
+            border: "none",
+            borderLeft: active ? "2px solid #0EA5E9" : "2px solid transparent",
+            color: active ? "#F1F5F9" : "#94A3B8",
+            cursor: "pointer",
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: "13px",
+            padding: "8px 16px"
+          };
           return React.createElement("button", {
             key: f.id,
             type: "button",
@@ -4479,19 +4508,7 @@
               onSelectFacet(active ? null : f.id);
             },
             "aria-pressed": active,
-            style: {
-              width: "100%",
-              textAlign: "left",
-              display: "block",
-              background: active ? "rgba(14,165,233,0.12)" : "transparent",
-              border: "none",
-              borderLeft: active ? "2px solid #0EA5E9" : "2px solid transparent",
-              color: active ? "#F1F5F9" : "#94A3B8",
-              cursor: "pointer",
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: "13px",
-              padding: "8px 16px"
-            }
+            style: facetStyle
           }, [
             React.createElement("span", { key: "lbl" }, f.label),
             // OOX-001 CALENDAR-PAGE-001 §1.10 — new-events dot on the Calendar nav item.
@@ -4626,6 +4643,9 @@
           })()
         )
       ),
+      // WSUX pass 2 §4 — Remembered-matters panel, bottom-left directly ABOVE HISTORY (hub only;
+      // returns null without a hubSession, so public KL is unchanged).
+      React.createElement(HubRememberedMattersPanel, { hubSession }),
       React.createElement(
         "div",
         { style: { flexShrink: 0, borderTop: "1px solid rgba(255,255,255,0.06)" } },
@@ -6694,6 +6714,30 @@
       }));
     }));
   }
+  function klResearchReadOpen(key) {
+    try {
+      var raw = localStorage.getItem(key);
+      if (!raw) return {};
+      var arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) return {};
+      var map = {};
+      arr.forEach(function(id) {
+        if (id != null) map[String(id)] = true;
+      });
+      return map;
+    } catch (e) {
+      return {};
+    }
+  }
+  function klResearchWriteOpen(key, map) {
+    try {
+      var open = Object.keys(map || {}).filter(function(k) {
+        return !!map[k];
+      });
+      localStorage.setItem(key, JSON.stringify(open));
+    } catch (e) {
+    }
+  }
   function ResearchPanel({ lang, klPassHolder }) {
     function askEileen(seed) {
       if (klPassHolder) {
@@ -6715,7 +6759,10 @@
     var _loading = useState(true);
     var loading = _loading[0];
     var setLoading = _loading[1];
-    var _expanded = useState({});
+    var RESEARCH_OPEN_KEY = "ailane_research_open_v1";
+    var _expanded = useState(function() {
+      return klResearchReadOpen(RESEARCH_OPEN_KEY);
+    });
     var expanded = _expanded[0];
     var setExpanded = _expanded[1];
     var _instruments = useState([]);
@@ -6833,6 +6880,7 @@
         var next = {};
         for (var k in prev) next[k] = prev[k];
         next[instId] = !prev[instId];
+        klResearchWriteOpen(RESEARCH_OPEN_KEY, next);
         return next;
       });
     }
@@ -7126,7 +7174,7 @@
           var items = grouped[cat];
           var label = CATEGORY_LABELS[cat] || cat;
           var catColor = CATEGORY_COLOURS[cat] || "#0EA5E9";
-          var isCatOpen = expanded[cat] !== false;
+          var isCatOpen = !!expanded[cat];
           return React.createElement(
             "div",
             { key: cat, style: { marginBottom: "12px" } },
@@ -7623,8 +7671,8 @@
             onClick: function() {
               setTab(t.id);
               setSearch("");
-              setExpanded({});
             },
+            // WSUX pass 2 §5 — keep persisted open-state across tabs (ids are namespaced)
             style: {
               flex: 1,
               padding: "6px",
@@ -9878,6 +9926,10 @@
           setCapText("");
           setCapCats("");
           refresh();
+          try {
+            window.dispatchEvent(new CustomEvent("kl-matters-changed"));
+          } catch (e) {
+          }
         } else if (mr && mr.matter_error) {
           setCapErr(mr.matter_error);
         } else {
@@ -10021,6 +10073,112 @@
       className: "kl-hub-matter-panel",
       style: { maxWidth: "860px", width: "100%", margin: "0 auto 8px" }
     }, children);
+  }
+  function HubRememberedMattersPanel({ hubSession }) {
+    var _open = useState(false);
+    var open = _open[0];
+    var setOpen = _open[1];
+    var _matters = useState([]);
+    var matters = _matters[0];
+    var setMatters = _matters[1];
+    var _loading = useState(false);
+    var loading = _loading[0];
+    var setLoading = _loading[1];
+    var _toast = useState("");
+    var toast = _toast[0];
+    var setToast = _toast[1];
+    var toastTimer = useRef(null);
+    var refresh = useCallback(function() {
+      if (!hubSession) return;
+      setLoading(true);
+      hubSendToEileen(hubSession, { matter_action: { op: "list" } }).then(function(resp) {
+        var mr = resp && resp.matter_result;
+        setMatters(mr && !mr.matter_error && Array.isArray(mr.matters) ? mr.matters.slice() : []);
+        setLoading(false);
+      }).catch(function(e) {
+        console.warn("[WSUX-2 \xA74] matter list failed", e);
+        setMatters([]);
+        setLoading(false);
+      });
+    }, [hubSession]);
+    useEffect(function() {
+      refresh();
+    }, [refresh]);
+    useEffect(function() {
+      if (typeof window === "undefined") return function() {
+      };
+      function onChanged() {
+        refresh();
+      }
+      window.addEventListener("kl-matters-changed", onChanged);
+      return function() {
+        window.removeEventListener("kl-matters-changed", onChanged);
+      };
+    }, [refresh]);
+    useEffect(function() {
+      return function() {
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+      };
+    }, []);
+    function showToast(msg) {
+      setToast(msg);
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      toastTimer.current = setTimeout(function() {
+        setToast("");
+      }, 3200);
+    }
+    function toggle() {
+      var next = !open;
+      setOpen(next);
+      if (next) refresh();
+    }
+    if (!hubSession) return null;
+    var body = null;
+    if (open) {
+      var inner = [];
+      if (loading && !matters.length) {
+        inner.push(React.createElement("div", { key: "ld", style: { padding: "8px 12px", color: "#64748B", fontSize: "12px", fontFamily: "'DM Sans', sans-serif" } }, "Loading\u2026"));
+      } else if (!matters.length) {
+        inner.push(React.createElement("div", { key: "empty", style: { padding: "8px 12px", color: "#64748B", fontSize: "12px", lineHeight: 1.5, fontFamily: "'DM Sans', sans-serif" } }, "Nothing remembered yet \u2014 save a matter and Eileen will use it to tailor her answers to your organisation."));
+      } else {
+        matters.forEach(function(m) {
+          inner.push(React.createElement(HubRememberedRow, { key: "rm-" + m.id, m, hubSession, onDeleted: refresh, onToast: showToast }));
+        });
+      }
+      if (toast) inner.push(React.createElement("div", { key: "toast", role: "status", "aria-live": "polite", style: { padding: "4px 12px", color: "#10B981", fontSize: "11px", fontFamily: "'DM Mono', monospace" } }, toast));
+      body = React.createElement("div", { style: { maxHeight: "240px", overflowY: "auto", padding: "0 12px 8px" } }, inner);
+    }
+    return React.createElement(
+      "div",
+      { style: { flexShrink: 0, borderTop: "1px solid rgba(255,255,255,0.06)" } },
+      React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: toggle,
+          "aria-expanded": open ? "true" : "false",
+          style: {
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "10px 12px",
+            background: "transparent",
+            border: "none",
+            color: "#64748B",
+            fontSize: "11px",
+            fontWeight: 500,
+            cursor: "pointer",
+            fontFamily: "'DM Mono', monospace",
+            letterSpacing: "0.06em",
+            textTransform: "uppercase"
+          }
+        },
+        React.createElement("span", null, "Remembered matters" + (matters.length ? " (" + matters.length + ")" : "")),
+        React.createElement("span", { style: { fontSize: "9px", transition: "transform 0.15s", transform: open ? "rotate(180deg)" : "rotate(0)" } }, "\u25BC")
+      ),
+      body
+    );
   }
   var HUB_ACEI_CAT_LABELS = {
     discrimination_harassment: "Discrimination & harassment",
@@ -10745,9 +10903,17 @@
             "No notifications yet. We\u2019ll post here when a change in the law triggers a re-check of your monitored documents."
           )
         ),
-        React.createElement("a", {
-          href: "/operational/documents/#notifications",
-          style: { display: "block", padding: "10px 14px", borderTop: "1px solid #1E3A5F", color: "#0EA5E9", fontSize: "12px", fontFamily: "'DM Sans', sans-serif", textDecoration: "none" }
+        React.createElement("button", {
+          type: "button",
+          // WSUX pass 2 §6 — route to the single notifications home (Settings → Notifications),
+          // replacing the former /operational/documents/#notifications link. The engine opens the
+          // Settings facet and scrolls to the Notifications block; defensive fallback to the hub.
+          onClick: function() {
+            setOpen(false);
+            if (typeof window.__klOpenFacet === "function") window.__klOpenFacet("settings", "notif");
+            else window.location.href = "/operational/";
+          },
+          style: { display: "block", width: "100%", textAlign: "left", boxSizing: "border-box", background: "transparent", cursor: "pointer", padding: "10px 14px", borderTop: "1px solid #1E3A5F", borderLeft: "none", borderRight: "none", borderBottom: "none", color: "#0EA5E9", fontSize: "12px", fontFamily: "'DM Sans', sans-serif" }
         }, "Notification settings \u2192")
       );
     }
@@ -13401,11 +13567,14 @@
     rows.push(hubSetRow("Tier", klTierDisplay(org.tier), "tier"));
     rows.push(hubSetRow("Jurisdiction", org.jurisdiction, "jur"));
     rows.push(hubSetRow("Companies House number", org.companies_house_number, "chn"));
-    if (org.operational_sites != null) {
-      var sites = org.operational_sites;
-      var sitesVal = Array.isArray(sites) ? sites.length + " site" + (sites.length === 1 ? "" : "s") : hubSetFmtVal(sites);
-      rows.push(hubSetRow("Operational sites", sitesVal, "sites"));
-    }
+    var sites = org.operational_sites;
+    var sitesVal = sites == null ? "None recorded yet" : Array.isArray(sites) ? sites.length + " site" + (sites.length === 1 ? "" : "s") : hubSetFmtVal(sites);
+    rows.push(hubSetRow("Operational sites", sitesVal, "sites"));
+    rows.push(React.createElement(
+      "div",
+      { key: "sites-help", style: Object.assign({}, HUB_SET_SUB, { marginTop: "6px", marginBottom: "2px" }) },
+      "The sites your organisation operates from. Used to contextualise your intelligence. Editable shortly \u2014 being wired."
+    ));
     var od = org.onboarding_data || {};
     ["employee_mix", "trade_union_recognition", "verification_date", "entity_verified_clear"].forEach(function(k) {
       if (Object.prototype.hasOwnProperty.call(od, k) && od[k] != null && od[k] !== "") rows.push(hubSetRow(hubAceiHumanise(k), od[k], "od_" + k));
@@ -13416,69 +13585,39 @@
     }
     return React.createElement("div", null, rows);
   }
-  function HubSettingsAlin({ org, hubSession }) {
-    var _st = useState({ status: "loading", alin: null, blocked: false });
-    var st = _st[0];
-    var setSt = _st[1];
-    useEffect(function() {
-      var alive = true;
-      var sb = hubSession && hubSession.sb;
-      var chn2 = org && org.companies_house_number;
-      if (!sb || !sb.rpc || !chn2) {
-        setSt({ status: "ready", alin: null, blocked: !chn2 ? false : true });
-        return;
-      }
-      sb.rpc("alin_by_company_number", { p_chn: chn2 }).then(function(r) {
-        if (!alive) return;
-        if (r && r.error) {
-          console.warn("[WSUX-003] alin-rpc blocked", r.error);
-          setSt({ status: "ready", alin: null, blocked: true });
-          return;
-        }
-        var row = Array.isArray(r && r.data) ? r.data[0] || null : r && r.data || null;
-        if (!row || !row.alin) {
-          setSt({ status: "ready", alin: null, blocked: true });
-          return;
-        }
-        setSt({ status: "ready", alin: row, blocked: false });
-        var fn = String(hubSession && hubSession.orgTier || org.tier || "") === "governance" ? "lookup_alin_governance" : "lookup_alin_operational";
-        sb.rpc(fn, { p_alin: row.alin }).then(function(rr) {
-          if (!alive || !rr || rr.error) return;
-          var prof = Array.isArray(rr.data) ? rr.data[0] || null : rr.data;
-          if (prof) setSt(function(p) {
-            return Object.assign({}, p, { alin: Object.assign({}, p.alin, prof) });
-          });
-        }).catch(function() {
-        });
-      }).catch(function(e) {
-        if (alive) {
-          console.warn("[WSUX-003] alin-rpc error", e);
-          setSt({ status: "ready", alin: null, blocked: true });
-        }
-      });
-      return function() {
-        alive = false;
-      };
-    }, [hubSession, org]);
-    if (st.status === "loading") return React.createElement("div", { style: HUB_SET_SUB }, "Resolving ALIN\u2026");
+  function HubSettingsAlin({ org }) {
     var chn = org && org.companies_house_number;
-    if (!st.alin) {
-      var rows = [hubSetRow("Companies House number", chn, "chn"), hubSetRow("ALIN", "pending", "alinp")];
+    var alin = org && org.alin;
+    var assignedAt = org && org.alin_assigned_at;
+    if (!alin) {
+      var pendRows = [hubSetRow("Companies House number", chn, "chn"), hubSetRow("ALIN", "pending", "alinp")];
       return React.createElement(
         "div",
         null,
-        React.createElement("div", null, rows),
+        React.createElement("div", null, pendRows),
         React.createElement("div", { style: Object.assign({}, HUB_SET_SUB, { marginTop: "10px", marginBottom: 0 }) }, "Your ALIN is being provisioned and will appear here shortly.")
       );
     }
-    var a = st.alin;
-    var out = [hubSetRow("ALIN", a.alin, "alin"), hubSetRow("Entity type", a.entity_type, "et"), hubSetRow("Company name", a.company_name, "cn")];
-    ["company_number", "sic_codes", "lei", "paye_ern", "charity_number", "fca_number", "company_status", "alin_status", "match_confidence"].forEach(function(k) {
-      if (a[k] != null && a[k] !== "") out.push(hubSetRow(hubAceiHumanise(k), a[k], "a_" + k));
-    });
+    var assignedLabel = "";
+    if (assignedAt) {
+      var d = new Date(assignedAt);
+      if (!isNaN(d.getTime())) assignedLabel = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    }
+    var out = [
+      hubSetRow("Companies House number", chn, "chn"),
+      // ALIN rendered monospace (it is an identity number).
+      React.createElement(
+        "div",
+        { key: "alin", style: HUB_SET_ROW },
+        React.createElement("span", { style: HUB_SET_KEY }, "ALIN"),
+        React.createElement("span", { style: Object.assign({}, HUB_SET_VAL, { fontFamily: "'DM Mono', monospace" }) }, String(alin))
+      )
+    ];
+    if (assignedLabel) out.push(hubSetRow("Assigned", assignedLabel, "assigned"));
     return React.createElement("div", null, out);
   }
   function HubSettingsSecurity({ hubSession }) {
+    var PW_SET_KEY = "ailane_pw_set_v1:" + (hubSession && hubSession.userId || "anon");
     var _pw = useState("");
     var pw = _pw[0];
     var setPw = _pw[1];
@@ -13488,6 +13627,21 @@
     var _pwBusy = useState(false);
     var pwBusy = _pwBusy[0];
     var setPwBusy = _pwBusy[1];
+    var _pwSet = useState(function() {
+      try {
+        return localStorage.getItem(PW_SET_KEY) === "1";
+      } catch (e) {
+        return false;
+      }
+    });
+    var pwSet = _pwSet[0];
+    var setPwSet = _pwSet[1];
+    var _stepUp = useState(null);
+    var stepUp = _stepUp[0];
+    var setStepUp = _stepUp[1];
+    var _stepCode = useState("");
+    var stepCode = _stepCode[0];
+    var setStepCode = _stepCode[1];
     var _factors = useState({ status: "loading", list: [] });
     var factors = _factors[0];
     var setFactors = _factors[1];
@@ -13521,6 +13675,25 @@
       return function() {
       };
     }, [hubSession]);
+    function doUpdatePassword() {
+      var sb = hubSession && hubSession.sb;
+      return sb.auth.updateUser({ password: pw }).then(function(r) {
+        setPwBusy(false);
+        if (r && r.error) {
+          setPwMsg(r.error && r.error.message || "Could not update your password.");
+          return;
+        }
+        try {
+          localStorage.setItem(PW_SET_KEY, "1");
+        } catch (e) {
+        }
+        setPwSet(true);
+        setStepUp(null);
+        setStepCode("");
+        setPw("");
+        setPwMsg("Password updated.");
+      });
+    }
     function changePassword() {
       var sb = hubSession && hubSession.sb;
       if (!sb || !sb.auth) return;
@@ -13530,17 +13703,54 @@
       }
       setPwBusy(true);
       setPwMsg("");
-      sb.auth.updateUser({ password: pw }).then(function(r) {
-        setPwBusy(false);
-        if (r && r.error) {
-          setPwMsg("Could not update your password. Please try again.");
+      var mfa = sb.auth.mfa;
+      if (!mfa || typeof mfa.getAuthenticatorAssuranceLevel !== "function") {
+        console.warn("[WSUX-2 \xA73] AAL-API-DRIFT: getAuthenticatorAssuranceLevel unavailable; updating directly");
+        doUpdatePassword().catch(function(e) {
+          setPwBusy(false);
+          setPwMsg(e && e.message || "Could not update your password.");
+        });
+        return;
+      }
+      Promise.all([mfa.getAuthenticatorAssuranceLevel(), mfa.listFactors()]).then(function(res) {
+        var aal = res[0] && res[0].data;
+        var verified = (res[1] && res[1].data && res[1].data.totp || []).filter(function(f) {
+          return f.status === "verified";
+        });
+        if (aal && aal.currentLevel !== "aal2" && verified.length > 0) {
+          setPwBusy(false);
+          setStepUp({ factorId: verified[0].id });
+          setPwMsg("Enter your authenticator code to confirm this change.");
           return;
         }
-        setPw("");
-        setPwMsg("Password updated.");
-      }).catch(function() {
+        return doUpdatePassword();
+      }).catch(function(e) {
         setPwBusy(false);
-        setPwMsg("Could not update your password. Please try again.");
+        setPwMsg(e && e.message || "Could not update your password.");
+      });
+    }
+    function verifyStepUpThenUpdate() {
+      var sb = hubSession && hubSession.sb;
+      if (!sb || !sb.auth || !sb.auth.mfa || !stepUp) return;
+      if (!(stepCode || "").trim()) {
+        setPwMsg("Enter the 6-digit code from your authenticator app.");
+        return;
+      }
+      setPwBusy(true);
+      setPwMsg("");
+      sb.auth.mfa.challenge({ factorId: stepUp.factorId }).then(function(c) {
+        if (c && c.error) throw c.error;
+        return sb.auth.mfa.verify({ factorId: stepUp.factorId, challengeId: c.data.id, code: (stepCode || "").trim() });
+      }).then(function(v) {
+        if (v && v.error) {
+          setPwBusy(false);
+          setPwMsg(v.error && v.error.message || "That code did not verify.");
+          return;
+        }
+        return doUpdatePassword();
+      }).catch(function(e) {
+        setPwBusy(false);
+        setPwMsg(e && e.message || "That code did not verify. Please try again.");
       });
     }
     function startEnroll() {
@@ -13606,15 +13816,39 @@
       });
     }
     var children = [];
+    var pwMsgColor = pwMsg.indexOf("updated") >= 0 ? "#22C55E" : pwMsg.indexOf("authenticator code to confirm") >= 0 ? "#0EA5E9" : "#F87171";
+    var pwKids = [
+      React.createElement("div", { key: "h", style: { color: "#F1F5F9", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", fontWeight: 600, marginBottom: "8px" } }, pwSet ? "Change password" : "Set a password"),
+      React.createElement("input", { key: "in", type: "password", value: pw, placeholder: "New password", "aria-label": "New password", autoComplete: "new-password", onChange: function(e) {
+        setPw(e.target.value);
+      }, style: HUB_NOTES_INPUT_STYLE })
+    ];
+    if (stepUp) {
+      pwKids.push(React.createElement("input", {
+        key: "step",
+        type: "text",
+        inputMode: "numeric",
+        maxLength: 8,
+        value: stepCode,
+        placeholder: "6-digit authenticator code",
+        "aria-label": "Authentication code",
+        autoComplete: "one-time-code",
+        onChange: function(e) {
+          setStepCode(e.target.value);
+        },
+        style: Object.assign({}, HUB_NOTES_INPUT_STYLE, { marginTop: "8px" })
+      }));
+    }
+    if (pwMsg) pwKids.push(React.createElement("div", { key: "msg", style: Object.assign({}, HUB_NOTES_ERR_STYLE, { color: pwMsgColor }) }, pwMsg));
+    pwKids.push(React.createElement(
+      "div",
+      { key: "act", style: HUB_NOTES_ACTIONS_STYLE },
+      stepUp ? React.createElement("button", { type: "button", disabled: pwBusy || !stepCode, style: HUB_MATTER_BTN_PRIMARY, onClick: verifyStepUpThenUpdate }, pwBusy ? "Verifying\u2026" : "Verify & update") : React.createElement("button", { type: "button", disabled: pwBusy || !pw, style: HUB_MATTER_BTN_PRIMARY, onClick: changePassword }, pwBusy ? "Saving\u2026" : pwSet ? "Update password" : "Set password")
+    ));
     children.push(React.createElement(
       "div",
       { key: "pw", style: { marginBottom: "18px" } },
-      React.createElement("div", { style: { color: "#F1F5F9", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", fontWeight: 600, marginBottom: "8px" } }, "Change password"),
-      React.createElement("input", { type: "password", value: pw, placeholder: "New password", "aria-label": "New password", autoComplete: "new-password", onChange: function(e) {
-        setPw(e.target.value);
-      }, style: HUB_NOTES_INPUT_STYLE }),
-      pwMsg ? React.createElement("div", { style: Object.assign({}, HUB_NOTES_ERR_STYLE, { color: pwMsg.indexOf("updated") >= 0 ? "#22C55E" : "#F87171" }) }, pwMsg) : null,
-      React.createElement("div", { style: HUB_NOTES_ACTIONS_STYLE }, React.createElement("button", { type: "button", disabled: pwBusy || !pw, style: HUB_MATTER_BTN_PRIMARY, onClick: changePassword }, pwBusy ? "Saving\u2026" : "Update password"))
+      pwKids
     ));
     var mfaKids = [React.createElement("div", { key: "h", style: { color: "#F1F5F9", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", fontWeight: 600, marginBottom: "4px" } }, "Two-factor authentication (TOTP)")];
     mfaKids.push(React.createElement("div", { key: "note", style: HUB_SET_SUB }, "Once enabled, vault access requires completing 2FA at sign-in."));
@@ -14072,7 +14306,7 @@
           return;
         }
         Promise.all([
-          sb.from("organisations").select("name,tier,jurisdiction,companies_house_number,operational_sites,onboarding_data,monitored_cap_override").eq("id", orgId).limit(1),
+          sb.from("organisations").select("name,tier,jurisdiction,companies_house_number,operational_sites,alin,alin_assigned_at,onboarding_data,monitored_cap_override").eq("id", orgId).limit(1),
           sb.from("org_check_budget").select("checks_limit").eq("org_id", orgId).eq("period_month", klFirstOfMonthStr()).limit(1)
         ]).then(function(rr) {
           if (!alive) return;
@@ -14095,10 +14329,32 @@
         alive = false;
       };
     }, [hubSession]);
+    useEffect(function() {
+      if (st.status !== "ready") return function() {
+      };
+      var target = null;
+      try {
+        target = window.__klSettingsScrollTarget;
+      } catch (e) {
+      }
+      if (target !== "notif") return function() {
+      };
+      try {
+        window.__klSettingsScrollTarget = null;
+      } catch (e) {
+      }
+      var t = setTimeout(function() {
+        var elx = document.getElementById("hub-settings-notif");
+        if (elx && typeof elx.scrollIntoView === "function") elx.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 60);
+      return function() {
+        clearTimeout(t);
+      };
+    }, [st.status]);
     function section(title, sub, bodyEl, key) {
       return React.createElement(
         "div",
-        { key, style: HUB_SET_SECTION },
+        { key, id: "hub-settings-" + key, style: HUB_SET_SECTION },
         React.createElement("div", { style: HUB_SET_H }, title),
         sub ? React.createElement("div", { style: HUB_SET_SUB }, sub) : null,
         bodyEl
@@ -14109,7 +14365,7 @@
     }
     var sections = [
       section("Organisation", "Your organisation profile and onboarding record.", React.createElement(HubSettingsOrg, { org: st.org, checksLimit: st.checksLimit }), "org"),
-      section("ALIN", "Your Ailane Legal Identity Number.", React.createElement(HubSettingsAlin, { org: st.org, hubSession }), "alin"),
+      section("ALIN", "Your Ailane Legal Identity Number.", React.createElement(HubSettingsAlin, { org: st.org }), "alin"),
       section("Security", "Password and two-factor authentication.", React.createElement(HubSettingsSecurity, { hubSession }), "sec"),
       section("Team", "Members of your organisation.", React.createElement(HubSettingsTeam, { hubSession, orgId: st.orgId }), "team"),
       section("Usage", "Your allowances for the current month.", React.createElement(HubSettingsUsage, { hubSession, orgId: st.orgId, org: st.org }), "usage"),
@@ -15026,6 +15282,15 @@
       openHub(section, null);
     };
     window.__klHandleFileSelect = handleFileSelect;
+    window.__klOpenFacet = function(id, scrollTarget) {
+      if (scrollTarget) {
+        try {
+          window.__klSettingsScrollTarget = scrollTarget;
+        } catch (e) {
+        }
+      }
+      handleSelectFacet(id);
+    };
     async function handleUserTypeSelect(type) {
       setUserType(type);
       setShowQualifier(false);
