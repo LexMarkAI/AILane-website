@@ -1616,7 +1616,19 @@
           return Promise.all([orgTierP, stateP]).then(function(rr) {
             var orgTier = rr[0];
             if (orgTier) hubSession.orgTier = orgTier;
-            if (klGovernanceMode() === true) return finishHub();
+            if (klGovernanceMode() === true) {
+              var stResG = rr[1];
+              if (stResG && stResG.error) {
+                console.warn("[OOX-001] onboarding-state read failed \u2014 failing open to hub (governance)", stResG.error);
+                return finishHub();
+              }
+              var rowG = stResG && stResG.data && stResG.data[0];
+              if (rowG && rowG.landing_unlocked === true) return finishHub();
+              if ((window.location.pathname || "").replace(/\/+$/, "") !== "/governance/onboarding") {
+                klRouteReplace("/governance/onboarding/");
+              }
+              return null;
+            }
             var stRes = rr[1];
             if (stRes && stRes.error) {
               console.warn("[OOX-001] onboarding-state read failed \u2014 failing open to hub", stRes.error);

@@ -262,7 +262,19 @@ function detectHubSession() {
             // GOVWS-SITE-001 §2 — governance mode renders the governance hub in place;
             // the operational onboarding gate + the /operational/ move do not apply.
             // Fires ONLY in governance mode ⇒ operational routing byte-identical.
-            if (klGovernanceMode() === true) return finishHub();
+            if (klGovernanceMode() === true) {
+              var stResG = rr[1];
+              if (stResG && stResG.error) {
+                console.warn("[OOX-001] onboarding-state read failed — failing open to hub (governance)", stResG.error);
+                return finishHub();
+              }
+              var rowG = stResG && stResG.data && stResG.data[0];
+              if (rowG && rowG.landing_unlocked === true) return finishHub();
+              if ((window.location.pathname || "").replace(/\/+$/, "") !== "/governance/onboarding") {
+                klRouteReplace("/governance/onboarding/");
+              }
+              return null;
+            }
             var stRes = rr[1];
             if (stRes && stRes.error) {
               console.warn('[OOX-001] onboarding-state read failed — failing open to hub', stRes.error);
