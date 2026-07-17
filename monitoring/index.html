@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitoring Plans — Ailane</title>
+  <meta name="description" content="AI-powered UK employment law compliance intelligence. Check contracts, monitor changes, talk to Eileen.">
+  <script src="/assets/js/ailane-cookie-consent.js"></script>
+  <!-- CSP (landing page variant — NO Supabase JS client, NO Stripe) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.googletagmanager.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://www.google-analytics.com https://region1.google-analytics.com; object-src 'none'; base-uri 'self'">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <meta name="theme-color" content="#0a0e1a">
+  <meta property="og:title" content="Ailane — UK Employment Law Intelligence">
+  <meta property="og:description" content="AI-powered UK employment law compliance intelligence. Check contracts, monitor changes, talk to Eileen.">
+  <meta property="og:url" content="https://ailane.ai">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://ailane.ai">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- NO SUPABASE CDN. ZERO AUTH. INCIDENT RULE 13/27. -->
+<style>
+:root {
+  --bg: #0a0e1a;
+  --bg-deep: #06080f;
+  --bg-card: rgba(15, 23, 42, 0.8);
+  --bg-glass: rgba(30, 41, 59, 0.5);
+  --text: #E2E8F0;
+  --text-heading: #F1F5F9;
+  --text-dim: #94A3B8;
+  --text-muted: #64748B;
+  --cyan: #0EA5E9;
+  --cyan-soft: #22d3ee;
+  --cyan-glow: rgba(14, 165, 233, 0.15);
+  --cyan-border: rgba(14, 165, 233, 0.3);
+  --op-cyan: #22d3ee;
+  --gov-purple: #a855f7;
+  --inst-gold: #F59E0B;
+  --inst-gold-deep: #D4A017;
+  --border-subtle: rgba(148, 163, 184, 0.12);
+  --border-medium: rgba(148, 163, 184, 0.2);
+  --font-display: 'DM Serif Display', Georgia, serif;
+  --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --max-w: 1200px;
+  --section-gap: 140px;
+  --card-radius: 12px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.65;
+  font-weight: 400;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-style: normal;
+  color: var(--text-heading);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+h1 em, h2 em, h3 em, h4 em { font-style: normal; }
+h1 { font-size: clamp(2.4rem, 5.6vw, 4.4rem); line-height: 1.08; letter-spacing: -0.02em; }
+h2 { font-size: clamp(1.9rem, 3.8vw, 2.8rem); }
+h3 { font-size: clamp(1.3rem, 2.2vw, 1.75rem); }
+h4 { font-size: clamp(1.1rem, 1.6vw, 1.3rem); font-family: var(--font-body); font-weight: 600; }
+
+p { color: var(--text-dim); font-size: 1.0625rem; }
+
+a { color: var(--cyan); text-decoration: none; transition: color 0.2s ease; }
+a:hover { color: var(--cyan-soft); }
+
+strong { color: var(--text-heading); font-weight: 600; }
+
+.container { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; }
+
+section { padding: var(--section-gap) 0; position: relative; }
+
+.cyan { color: var(--cyan); font-style: normal; }
+.mono { font-family: var(--font-mono); font-size: 0.9em; }
+
+.btn-primary, .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 28px;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-decoration: none;
+}
+.btn-primary { background: var(--cyan); color: #02121e; }
+.btn-primary:hover { background: var(--cyan-soft); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(14,165,233,0.3); }
+.btn-secondary { background: transparent; color: var(--text); border-color: var(--border-medium); }
+.btn-secondary:hover { border-color: var(--cyan); color: var(--cyan); }
+
+/* ── Nav ────────────────────────────────────── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 800;
+  backdrop-filter: blur(12px);
+  background: rgba(10, 14, 26, 0.72);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.nav-inner {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.logo {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--text-heading);
+  font-style: normal;
+  letter-spacing: 0.02em;
+}
+.nav-links { display: flex; gap: 28px; }
+.nav-links a { color: var(--text-dim); font-size: 0.92rem; font-weight: 500; }
+.nav-links a:hover { color: var(--text); }
+.nav-right { display: flex; gap: 12px; align-items: center; }
+.lang-btn {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.lang-btn:hover { color: var(--text); border-color: var(--border-medium); }
+.lang-btn.active { color: var(--cyan); border-color: var(--cyan-border); background: var(--cyan-glow); }
+.nav-link { color: var(--text-dim); font-size: 0.9rem; padding: 8px 12px; }
+.nav-link:hover { color: var(--text); }
+.nav-right .btn-primary { padding: 8px 16px; font-size: 0.9rem; }
+
+/* ── Hero ───────────────────────────────────── */
+#hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding-top: 120px;
+  padding-bottom: 80px;
+  position: relative;
+  overflow: hidden;
+}
+#hero-nexus { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+#hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 20% 20%, rgba(14,165,233,0.08), transparent 50%),
+              radial-gradient(ellipse at 80% 60%, rgba(168,85,247,0.06), transparent 55%);
+  z-index: 0; pointer-events: none;
+}
+.hero-content { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 0 24px; }
+.hero-badge {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.72rem;
+  color: var(--cyan);
+  margin-bottom: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.hero-badge::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--cyan);
+  border-radius: 50%;
+  animation: pulseDot 2s ease-in-out infinite;
+}
+#hero h1 { margin-bottom: 28px; }
+.hero-sub { font-size: clamp(1.05rem, 1.6vw, 1.2rem); color: var(--text-dim); max-width: 720px; margin-bottom: 40px; line-height: 1.55; }
+.hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 48px; align-items: center; }
+.hero-tertiary {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  color: var(--text-dim);
+  font-size: 0.92rem;
+  font-weight: 400;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.hero-tertiary:hover { color: var(--cyan); }
+.hero-strip {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.hero-strip span { display: inline-flex; align-items: center; gap: 8px; }
+.hero-strip span::before {
+  content: '';
+  width: 4px; height: 4px;
+  background: var(--cyan);
+  border-radius: 50%;
+}
+
+/* ── Section intros ─────────────────────────── */
+section h2 { margin-bottom: 20px; }
+.section-statement { font-size: 1.1rem; line-height: 1.6; color: var(--text-dim); max-width: 760px; }
+.price-anchor {
+  font-size: 1.05rem;
+  color: var(--text);
+  max-width: 760px;
+  margin-bottom: 48px;
+  padding-left: 16px;
+  border-left: 2px solid var(--cyan);
+  line-height: 1.6;
+}
+
+/* ── Eileen intro (§2) ──────────────────────── */
+#eileen-section { background: linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%); }
+.eileen-intro { display: flex; flex-direction: column; align-items: center; text-align: center; }
+#nexus-intro {
+  width: 180px; height: 180px;
+  margin-bottom: 32px;
+}
+#eileen-section h2 { margin-bottom: 8px; }
+#eileen-section > .container > .eileen-intro > p {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: var(--cyan);
+  margin-bottom: 40px;
+}
+.conversation-mock {
+  max-width: 680px;
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--card-radius);
+  padding: 24px;
+  backdrop-filter: blur(10px);
+  text-align: left;
+}
+.conversation-mock .mock-user,
+.conversation-mock .mock-eileen {
+  padding: 14px 0;
+  color: var(--text);
+  font-size: 0.98rem;
+  line-height: 1.6;
+}
+.conversation-mock .mock-user { border-bottom: 1px solid var(--border-subtle); padding-bottom: 18px; }
+.conversation-mock .mock-eileen { padding-top: 18px; }
+.conversation-mock strong { color: var(--cyan); font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; display: block; margin-bottom: 6px; font-weight: 500; }
+
+/* ── Products trio (§3) ─────────────────────── */
+.card-trio {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.product-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--card-radius);
+  padding: 32px;
+  backdrop-filter: blur(10px);
+  transition: border-color 0.3s ease, transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+.product-card:hover { border-color: var(--cyan-border); transform: translateY(-2px); }
+.product-card h3 { margin-bottom: 12px; }
+.product-card > p { color: var(--text-dim); font-size: 0.98rem; margin-bottom: 16px; line-height: 1.55; }
+
+/* ── Triad (§2.5) ───────────────────────────── */
+.triad-card {
+  background: var(--surface-raised, var(--bg-card));
+  border: 1px solid var(--border-mid, var(--border-medium));
+  border-radius: var(--card-radius);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  backdrop-filter: blur(10px);
+  transition: border-color 0.3s ease, transform 0.3s ease;
+}
+.triad-card:hover { border-color: var(--cyan-border); transform: translateY(-2px); }
+.triad-card h3 { color: var(--text-prime, var(--text-heading)); margin-bottom: 0; }
+.triad-card > p { color: var(--text-body, var(--text)); font-size: 0.98rem; line-height: 1.55; }
+
+/* ── Knowledge Library (LP-V3-PUNCHLIST §3.6) ───────────── */
+#knowledge-library .section-statement {
+  max-width: 780px;
+  margin: 0 auto 32px;
+  text-align: center;
+}
+.kl-card {
+  background: var(--surface-raised, var(--bg-card));
+  border: 1px solid var(--border-mid, var(--border-medium));
+  border-radius: var(--card-radius);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  backdrop-filter: blur(10px);
+  transition: border-color 0.3s ease, transform 0.3s ease;
+}
+.kl-card:hover { border-color: var(--cyan-border); transform: translateY(-2px); }
+.kl-card h3 {
+  color: var(--text-prime, var(--text-heading));
+  margin-bottom: 0;
+}
+.kl-card > p {
+  color: var(--text-body, var(--text));
+  font-size: 0.98rem;
+  line-height: 1.55;
+}
+.kl-confidence-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 28px;
+  padding: 24px 0;
+  margin: 32px auto;
+  border-top: 1px solid var(--border-mid, var(--border-medium));
+  border-bottom: 1px solid var(--border-mid, var(--border-medium));
+  font-size: 0.92rem;
+  color: var(--text-dim, var(--text-muted));
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+.kl-sessions {
+  margin-top: 32px;
+  text-align: center;
+}
+.kl-sessions h3 {
+  margin-bottom: 24px;
+  color: var(--text-prime, var(--text-heading));
+}
+.kl-session-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.kl-session {
+  background: var(--surface-raised, var(--bg-card));
+  border: 1px solid var(--border-mid, var(--border-medium));
+  border-radius: var(--card-radius);
+  padding: 20px;
+  text-align: center;
+}
+.kl-session-name {
+  color: var(--text-prime, var(--text-heading));
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.kl-session-price {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  color: var(--cyan);
+  margin-bottom: 4px;
+}
+.kl-session-detail {
+  font-size: 0.86rem;
+  color: var(--text-dim, var(--text-muted));
+}
+.kl-session-addon {
+  margin-top: 16px;
+  font-size: 0.86rem;
+  color: var(--text-dim, var(--text-muted));
+  text-align: center;
+}
+.kl-cta-row {
+  margin-top: 32px;
+  display: flex;
+  justify-content: center;
+}
+@media (max-width: 768px) {
+  .kl-session-row { grid-template-columns: 1fr; }
+}
+
+/* ── Subscription tiers (§4) ────────────────── */
+.tier-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+.tier-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--card-radius);
+  padding: 32px;
+  backdrop-filter: blur(10px);
+  transition: border-color 0.3s ease, transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+.tier-card:hover { transform: translateY(-2px); }
+.tier-operational { border-left: 3px solid var(--op-cyan); }
+.tier-operational .tier-name { color: var(--op-cyan); }
+.tier-governance { border-left: 3px solid var(--gov-purple); }
+.tier-governance .tier-name { color: var(--gov-purple); }
+.tier-enterprise {
+  border-left: 4px solid var(--inst-gold);
+  box-shadow: 0 0 60px rgba(245,158,11,0.12), 0 0 20px rgba(245,158,11,0.06);
+  background: linear-gradient(135deg, rgba(245,158,11,0.04) 0%, rgba(15,23,42,0.95) 50%);
+}
+.tier-enterprise .tier-name { color: var(--inst-gold); }
+.tier-enterprise .tier-price {
+  background: linear-gradient(135deg, #F59E0B, #D4A017);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.tier-enterprise .tier-cta {
+  background: linear-gradient(135deg, #F59E0B, #D4A017);
+  color: #1a1208;
+  border: none;
+}
+.tier-enterprise .tier-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(245,158,11,0.3);
+}
+.tier-name {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+.tier-tagline {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--text-heading);
+  margin-bottom: 20px;
+  font-style: normal;
+}
+.tier-price {
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  color: var(--text-heading);
+  line-height: 1;
+  margin-bottom: 20px;
+  font-style: normal;
+}
+.tier-price span {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--text-dim);
+  margin-left: 4px;
+  -webkit-text-fill-color: var(--text-dim);
+  color: var(--text-dim);
+  background: none;
+}
+.tier-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px 0;
+}
+.tier-features li {
+  color: var(--text-dim);
+  font-size: 0.94rem;
+  line-height: 1.5;
+  padding: 8px 0 8px 24px;
+  position: relative;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.tier-features li:last-child { border-bottom: none; }
+.tier-features li::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 14px;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--cyan);
+  opacity: 0.6;
+}
+.tier-enterprise .tier-features li::before { background: var(--inst-gold); }
+.tier-governance .tier-features li::before { background: var(--gov-purple); }
+
+/* ── Enterprise enquiry form ─────────────── */
+.inst-enquiry-form {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.inst-enquiry-form[hidden] { display: none; }
+.inst-enquiry-form .inst-enquiry-lede {
+  color: var(--text-dim);
+  font-size: 0.92rem;
+  margin: 0;
+}
+.inst-enquiry-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.inst-enquiry-form input,
+.inst-enquiry-form select,
+.inst-enquiry-form textarea {
+  background: rgba(15,23,42,0.6);
+  border: 1px solid var(--border-medium);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.inst-enquiry-form input:focus,
+.inst-enquiry-form select:focus,
+.inst-enquiry-form textarea:focus { border-color: var(--inst-gold); }
+.inst-enquiry-form textarea { resize: vertical; min-height: 72px; }
+.inst-enquiry-form .btn-primary { align-self: flex-start; }
+.inst-enquiry-note {
+  color: var(--text-dim);
+  font-size: 0.92rem;
+  margin: 0;
+}
+.inst-enquiry-note[data-state="error"] { color: var(--inst-gold); }
+.inst-enquiry-note[data-state="success"] { color: var(--cyan); }
+/* LANDING-REV-001 §3 — Institutional intake form additions */
+.inst-enquiry-form .req { color: var(--inst-gold); margin-left: 2px; }
+.inst-enquiry-form label.inst-enquiry-check {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+  text-transform: none;
+  letter-spacing: normal;
+  font-family: var(--font-body);
+  font-size: 0.86rem;
+  color: var(--text-dim);
+}
+.inst-enquiry-form label.inst-enquiry-check input {
+  width: auto;
+  flex: none;
+  margin-top: 3px;
+}
+.inst-enquiry-formlink { margin: 8px 0 0; font-size: 0.9rem; }
+.inst-enquiry-privacy { color: var(--text-dim); font-size: 0.82rem; margin: 0; }
+.inst-enquiry-email {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+}
+.inst-enquiry-email:hover { color: var(--inst-gold); }
+
+/* ── Expand panel ───────────────────────────── */
+.expand-panel {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.5s cubic-bezier(0.16,1,0.3,1), opacity 0.4s ease, padding 0.4s ease;
+  padding: 0;
+}
+.expand-panel.open { max-height: 2000px; opacity: 1; padding: 20px 0 8px; }
+.expand-panel p { color: var(--text-dim); font-size: 0.95rem; line-height: 1.6; margin-bottom: 14px; }
+.expand-panel p strong { color: var(--text-heading); }
+.expand-panel .btn-primary { margin-top: 8px; }
+.expand-trigger {
+  cursor: pointer;
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  margin-top: auto;
+  transition: color 0.2s ease, letter-spacing 0.2s ease;
+  user-select: none;
+}
+.expand-trigger:hover { color: var(--cyan-soft); letter-spacing: 0.14em; }
+.expand-arrow {
+  display: inline-block;
+  transition: transform 0.3s ease;
+  font-size: 0.9rem;
+}
+.expand-arrow.rotated { transform: rotate(180deg); }
+
+/* ── Ticker (§5) ────────────────────────────── */
+.ticker-strip {
+  overflow: hidden;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 14px 0;
+  margin-bottom: 32px;
+  background: rgba(15,23,42,0.4);
+  backdrop-filter: blur(6px);
+}
+.ticker-track {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: tickerScroll 60s linear infinite;
+  gap: 48px;
+}
+.ticker-track span {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  padding-left: 48px;
+  position: relative;
+}
+.ticker-track span::before {
+  content: '●';
+  color: var(--cyan);
+  position: absolute;
+  left: 20px;
+  font-size: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* ── CTA row (§7) ───────────────────────────── */
+.cta-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.cta-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--card-radius);
+  padding: 32px;
+  backdrop-filter: blur(10px);
+  text-decoration: none;
+  transition: border-color 0.3s ease, transform 0.3s ease;
+  display: block;
+  text-align: left;
+}
+.cta-card:hover { border-color: var(--cyan-border); transform: translateY(-2px); }
+.cta-card h3 { color: var(--text-heading); margin-bottom: 10px; }
+.cta-card p { color: var(--cyan); font-family: var(--font-mono); font-size: 0.86rem; letter-spacing: 0.08em; }
+
+/* ── Footer ─────────────────────────────────── */
+footer {
+  border-top: 1px solid var(--border-subtle);
+  padding: 40px 0;
+  background: var(--bg-deep);
+}
+.footer-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.footer-brand { font-family: var(--font-display); font-size: 1.25rem; color: var(--text-heading); font-style: normal; }
+.footer-legal { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); letter-spacing: 0.04em; }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a { color: var(--text-dim); font-size: 0.86rem; }
+.footer-links a:hover { color: var(--cyan); }
+
+/* ── Eileen floating panel (LP-002 §4.2) ────── */
+#eileen-panel {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+#eileen-nexus {
+  width: 52px;
+  height: 52px;
+  cursor: grab;
+  border-radius: 50%;
+  box-shadow: 0 0 20px rgba(14,165,233,0.3);
+  flex-shrink: 0;
+}
+#eileen-nexus:active { cursor: grabbing; }
+#eileen-body {
+  background: rgba(10,14,26,0.95);
+  border: 1px solid var(--cyan-border);
+  border-radius: 12px;
+  padding: 16px;
+  padding-right: 28px;
+  max-width: 440px;
+  width: 440px;
+  backdrop-filter: blur(12px);
+  position: relative;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+}
+#eileen-body.hidden { display: none; }
+#eileen-name {
+  color: var(--cyan);
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  margin-bottom: 8px;
+}
+/* LP-V3-PUNCHLIST §3.4 — context bar */
+#eileen-context-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+  background: rgba(14,165,233,0.08);
+  border: 1px solid var(--cyan-border);
+  border-radius: 6px;
+  font-size: 0.78rem;
+}
+#eileen-context-bar.hidden { display: none; }
+#eileen-context-label {
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+}
+#eileen-context-exit {
+  background: transparent;
+  border: 1px solid var(--cyan-border);
+  border-radius: 4px;
+  color: var(--text-dim, var(--text-muted));
+  cursor: pointer;
+  font-size: 0.74rem;
+  padding: 2px 8px;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+#eileen-context-exit:hover {
+  color: var(--cyan);
+  border-color: var(--cyan);
+}
+#eileen-commentary {
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  margin-bottom: 12px;
+  min-height: 40px;
+  transition: opacity 0.3s ease;
+}
+/* LP-V3-PUNCHLIST §3.3 — hide hover commentary once chat is active */
+#eileen-body:has(#eileen-chat-history:not(:empty)) #eileen-commentary {
+  display: none;
+}
+/* JS fallback class for browsers without :has() support */
+#eileen-body.chat-active #eileen-commentary {
+  display: none;
+}
+#eileen-chat-history {
+  max-height: 320px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+#eileen-chat-history:empty { display: none; }
+.chat-user, .chat-eileen {
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.chat-user {
+  background: rgba(14,165,233,0.1);
+  color: var(--text);
+  border-left: 2px solid var(--cyan);
+}
+.chat-eileen {
+  background: rgba(30,41,59,0.6);
+  color: var(--text);
+}
+#eileen-input-area { display: flex; gap: 8px; }
+#eileen-input {
+  flex: 1;
+  background: rgba(30,41,59,0.6);
+  border: 1px solid var(--cyan-border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+#eileen-input:focus { border-color: var(--cyan); }
+#eileen-input::placeholder { color: var(--text-muted); }
+#eileen-input:disabled { opacity: 0.5; }
+#eileen-send {
+  background: var(--cyan);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  color: #02121e;
+  cursor: pointer;
+  font-weight: 600;
+  font-family: var(--font-body);
+  font-size: 0.86rem;
+  transition: background 0.2s ease;
+}
+#eileen-send:hover:not(:disabled) { background: var(--cyan-soft); }
+#eileen-send:disabled { opacity: 0.5; cursor: not-allowed; }
+#eileen-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 4px 8px;
+  line-height: 1;
+}
+#eileen-close:hover { color: var(--text); }
+
+/* ── Animations ─────────────────────────────── */
+@keyframes breathe { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
+@keyframes pulseDot { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes tickerScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.nexus-breathe { animation: breathe 4s ease-in-out infinite; }
+.fade-in { animation: fadeInUp 0.9s cubic-bezier(0.16,1,0.3,1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Responsive ─────────────────────────────── */
+@media (max-width: 1080px) and (min-width: 901px) {
+  .tier-row { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 900px) {
+  .card-trio, .tier-row, .cta-row { grid-template-columns: 1fr; }
+  .nav-links { display: none; }
+}
+@media (max-width: 768px) {
+  :root { --section-gap: 80px; }
+  .hero-ctas { flex-direction: column; align-items: stretch; }
+  .hero-ctas a { width: 100%; }
+  #eileen-panel {
+    bottom: 0;
+    right: 0;
+    left: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+  #eileen-nexus { align-self: flex-end; margin: 0 16px 8px 0; }
+  #eileen-body {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 16px 16px 0 0;
+  }
+  .footer-inner { flex-direction: column; align-items: flex-start; }
+}
+</style>
+<!-- Ailane favicon / app icons — estate head standard (AMD-246) -->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+</head><body>
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="logo">Ail<span style="color:var(--cyan)">ane</span></a>
+    <a href="/" class="nav-link" aria-label="Back to homepage">← Back to homepage</a>
+  </div>
+</nav>
+
+<!-- ── MONITORING PLANS (AILANE-CC-BRIEF-WEB-MONITORING-PAGE-001) ──────────────
+     Standalone tiers page. Head reused verbatim from index.html (GA4 consent-
+     loader RULE 10, CSP RULE 22, favicon RULE 35, fonts, tokens.css). The four
+     tier cards are reproduced verbatim from the homepage #subscriptions section.
+     Operational & Governance keep their subscribe-page links; the Institutional
+     and Data Partnerships Eileen/JS-only CTAs use the deterministic email
+     fallback (brief §1.5) — the exact destinations they resolve to on the
+     homepage — because the Eileen panel/inline enquiry engine is not present on
+     this standalone page. -->
+<section id="subscriptions">
+  <div class="container">
+    <h1>Monitoring plans</h1>
+    <p class="section-statement">Monitoring turns a one-off check into continuous protection — your contracts re-scanned every time the law moves.</p>
+    <div class="tier-row">
+      <div class="tier-card tier-operational" data-section="operational">
+        <h3 class="tier-name" data-i18n="subs.op.name">Operational</h3>
+        <p class="tier-tagline" data-i18n="subs.op.tag">Know your exposure.</p>
+        <p class="tier-price">£199<span data-i18n="subs.permonth">/month</span></p>
+        <span class="expand-trigger" data-expand="op-detail">
+          <span data-i18n="subs.included">What's included</span>
+          <span class="expand-arrow">▾</span>
+        </span>
+        <div class="expand-panel" id="op-detail">
+          <ul class="tier-features">
+            <li data-i18n="subs.op.f1">Exposure scoring across 12 compliance categories</li>
+            <li data-i18n="subs.op.f2">5 contracts monitored — auto-rescanned when law changes</li>
+            <li data-i18n="subs.op.f3">Legislative alerts via email</li>
+            <li data-i18n="subs.op.f4">Compliance calendar with ERA 2025 dates</li>
+            <li data-i18n="subs.op.f5">Document Vault with findings overlay</li>
+            <li data-i18n="subs.op.f6">5 compliance checks per month</li>
+            <li data-i18n="subs.op.packs">Solicitors Preparation Packs — paired 1:1 with your monthly checks</li>
+            <li data-i18n="subs.op.f7">PDF compliance reports</li>
+            <li data-i18n="subs.op.seats">Includes up to 5 user accounts — 1 admin; add up to 4 more whenever you choose</li>
+          </ul>
+          <a href="/operational-subscribe/" class="btn-primary" data-i18n="subs.op.cta">Start Operational</a>
+        </div>
+      </div>
+      <div class="tier-card tier-governance" data-section="governance">
+        <h3 class="tier-name" data-i18n="subs.gov.name">Governance</h3>
+        <p class="tier-tagline" data-i18n="subs.gov.tag">Control your risk.</p>
+        <p class="tier-price">£799<span data-i18n="subs.permonth">/month</span></p>
+        <span class="expand-trigger" data-expand="gov-detail">
+          <span data-i18n="subs.included">What's included</span>
+          <span class="expand-arrow">▾</span>
+        </span>
+        <div class="expand-panel" id="gov-detail">
+          <ul class="tier-features">
+            <li data-i18n="subs.gov.f1">Everything in Operational</li>
+            <li data-i18n="subs.gov.f7">Up to 30 unique contracts monitored — auto-rescanned when law changes</li>
+            <li data-i18n="subs.gov.f8">30 Contract Compliance Checks per month</li>
+            <li data-i18n="subs.gov.f9">Rotate monitored contracts monthly — or when a law change affecting them is detected</li>
+            <li data-i18n="subs.gov.f10">30 Solicitors Preparation Bundles per month — paired with your checks</li>
+            <li data-i18n="subs.gov.f11">Document Vault folders — by region, by department, or your own labels</li>
+            <li data-i18n="subs.gov.f3">Tribunal intelligence — <span data-live-stat="judges" data-stat="judges">1,634</span> judges profiled</li>
+            <li data-i18n="subs.gov.f4">Board-ready compliance reports</li>
+            <li data-i18n="subs.gov.f5">Statutory groundwork preparation for solicitor review</li>
+            <li data-i18n="subs.gov.seats">Includes up to 15 user accounts — add admin or user accounts as you choose</li>
+          </ul>
+          <a href="/governance-subscribe/" class="btn-primary" data-payments-offline="governance" data-i18n="subs.gov.cta">Start Governance</a>
+        </div>
+      </div>
+      <div class="tier-card tier-enterprise" data-section="enterprise">
+        <h3 class="tier-name" data-i18n="subs.inst.name">Institutional</h3>
+        <p class="tier-tagline" data-i18n="subs.inst.tag">Lead your sector.</p>
+        <p class="tier-price" data-i18n="subs.inst.price">Custom</p>
+        <span class="expand-trigger" data-expand="inst-detail">
+          <span data-i18n="subs.included">What's included</span>
+          <span class="expand-arrow">▾</span>
+        </span>
+        <div class="expand-panel" id="inst-detail">
+          <ul class="tier-features">
+            <li data-i18n="subs.inst.f1">Everything in Governance</li>
+            <li data-i18n="subs.inst.f6">Contract Compliance Checks and Solicitors Preparation Bundles scaled to your requirements — up to unlimited, as a priced add-on</li>
+            <li data-i18n="subs.inst.seats">User accounts scaled to your organisation — university-scale sub-account structures agreed per engagement</li>
+            <li data-i18n="subs.inst.f7">Bespoke pricing</li>
+            <li data-i18n="subs.inst.f2">Dedicated intelligence briefings</li>
+            <li data-i18n="subs.inst.f3">Multi-entity management</li>
+            <li data-i18n="subs.inst.f4">Full intelligence estate access</li>
+            <li data-i18n="subs.inst.f5">Custom integration</li>
+          </ul>
+          <a href="mailto:enquiries@ailane.ai?subject=Institutional%20requirements" class="btn-primary" data-i18n="subs.inst.cta.email">Email your company's requirements</a>
+        </div>
+      </div>
+      <div class="tier-card tier-partnerships" data-section="partnerships">
+        <h3 class="tier-name" data-i18n="subs.dp.name">Data Partnerships</h3>
+        <p class="tier-tagline" data-i18n="subs.dp.tag">License the estate.</p>
+        <p class="tier-price" data-i18n="subs.dp.price">By engagement</p>
+        <span class="expand-trigger" data-expand="dp-detail">
+          <span data-i18n="subs.included">What's included</span>
+          <span class="expand-arrow">▾</span>
+        </span>
+        <div class="expand-panel" id="dp-detail">
+          <ul class="tier-features">
+            <li data-i18n="subs.dp.f1">Structured licensing of the employer intelligence estate — sector indexes, vertical exclusives</li>
+            <li data-i18n="subs.dp.f2">Governed deal rooms with document control, terms acceptance, and contract execution</li>
+            <li data-i18n="subs.dp.f3">Legal &amp; audit pack accompanying every engagement</li>
+            <li data-i18n="subs.dp.f4">Eileen embedded in the room for counterparty diligence</li>
+          </ul>
+          <a href="mailto:mark@ailane.ai?subject=Data%20Partnerships%20enquiry" class="btn-primary tier-cta" data-i18n="subs.dp.cta">Talk to Eileen about Data Partnerships</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<footer>
+  <div class="container footer-inner">
+    <span class="footer-brand">Ail<span style="color:var(--cyan)">ane</span></span>
+    <span class="footer-legal">AI Lane Limited · Company No. 17035654 · ICO Reg. No. 00013389720</span>
+    <div class="footer-links">
+      <a href="/terms/" data-i18n="footer.links.terms">Terms of Service</a>
+      <a href="/privacy/" data-i18n="footer.links.privacy">Privacy Policy</a>
+      <a href="/tribunal-privacy/" data-i18n="footer.links.tribunalPrivacy">Tribunal Data Privacy Notice</a>
+    </div>
+  </div>
+</footer>
+<script src="/assets/js/nexus.js" defer></script>
+<script>
+/* ── Expand / collapse engine (lifted verbatim from index.html) ────── */
+function initExpand() {
+  document.querySelectorAll('.expand-trigger').forEach(function(trigger) {
+    trigger.addEventListener('click', function() {
+      var targetId = trigger.dataset.expand;
+      var panel = document.getElementById(targetId);
+      if (!panel) return;
+      var arrow = trigger.querySelector('.expand-arrow');
+
+      // Accordion: close other panels in the same section
+      var section = trigger.closest('section');
+      if (section) {
+        section.querySelectorAll('.expand-panel.open').forEach(function(p) {
+          if (p.id !== targetId) {
+            p.classList.remove('open');
+            var otherTrigger = section.querySelector('[data-expand="' + p.id + '"]');
+            if (otherTrigger) {
+              var otherArrow = otherTrigger.querySelector('.expand-arrow');
+              if (otherArrow) otherArrow.classList.remove('rotated');
+            }
+          }
+        });
+      }
+
+      panel.classList.toggle('open');
+      if (arrow) arrow.classList.toggle('rotated');
+
+      var isOpen = panel.classList.contains('open');
+
+      // GA4 event
+      if (typeof gtag === 'function') {
+        gtag('event', 'expand', {
+          section: targetId,
+          action: isOpen ? 'open' : 'close'
+        });
+      }
+
+      // Notify Eileen
+      window.dispatchEvent(new CustomEvent('section-expand', {
+        detail: { id: targetId, open: isOpen }
+      }));
+    });
+  });
+}
+document.addEventListener('DOMContentLoaded', initExpand);
+</script>
+</body></html>
