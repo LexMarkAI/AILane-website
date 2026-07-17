@@ -45,7 +45,11 @@ var HUB_WORKSPACE_FACETS = [
   // standalone /operational/cases/ page (ACEI-filtered recent tribunal decisions + relocated
   // enforcement notices). Placed adjacent to Alerts; navigates via the href handler below.
   { id: 'cases',        label: 'Recent Cases', href: '/operational/cases/' },
-  { id: 'acei',         label: 'ACEI Overview' },
+  // WORKSPACE-UX-PASS-SITE-001 §5 — the standalone 'ACEI Overview' facet is retired; the
+  // Triad facet (ACEI · RRI · CCI) is the single home for ACEI and is promoted here
+  // UNCONDITIONALLY (all tiers), in the position the standalone ACEI Overview held. Its
+  // body (HubTriadFacet) embeds the ACEI Overview verbatim, so no ACEI content is lost.
+  { id: 'triad',        label: 'Triad — ACEI · RRI · CCI' },
   { id: 'intelligence', label: 'Intelligence' },
   // PARLIAMENT-LIVE-001 — full-page surface (not an in-app facet): href routes
   // to the standalone /operational/parliament-live/ page. Sits under Intelligence;
@@ -63,7 +67,9 @@ var HUB_WORKSPACE_FACETS = [
   { id: 'settings',     label: 'Settings' },
 ];
 var HUB_FACET_LABELS = {
-  vault: 'Document Vault', alerts: 'Alerts', acei: 'ACEI Overview',
+  // WORKSPACE-UX-PASS-SITE-001 §5 — 'acei' label removed with the standalone facet; the
+  // Triad facet (label below) is the single home for ACEI · RRI · CCI.
+  vault: 'Document Vault', alerts: 'Alerts',
   intelligence: 'Intelligence', ticker: 'Ticker', notes: 'Notes', calendar: 'Calendar',
   // AILANE-CC-BRIEF-WSUX-SITE-003 §S1 — in-app Settings facet.
   settings: 'Settings',
@@ -73,10 +79,12 @@ var HUB_FACET_LABELS = {
 
 // GOVWS-SITE-001 §2 — mode-aware "Your workspace" facet list. Operational and public
 // KL receive HUB_WORKSPACE_FACETS verbatim (byte-identical — this helper returns the
-// same array reference). Governance mode gets: (1) the full-page facet targets repointed
+// same array reference). Governance mode gets the full-page facet targets repointed
 // /operational/… → /governance/… (Document Vault, Recent Cases, Parliament Live,
-// Calendar); (2) the governance-only 'triad' facet inserted immediately after ACEI
-// Overview. In-app facets (alerts, acei, intelligence, ticker, notes) are unchanged.
+// Calendar). WORKSPACE-UX-PASS-SITE-001 §5 — the 'triad' facet now lives in the base
+// HUB_WORKSPACE_FACETS array (all tiers), so the former governance-only injection is
+// removed; governance simply repoints hrefs. In-app facets (alerts, triad, intelligence,
+// ticker, notes) are unchanged across modes.
 function klHubFacetsFor() {
   if (klGovernanceMode() !== true) return HUB_WORKSPACE_FACETS;
   var out = [];
@@ -89,7 +97,6 @@ function klHubFacetsFor() {
     } else {
       out.push(f);
     }
-    if (f.id === 'acei') out.push({ id: 'triad', label: 'Triad — ACEI · RRI · CCI' });
   });
   return out;
 }
@@ -3017,6 +3024,16 @@ function MessageInput({ onSend, disabled, onInputChange, nexusState, tier, prefe
 
 // ─── ConversationArea ───
 
+// WORKSPACE-UX-PASS-SITE-001 §1.2 — the conversation's first user turn, used to prefill the
+// "Remember this as a matter" capture. Returns '' when there is no user message yet.
+function klFirstUserText(messages) {
+  if (!Array.isArray(messages)) return '';
+  for (var i = 0; i < messages.length; i++) {
+    var m = messages[i];
+    if (m && m.role === 'user' && m.content) return String(m.content);
+  }
+  return '';
+}
 function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, onVaultOnly, floatingNexusExpanded, onToggleFloatingNexus, showQualifier, onUserTypeSelect, nexusState, prefersReducedMotion, onInputChange, nearDomain, onDomainHover, onDomainLeave, hubMode, hubSession, matterRefreshKey, klPassHolder }) {
   const scrollRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -3104,7 +3121,7 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
               <MessageInput onSend={onSend} disabled={isLoading} onInputChange={onInputChange} nexusState={nexusState} tier={tier} prefersReducedMotion={prefersReducedMotion} />
             </div>
             {/* OOX-001 §1.4: hub-mode matter bar (retain-or-clear + remember). */}
-            {hubMode && hubSession && <HubMatterPanel hubSession={hubSession} refreshKey={matterRefreshKey} />}
+            {hubMode && hubSession && <HubMatterPanel hubSession={hubSession} refreshKey={matterRefreshKey} showHistory={true} />}
             <HorizonAlert />
             {/* KL-LIVE-001 §W-C: Coming-into-force rail (live feed, date-sorted) */}
             <ForwardRail />
@@ -3197,7 +3214,7 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
             {isLoading && <TypingIndicator />}
           </div>
           {/* OOX-001 §1.4: hub-mode matter bar (retain-or-clear + remember). */}
-          {hubMode && hubSession && <HubMatterPanel hubSession={hubSession} refreshKey={matterRefreshKey} />}
+          {hubMode && hubSession && <HubMatterPanel hubSession={hubSession} refreshKey={matterRefreshKey} chatSeed={klFirstUserText(messages)} />}
           <div className="kl-conversation-input">
             <MessageInput onSend={onSend} disabled={isLoading} onInputChange={onInputChange} nexusState={nexusState} tier={tier} prefersReducedMotion={prefersReducedMotion} />
           </div>
@@ -3653,7 +3670,8 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onDel
         ),
         // KL-PARITY-001 WP6 — the KL workspace menu now presents the same offerings as the
         // Operational workspace: Intelligence, Cases, Calendar, Notes, Parliament Live (Documents
-        // is the promoted item above). Alerts and ACEI Overview are excluded by Director
+        // is the promoted item above). Alerts and the Triad panel (ACEI · RRI · CCI — the
+        // single home for ACEI since WORKSPACE-UX-PASS-SITE-001 §5) are excluded by Director
         // instruction — their components are retained, simply not linked here. Each item opens
         // an in-app parity view (KLWorkspaceDrawer) inside the signed-in KL shell, because a
         // pass holder cannot open the subscription-tier-gated /operational/* pages. The Notes
@@ -7833,10 +7851,10 @@ function klParityCaseCard(row, idx) {
   // KL-PARITY-003 WP2 — Discuss with Eileen: same component/bridge as the Intelligence
   // cards (hubIntelDiscussBtn → window.__klDiscussWithEileen), which seeds the input and
   // closes the pass-holder workspace drawer so Eileen is revealed (does NOT auto-send).
+  // WORKSPACE-UX-PASS-SITE-001 §4 — prefill conformed to the brief's case template.
   var caseName = row.name || row.citation || 'this decision';
-  var seed = 'Case: ' + caseName
-    + (row.citation ? ' (' + row.citation + ')' : '')
-    + (row.principle ? ' — ' + String(row.principle).slice(0, 200) : '');
+  var caseRef = caseName + (row.citation ? ' (' + row.citation + ')' : '');
+  var seed = 'Discuss this case and its relevance to organisations like ours: "' + caseRef + '".';
   children.push(hubIntelDiscussBtn(seed, 'discuss'));
   return React.createElement('div', { key: row.case_id != null ? row.case_id : idx, style: HUB_INTEL_CARD_STYLE }, children);
 }
@@ -9019,10 +9037,52 @@ function HubMatterRow({ m, hubSession, onChanged, onToast }) {
   }, rowChildren);
 }
 
+// WORKSPACE-UX-PASS-SITE-001 §1.3 — one Remembered-matters row: summary + saved/clears date,
+// Amend (deferred — MATTER-WRITEPATH-DRIFT: no verifiable update-by-id op exists in the engine
+// and the eileen-operational EF is not in-repo) and Delete (the confirmed op:'delete' path; the
+// EF writes operational_matter_deletion_log server-side).
+function HubRememberedRow({ m, hubSession, onDeleted, onToast }) {
+  var _busy = useState(false); var busy = _busy[0]; var setBusy = _busy[1];
+  function doDelete() {
+    if (busy) return;
+    if (typeof window !== 'undefined' && typeof window.confirm === 'function' &&
+        !window.confirm('Eileen will forget this matter. Continue?')) return;
+    setBusy(true);
+    hubSendToEileen(hubSession, { matter_action: { op: 'delete', matter_id: m.id } })
+      .then(function (resp) {
+        setBusy(false);
+        var mr = resp && resp.matter_result;
+        if (mr && mr.matter_ok) { if (onToast) onToast('Forgotten'); if (onDeleted) onDeleted(); }
+        else { console.warn('[WORKSPACE-UX §1.3] delete failed', mr && mr.matter_error); if (onToast) onToast('Could not delete — please try again.'); }
+      })
+      .catch(function (e) { setBusy(false); console.warn('[WORKSPACE-UX §1.3] delete failed', e); if (onToast) onToast('Could not delete — please try again.'); });
+  }
+  var savedDate = m.created_at || m.saved_at || m.inserted_at || null;
+  var dateLabel = savedDate ? ('Saved ' + fmtHubMatterDate(savedDate))
+    : (m.expires_at ? ('Clears ' + fmtHubMatterDate(m.expires_at)) : '');
+  return React.createElement('div', { style: { padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.06)' } },
+    React.createElement('div', { style: { color: '#F1F5F9', fontSize: '13px', lineHeight: 1.4 } }, m.summary || '(no summary)'),
+    dateLabel ? React.createElement('div', { style: { color: '#64748B', fontSize: '11px', fontFamily: "'DM Mono', monospace", marginTop: '2px' } }, dateLabel) : null,
+    React.createElement('div', { style: { display: 'flex', gap: '6px', marginTop: '8px', alignItems: 'center', flexWrap: 'wrap' } },
+      React.createElement('button', {
+        type: 'button', disabled: true, title: 'Amend — coming shortly',
+        style: Object.assign({}, HUB_MATTER_BTN_STYLE, { opacity: 0.45, cursor: 'not-allowed' }),
+      }, 'Amend'),
+      React.createElement('span', { style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace" } }, 'coming shortly'),
+      React.createElement('button', { type: 'button', disabled: busy, style: HUB_MATTER_BTN_DANGER, onClick: doDelete }, busy ? 'Forgetting…' : 'Delete')
+    )
+  );
+}
+
 // Retain-or-clear matter panel + "Remember a matter" capture (upsert).
 // Re-lists on `refreshKey` change (bumped after each Eileen answer) and on mount.
-function HubMatterPanel({ hubSession, refreshKey }) {
+// WORKSPACE-UX-PASS-SITE-001 §1 — props chatSeed (§1.2, prefill capture from a conversation)
+// and showHistory (§1.3, render the Remembered-matters manager on the workspace landing).
+function HubMatterPanel({ hubSession, refreshKey, chatSeed, showHistory }) {
   var _matters = useState([]); var matters = _matters[0]; var setMatters = _matters[1];
+  // §1.3 — full remembered set (all matters, not just due_soon) for the history manager.
+  var _all = useState([]); var allMatters = _all[0]; var setAllMatters = _all[1];
+  var _hist = useState(false); var histOpen = _hist[0]; var setHistOpen = _hist[1];
   var _toast = useState(''); var toast = _toast[0]; var setToast = _toast[1];
   var _capOpen = useState(false); var capOpen = _capOpen[0]; var setCapOpen = _capOpen[1];
   var _capText = useState(''); var capText = _capText[0]; var setCapText = _capText[1];
@@ -9044,11 +9104,12 @@ function HubMatterPanel({ hubSession, refreshKey }) {
         var mr = resp && resp.matter_result;
         if (!mr || mr.matter_error || !Array.isArray(mr.matters)) {
           if (mr && mr.matter_error) console.warn('[OOX-001] matter list error:', mr.matter_error);
-          setMatters([]); return;
+          setMatters([]); setAllMatters([]); return;
         }
         setMatters(mr.matters.filter(function (m) { return m && m.due_soon === true; }));
+        setAllMatters(mr.matters.slice());  // §1.3 — full set for the Remembered-matters manager
       })
-      .catch(function (e) { console.warn('[OOX-001] matter list failed', e); setMatters([]); });
+      .catch(function (e) { console.warn('[OOX-001] matter list failed', e); setMatters([]); setAllMatters([]); });
   }, [hubSession]);
 
   useEffect(function () { refresh(); }, [refresh, refreshKey]);
@@ -9098,18 +9159,35 @@ function HubMatterPanel({ hubSession, refreshKey }) {
     ));
   }
 
-  // Remember-a-matter control.
+  // Remember-a-matter control. WORKSPACE-UX-PASS-SITE-001 §1.2 — in an active conversation
+  // (chatSeed present) this becomes "Remember this as a matter" and prefills the capture with
+  // the conversation's first user message (truncated to the field limit) for the user to edit
+  // before saving via the SAME upsert write path. On the landing (no chatSeed) it stays the
+  // blank "+ Remember a matter" control, unchanged.
+  function toggleCapture() {
+    setCapErr('');
+    var next = !capOpen;
+    if (next && chatSeed) {
+      setCapText(function (prev) { return (prev && prev.trim()) ? prev : String(chatSeed).slice(0, 600); });
+    }
+    setCapOpen(next);
+  }
   var captureChildren = [
     React.createElement('button', {
       key: 'toggle', type: 'button', className: 'kl-action-btn',
-      onClick: function () { setCapErr(''); setCapOpen(!capOpen); },
-    }, capOpen ? 'Close' : '+ Remember a matter'),
+      onClick: toggleCapture,
+    }, capOpen ? 'Close' : (chatSeed ? 'Remember this as a matter' : '+ Remember a matter')),
   ];
   if (capOpen) {
     captureChildren.push(React.createElement('div', {
       key: 'form',
       style: { marginTop: '8px', background: '#0F1D32', border: '1px solid #1E3A5F', borderRadius: '10px', padding: '12px' },
     },
+      // WORKSPACE-UX-PASS-SITE-001 §1.1 — benefit explainer (why remembering tailors Eileen).
+      React.createElement('div', {
+        key: 'why',
+        style: { color: '#CBD5E1', fontSize: '12px', lineHeight: 1.55, marginBottom: '10px', paddingBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.06)' },
+      }, 'Why remember a matter? When you save a matter, Eileen keeps it as part of your organisation’s working context — so future answers can be tailored to your company: your sector, your contracts, the issues you’re actually dealing with. The more relevant matters Eileen holds, the more bespoke and responsive her replies become. You stay in control: view, amend or delete anything Eileen has remembered at any time from Remembered matters on your workspace landing page.'),
       React.createElement('label', {
         htmlFor: 'hub-matter-capture-text',
         style: { display: 'block', color: '#94A3B8', fontSize: '12px', marginBottom: '6px', lineHeight: 1.4 },
@@ -9132,6 +9210,41 @@ function HubMatterPanel({ hubSession, refreshKey }) {
     ));
   }
   children.push(React.createElement('div', { key: 'capture' }, captureChildren));
+
+  // WORKSPACE-UX-PASS-SITE-001 §1.3 — Remembered-matters history manager (workspace landing
+  // only, via showHistory). Collapsed panel titled "Remembered matters"; lists the org's full
+  // remembered set from the SAME list op, each with Delete (confirmed op:'delete') and Amend
+  // (deferred — see HubRememberedRow / MATTER-WRITEPATH-DRIFT).
+  if (showHistory) {
+    var histChildren = [
+      React.createElement('button', {
+        key: 'histtoggle', type: 'button', className: 'kl-action-btn',
+        'aria-expanded': histOpen ? 'true' : 'false',
+        onClick: function () { setHistOpen(!histOpen); },
+      }, (histOpen ? '▾ ' : '▸ ') + 'Remembered matters' + (allMatters.length ? (' (' + allMatters.length + ')') : '')),
+    ];
+    if (histOpen) {
+      if (!allMatters.length) {
+        histChildren.push(React.createElement('div', {
+          key: 'histempty',
+          style: { marginTop: '8px', color: '#94A3B8', fontSize: '12.5px', lineHeight: 1.5 },
+        }, 'Nothing remembered yet — save a matter and Eileen will use it to tailor her answers to your organisation.'));
+      } else {
+        histChildren.push(React.createElement('div', {
+          key: 'histlist',
+          style: { marginTop: '8px', background: '#0F1D32', border: '1px solid #1E3A5F', borderRadius: '10px', padding: '2px 14px 10px' },
+        },
+          React.createElement('div', {
+            style: { color: '#94A3B8', fontSize: '10px', fontFamily: "'DM Mono', monospace", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '8px 0 2px' },
+          }, 'Everything Eileen remembers for your organisation'),
+          allMatters.map(function (m) {
+            return React.createElement(HubRememberedRow, { key: 'rm-' + m.id, m: m, hubSession: hubSession, onDeleted: refresh, onToast: showToast });
+          })
+        ));
+      }
+    }
+    children.push(React.createElement('div', { key: 'history', style: { marginTop: '12px' } }, histChildren));
+  }
 
   if (toast) {
     children.push(React.createElement('div', {
@@ -9931,10 +10044,52 @@ function hubAlertsMono(text, key) {
 }
 // Assemble a card from a top element + a meta-children array (meta row omitted
 // when empty). key uses the row id with an index fallback.
-function hubAlertsCard(id, idx, top, meta) {
+// WORKSPACE-UX-PASS-SITE-001 §3 — each box now also carries an optional plain-English
+// description (`desc`, rendered above the meta row) and an optional "Ask Eileen" control
+// (`ask`, rendered last). Both are omitted when null, so pre-existing callers are unaffected.
+function hubAlertsCard(id, idx, top, meta, desc, ask) {
   var children = [top];
-  if (meta.length) children.push(React.createElement('div', { key: 'meta', style: HUB_ALERTS_META_STYLE }, meta));
+  if (desc) children.push(desc);
+  if (meta && meta.length) children.push(React.createElement('div', { key: 'meta', style: HUB_ALERTS_META_STYLE }, meta));
+  if (ask) children.push(ask);
   return React.createElement('div', { key: id != null ? id : idx, style: HUB_ALERTS_CARD_STYLE }, children);
+}
+
+// WORKSPACE-UX-PASS-SITE-001 §3 — neutral, field-derived explainer + "Ask Eileen" control.
+// The description states what the item is, where it came from and that it MAY be relevant
+// (RULE 15: no legal interpretation, no advisory imperatives — "may be relevant", never
+// "you must act"). "Ask Eileen" seeds the Eileen input via the shared bridge
+// (window.__klDiscussWithEileen → fallback __klSeedInput); it does NOT auto-send.
+var HUB_ALERTS_DESC_STYLE = { marginTop: '8px', color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '12.5px', lineHeight: 1.55 };
+var HUB_ALERTS_ASK_STYLE = { marginTop: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', background: 'transparent', border: '1px solid #0EA5E9', color: '#0EA5E9', borderRadius: '8px', padding: '6px 12px', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', fontWeight: 600 };
+function hubAlertsExplain(what, origin, category) {
+  var s = what || 'A recent employment-law development';
+  if (origin) s += ' (' + origin + ')';
+  s += category ? ('. It relates to ' + category + ' and may be relevant to your organisation.')
+                : '. It may be relevant to your organisation.';
+  return s;
+}
+function hubAlertsDescEl(text, key) {
+  if (!text) return null;
+  return React.createElement('div', { key: key || 'desc', style: HUB_ALERTS_DESC_STYLE }, text);
+}
+// Friendly host label from a source URL (e.g. "legislation.gov.uk"); null if unusable.
+function hubAlertsSourceName(url) {
+  if (!url || typeof url !== 'string') return null;
+  var m = url.match(/^https?:\/\/([^\/]+)/i);
+  return m ? m[1].replace(/^www\./i, '') : null;
+}
+function hubAlertsAskEileenBtn(title, source, key) {
+  var t = title || 'this alert';
+  var seed = 'Explain this alert and what it may mean for our organisation: "' + t + '"' + (source ? ' (' + source + ')' : '') + '.';
+  return React.createElement('button', {
+    key: key || 'ask', type: 'button', style: HUB_ALERTS_ASK_STYLE,
+    'aria-label': 'Ask Eileen about this alert',
+    onClick: function () {
+      if (typeof window.__klDiscussWithEileen === 'function') window.__klDiscussWithEileen(seed);
+      else if (typeof window.__klSeedInput === 'function') window.__klSeedInput(seed);
+    },
+  }, '→ Ask Eileen');
 }
 
 // OPERATIONAL-ALERTS-SITE-001 — tone pills / links / chips for the operational
@@ -10036,7 +10191,8 @@ function hubAlertsContractNotif(n, idx) {
   var top = hubAlertsCardTopEl(title, n.body || null, hubAlertsBandPill(n.status_band, 'band'));
   var meta = [];
   if (n.created_at) meta.push(hubAlertsMono(hubVaultDate(n.created_at), 'dt'));
-  return hubAlertsCard('cn-' + (n.id != null ? n.id : idx), idx, top, meta);
+  var desc = hubAlertsDescEl(hubAlertsExplain('A monitoring update for your contracts' + (n.kind ? ' (' + hubAceiHumanise(n.kind) + ')' : ''), 'your workspace monitoring', null));
+  return hubAlertsCard('cn-' + (n.id != null ? n.id : idx), idx, top, meta, desc, hubAlertsAskEileenBtn(title, null));
 }
 function hubAlertsContractForward(f, idx) {
   var sub = f.affected_category ? hubAceiHumanise(f.affected_category) : null;
@@ -10048,7 +10204,8 @@ function hubAlertsContractForward(f, idx) {
     var chip = hubAlertsSlaChip(f.sla_deadline, 'slac');
     if (chip) meta.push(chip);
   }
-  return hubAlertsCard('cf-' + (f.id != null ? f.id : idx), idx, top, meta);
+  var desc = hubAlertsDescEl(hubAlertsExplain('A forthcoming change' + (f.source_title ? ': ' + f.source_title : ''), 'the forward pipeline', sub));
+  return hubAlertsCard('cf-' + (f.id != null ? f.id : idx), idx, top, meta, desc, hubAlertsAskEileenBtn(f.source_title || 'this forward change', null));
 }
 function hubAlertsContractDoc(c, idx) {
   var title = c.role_title || c.employee_ref || 'Contract';
@@ -10056,7 +10213,8 @@ function hubAlertsContractDoc(c, idx) {
   var meta = [];
   if (c.critical_gaps != null) meta.push(hubAlertsMono(c.critical_gaps === 1 ? '1 critical gap' : (c.critical_gaps + ' critical gaps'), 'cg'));
   if (c.compliance_score != null && c.compliance_score !== '') meta.push(hubAlertsMono('Score ' + c.compliance_score, 'cs'));
-  return hubAlertsCard('cc-' + (c.id != null ? c.id : idx), idx, top, meta);
+  var desc = hubAlertsDescEl(hubAlertsExplain('A contract check summary for ' + title, 'your latest contract check', null));
+  return hubAlertsCard('cc-' + (c.id != null ? c.id : idx), idx, top, meta, desc, hubAlertsAskEileenBtn(title, null));
 }
 function hubAlertsContractCard(contract, error) {
   var items = [];
@@ -10078,17 +10236,21 @@ function hubAlertsStatuteHorizon(h, idx) {
   var meta = [];
   if (h.expected_enactment) meta.push(hubAlertsMono('Coming into force ' + hubVaultDate(h.expected_enactment), 'ef'));
   if (h.relevant_to_org === true) meta.push(hubAlertsFlag('due', 'Affects your contracts', 'rel'));
-  var link = hubAlertsLink(h.source_url, 'Source →', 'src');
+  var link = hubAlertsLink(h.source_url, 'View source', 'src');
   if (link) meta.push(link);
-  return hubAlertsCard('sh-' + (h.id != null ? h.id : idx), idx, top, meta);
+  var shName = h.legislation_short_name || 'Legislation';
+  var desc = hubAlertsDescEl(hubAlertsExplain(shName + ' is progressing through Parliament' + (h.parliament_stage ? ' (' + h.parliament_stage + ')' : ''), 'the UK legislative pipeline', null));
+  return hubAlertsCard('sh-' + (h.id != null ? h.id : idx), idx, top, meta, desc, hubAlertsAskEileenBtn(shName, hubAlertsSourceName(h.source_url)));
 }
 function hubAlertsStatuteUpcoming(u, idx) {
   var top = hubAlertsCardTopEl(u.short_title || 'Statute', u.obligations_summary ? truncate(u.obligations_summary, 160) : null, null);
   var meta = [];
   if (u.commencement_date) meta.push(hubAlertsMono('Commences ' + hubVaultDate(u.commencement_date), 'cm'));
-  var link = hubAlertsLink(u.legislation_gov_url, 'legislation.gov.uk →', 'src');
+  var link = hubAlertsLink(u.legislation_gov_url, 'View source', 'src');
   if (link) meta.push(link);
-  return hubAlertsCard('su-' + (u.id != null ? u.id : idx), idx, top, meta);
+  var suName = u.short_title || 'A statutory measure';
+  var desc = hubAlertsDescEl(hubAlertsExplain(suName + ' is due to commence', 'legislation.gov.uk', null));
+  return hubAlertsCard('su-' + (u.id != null ? u.id : idx), idx, top, meta, desc, hubAlertsAskEileenBtn(suName, hubAlertsSourceName(u.legislation_gov_url) || 'legislation.gov.uk'));
 }
 function hubAlertsStatuteAlert(a, idx) {
   var top = hubAlertsCardTopEl(a.title || 'Alert', a.summary ? truncate(a.summary, 160) : null, hubAlertsSeverityPill(a.alert_class, 'sev'));
@@ -10099,9 +10261,11 @@ function hubAlertsStatuteAlert(a, idx) {
     var chip = hubAlertsSlaChip(a.sla_deadline, 'slac');
     if (chip) meta.push(chip);
   }
-  var link = hubAlertsLink(a.source_url, 'Source →', 'src');
+  var link = hubAlertsLink(a.source_url, 'View source', 'src');
   if (link) meta.push(link);
-  return hubAlertsCard('sa-' + (a.id != null ? a.id : idx), idx, top, meta);
+  var saName = a.title || 'A statutory alert';
+  var desc = hubAlertsDescEl(hubAlertsExplain(saName, a.alert_type ? hubAceiHumanise(a.alert_type) : 'a statutory update', null));
+  return hubAlertsCard('sa-' + (a.id != null ? a.id : idx), idx, top, meta, desc, hubAlertsAskEileenBtn(saName, hubAlertsSourceName(a.source_url)));
 }
 function hubAlertsStatuteCard(statute, error) {
   var items = [];
@@ -10126,9 +10290,11 @@ function hubAlertsEnforcementEvent(e, idx) {
   var pen = hubAlertsPenalty(e.penalty_amount);
   if (pen) meta.push(hubAlertsMono(pen, 'pen'));
   if (e.date_issued) meta.push(hubAlertsMono(hubVaultDate(e.date_issued), 'dt'));
-  var link = hubAlertsLink(e.source_url, 'Source →', 'src');
+  var link = hubAlertsLink(e.source_url, 'View source', 'src');
   if (link) meta.push(link);
-  return hubAlertsCard('ee-' + (e.id != null ? e.id : idx), idx, top, meta);
+  var eeName = e.organisation || 'Enforcement action';
+  var desc = hubAlertsDescEl(hubAlertsExplain('An enforcement action' + (e.action_type ? ' (' + hubAceiHumanise(e.action_type) + ')' : '') + (e.organisation ? ' involving ' + e.organisation : ''), 'the enforcement record', e.sector ? hubAceiHumanise(e.sector) : null));
+  return hubAlertsCard('ee-' + (e.id != null ? e.id : idx), idx, top, meta, desc, hubAlertsAskEileenBtn(eeName, hubAlertsSourceName(e.source_url)));
 }
 function hubAlertsEnforcementCard(enf, error) {
   var items = [];
@@ -11712,11 +11878,20 @@ function klA11yApply() {
   var contrast = klA11yReadContrast();
   try {
     var rootEl = document.documentElement;
+    var scaled = scale !== '1';
     rootEl.style.setProperty('--kl-a11y-font-scale', scale);
     // Zoom only when scaled up: at '1' clear the inline zoom so no stacking context
     // is introduced and default rendering is untouched.
     var shell = document.getElementById('kl-root');
-    if (shell) shell.style.zoom = (scale === '1') ? '' : scale;
+    if (shell) shell.style.zoom = scaled ? scale : '';
+    // WORKSPACE-UX-PASS-SITE-001 §2 — the large-font trap. #kl-root is a height:100vh
+    // grid inside a body that is overflow:hidden;height:100vh, so zooming the shell to
+    // 1.12/1.25 renders it taller than the viewport and the clipped bottom (chat input,
+    // advisory row, panel footers) becomes unreachable. Tagging <html> with
+    // .kl-a11y-scaled lets the injected CSS below release body's overflow so the WINDOW
+    // scrolls to the true bottom at every scale. At '1' the class is removed → byte-
+    // identical default rendering (no scroll change, no clipping).
+    if (scaled) rootEl.classList.add('kl-a11y-scaled'); else rootEl.classList.remove('kl-a11y-scaled');
     if (contrast) rootEl.classList.add('contrast-boost'); else rootEl.classList.remove('contrast-boost');
   } catch (e) { /* non-fatal */ }
 }
@@ -11734,6 +11909,14 @@ function klA11ySetContrast(on) {
   var style = document.createElement('style');
   style.id = 'kl-wsux003-a11y-styles';
   style.textContent = [
+    /* WORKSPACE-UX-PASS-SITE-001 §2 — large-font trap fix. When a scale > 1 is active
+       (<html>.kl-a11y-scaled), the zoomed height:100vh shell exceeds the viewport; the
+       host page pins body to overflow:hidden;height:100vh, which clips the overflow with
+       no way to reach it. Release body (and html) to scroll so the WINDOW reaches the true
+       bottom. min-height keeps the shell full-height at scale 1-equivalent; height:auto lets
+       it grow. #kl-root is left at its own height:100vh (internal panel scroll intact) — we
+       only free the outer scroll, never introduce overflow:hidden on body/#kl-root. */
+    'html.kl-a11y-scaled, html.kl-a11y-scaled body { overflow-y: auto !important; height: auto !important; min-height: 100vh !important; }',
     /* §S2b — high-contrast: lift text + border contrast of the EXISTING palette (no
        redesign). Only active when <html> carries .contrast-boost. */
     '.contrast-boost .kl-sidebar, .contrast-boost .kl-topbar, .contrast-boost .kl-panelrail { border-color: #3B5A82 !important; }',
@@ -12881,11 +13064,10 @@ function HubTickerFacet({ hubSession }) {
 // Routing/state in brief-1.
 function HubFacetView({ facet, hubSession, onBack }) {
   var label = HUB_FACET_LABELS[facet] || 'Workspace';
-  var body = facet === 'acei'
-    ? React.createElement('div', { style: { flex: 1, overflowY: 'auto', padding: '24px' } },
-        React.createElement(HubAceiFacet, { hubSession: hubSession }))
-    // GOVWS-SITE-001 §2 — governance-only Triad panel (ACEI · RRI · CCI).
-    : facet === 'triad'
+  // WORKSPACE-UX-PASS-SITE-001 §5 — the standalone ACEI Overview facet is retired; the
+  // Triad panel (ACEI · RRI · CCI) is the single home. Any lingering '#acei' deep link is
+  // redirected here (renders HubTriadFacet, which embeds the ACEI Overview verbatim).
+  var body = (facet === 'triad' || facet === 'acei')
     ? React.createElement('div', { style: { flex: 1, overflowY: 'auto', padding: '24px' } },
         React.createElement(HubTriadFacet, { hubSession: hubSession }))
     : facet === 'vault'

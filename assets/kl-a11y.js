@@ -28,9 +28,15 @@
     var contrast = readContrast();
     try {
       var root = document.documentElement;
+      var scaled = scale !== '1';
       root.style.setProperty('--kl-a11y-font-scale', scale);
       var target = document.getElementById('kl-root') || document.body;
-      if (target) target.style.zoom = (scale === '1') ? '' : scale;
+      if (target) target.style.zoom = scaled ? scale : '';
+      // WORKSPACE-UX-PASS-SITE-001 §2 — release the outer scroll when scaled so a zoomed
+      // fixed-height shell (a page pinning body/#kl-root to 100vh with overflow:hidden)
+      // is never clipped: the window scrolls to the true bottom. No-op on ordinary
+      // document-flow pages. Removed at scale '1' → default rendering untouched.
+      if (scaled) root.classList.add('kl-a11y-scaled'); else root.classList.remove('kl-a11y-scaled');
       if (contrast) root.classList.add('contrast-boost'); else root.classList.remove('contrast-boost');
     } catch (e) { /* non-fatal */ }
   }
@@ -39,6 +45,9 @@
     var style = document.createElement('style');
     style.id = 'kl-wsux003-a11y-styles';
     style.textContent = [
+      /* WORKSPACE-UX-PASS-SITE-001 §2 — large-font trap fix: when scaled, free body/html to
+         scroll so a zoomed fixed-height shell reaches its true bottom (no clipped viewport). */
+      'html.kl-a11y-scaled, html.kl-a11y-scaled body { overflow-y: auto !important; height: auto !important; min-height: 100vh !important; }',
       /* §S2b — high-contrast: lift text contrast of the existing palette (no redesign). */
       '.contrast-boost [style*="#64748B"], .contrast-boost [style*="#475569"] { color: #94A3B8 !important; }',
       '.contrast-boost [style*="#94A3B8"] { color: #CBD5E1 !important; }',
