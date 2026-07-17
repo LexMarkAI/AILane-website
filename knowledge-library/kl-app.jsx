@@ -9575,7 +9575,22 @@ function hubAceiSectorPanel(org, sector) {
     React.createElement('h3', { key: 'h', style: { color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif", fontSize: '15px', fontWeight: 600, margin: '0 0 4px' } }, 'Your sector benchmark'),
   ];
   if (!sector) {
-    children.push(React.createElement('div', { key: 'na', style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '13px' } }, 'Sector benchmark not available for your SIC classification.'));
+    var naMsg = (org && org.sic_primary)
+      ? 'Sector benchmark not available for your SIC classification.'
+      : 'Sector benchmark activates once your organisation profile includes a SIC code.';
+    children.push(React.createElement('div', { key: 'na', style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '13px' } }, naMsg));
+    return React.createElement('div', { key: 'sector', style: HUB_ACEI_CARD_STYLE }, children);
+  }
+  // AMD-280 PF-BM-1: cohort display floor — >= 25 distinct employers and >= 10 tribunal
+  // cases. Below floor, cohort statistics do not render.
+  var bmEmployers = Number(sector.employer_count);
+  var bmCases = Number(sector.tribunal_cases);
+  if (!(bmEmployers >= 25 && bmCases >= 10)) {
+    var subF = sector.sector_name || '—';
+    if (sector.sector_group_name) subF += ' · ' + sector.sector_group_name;
+    children.push(React.createElement('div', { key: 'sub', style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', marginBottom: '10px' } }, subF));
+    children.push(React.createElement('div', { key: 'floor', style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '13px' } },
+      'Sector cohort below the publication floor (25 employers / 10 tribunal cases) — cohort statistics are withheld at this size. Your sector multiplier of ' + hubAceiF2(sector.sector_multiplier) + ' still applies in your weighted scores above.'));
     return React.createElement('div', { key: 'sector', style: HUB_ACEI_CARD_STYLE }, children);
   }
   var subTxt = sector.sector_name || '—';
@@ -9626,7 +9641,7 @@ function HubAceiFacet({ hubSession }) {
         .select('domain,drt,dmr,di,structural_flag,week_start_date')
         .order('week_start_date', { ascending: false }).limit(1),
       sb.from('organisations')
-        .select('name,acei_sector_code,acei_sector_multiplier').maybeSingle(),
+        .select('name,sic_primary,acei_sector_code,acei_sector_multiplier').maybeSingle(),
     ]).then(function (res) {
       var cats = hubAceiData(res[0], 'acei_category_scores', []);
       var dom = hubAceiData(res[1], 'acei_domain_scores', []);
@@ -9671,7 +9686,9 @@ function HubAceiFacet({ hubSession }) {
   return React.createElement('div', { style: { maxWidth: '900px', margin: '0 auto', width: '100%' } },
     hubAceiDomainHeader(state.dom),     // §1.3
     hubAceiCategoryTable(latest),       // §1.4
-    hubAceiSectorPanel(state.org, state.sector)  // §1.5
+    hubAceiSectorPanel(state.org, state.sector),  // §1.5
+    React.createElement('div', { key: 'refine', style: { color: '#64748B', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', lineHeight: 1.5, marginTop: '12px' } },
+      'Scores refine as enrichment deepens — weekly recomputation reflects the estate\'s progressively strengthened evidence base.')  // AMD-280 disclosed-refinement note
   );
 }
 
@@ -9679,8 +9696,8 @@ function HubAceiFacet({ hubSession }) {
 // Three independent governance indices — ACEI, RRI, CCI — each computed and
 // labelled SEPARATELY. They are never merged or cross-referenced in one figure.
 //  • ACEI  — reuses the operational ACEI facet verbatim (HubAceiFacet).
-//  • RRI    — Regulatory Readiness Index — rri_scores.wdrs.
-//  • CCI    — Compliance Conduct Index   — cci_scores.cci.
+//  • RRI    — Regulatory Readiness Index — rri_scores.pcs (publishable rows only).
+//  • CCI    — Compliance Conduct Index   — cci_scores.cci_pub (publishable rows only).
 // RRI/CCI query the org's rows via the established klWsFetchRows helper (live token,
 // RLS-scoped). The value + computed_at + constitution_version render ONLY when a row
 // exists with is_demonstration NOT true; otherwise the honest provisioning state
@@ -9692,7 +9709,9 @@ function hubTriadDate(v) {
   catch (e) { return String(v); }
 }
 
-// One index card. `row` is the resolved non-demonstration row (or null ⇒ provisioning).
+// One index card. `row` is the resolved non-demonstration publishable row (or null ⇒
+// provisioning). When a value renders, its constitutionally mandated disclosures render
+// with it (CCI v1.0 §7.5.1; RRI v1.0 §11.2) — AMD-280: the value never appears bare.
 function hubTriadIndexCard(cfg) {
   var children = [
     React.createElement('h3', { key: 'h', style: { color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif", fontSize: '15px', fontWeight: 600, margin: '0 0 4px' } }, cfg.title),
@@ -9706,11 +9725,19 @@ function hubTriadIndexCard(cfg) {
     }, 'Index provisioning — no computed value yet'));
   } else {
     children.push(React.createElement('div', { key: 'val', style: { color: '#F1F5F9', fontFamily: "'DM Mono', monospace", fontSize: '30px', fontWeight: 600, lineHeight: 1.1 } }, cfg.value));
+    (cfg.disclosures || []).forEach(function (d, i) {
+      children.push(React.createElement('div', { key: 'dsc' + i, style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', marginTop: i === 0 ? '10px' : '4px' } }, d));
+    });
+    (cfg.flags || []).forEach(function (f, i) {
+      children.push(React.createElement('div', { key: 'flg' + i, style: { color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', marginTop: '6px', fontStyle: 'italic' } }, f));
+    });
     var meta = [];
     if (cfg.row.computed_at) meta.push('Computed ' + hubTriadDate(cfg.row.computed_at));
     if (cfg.row.constitution_version) meta.push(String(cfg.row.constitution_version));
     if (meta.length) children.push(React.createElement('div', { key: 'meta', style: { color: '#64748B', fontFamily: "'DM Mono', monospace", fontSize: '11px', marginTop: '10px', letterSpacing: '0.03em' } }, meta.join(' · ')));
   }
+  children.push(React.createElement('div', { key: 'disc', style: { color: '#64748B', fontFamily: "'DM Sans', sans-serif", fontSize: '11px', marginTop: '10px' } },
+    'Regulatory intelligence, not legal advice.'));
   return React.createElement('div', { key: cfg.index, style: HUB_ACEI_CARD_STYLE }, children);
 }
 
@@ -9726,15 +9753,15 @@ function HubTriadFacet({ hubSession }) {
     // avoids any server-filter edge case. klWsFetchRows returns [] on any error/absence
     // ⇒ provisioning state. A demonstration row is NEVER substituted for a real value.
     Promise.all([
-      klWsFetchRows('rri_scores?select=wdrs,computed_at,constitution_version,is_demonstration&order=computed_at.desc&limit=5'),
-      klWsFetchRows('cci_scores?select=cci,computed_at,constitution_version,is_demonstration&order=computed_at.desc&limit=5'),
+      klWsFetchRows('rri_scores?select=pcs,eintp,rsi,computed_at,constitution_version,is_demonstration,publishable&publishable=eq.true&order=computed_at.desc&limit=5'),
+      klWsFetchRows('cci_scores?select=cci_pub,cw,computation_mode,scb_tier,low_credibility,verification_ceiling_applied,computed_at,constitution_version,is_demonstration,publishable&publishable=eq.true&order=computed_at.desc&limit=5'),
     ]).then(function (res) {
       if (!alive) return;
       function firstReal(rows) {
         if (!Array.isArray(rows)) return null;
         for (var i = 0; i < rows.length; i++) {
           var r = rows[i];
-          if (r && r.is_demonstration !== true) return r;  // "not true" ⇒ false or null
+          if (r && r.is_demonstration !== true && r.publishable === true) return r;  // AMD-280 PF-GEN-1: demonstration rows never render; publishable gate enforced client-side too
         }
         return null;
       }
@@ -9746,8 +9773,8 @@ function HubTriadFacet({ hubSession }) {
   var loading = st.status === 'loading';
   var rriRow = loading ? null : st.rri;
   var cciRow = loading ? null : st.cci;
-  var rriVal = rriRow && hubAceiIsNum(rriRow.wdrs) ? hubAceiF2(rriRow.wdrs) : '—';
-  var cciVal = cciRow && hubAceiIsNum(cciRow.cci) ? hubAceiF2(cciRow.cci) : '—';
+  var rriVal = rriRow && hubAceiIsNum(rriRow.pcs) ? hubAceiF2(rriRow.pcs) : '—';
+  var cciVal = cciRow && hubAceiIsNum(cciRow.cci_pub) ? hubAceiF2(cciRow.cci_pub) : '—';
 
   return React.createElement('div', { style: { maxWidth: '900px', margin: '0 auto', width: '100%' } },
     React.createElement('div', { style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', lineHeight: 1.5, marginBottom: '18px' } },
@@ -9757,9 +9784,31 @@ function HubTriadFacet({ hubSession }) {
     React.createElement(HubAceiFacet, { hubSession: hubSession }),
     // RRI + CCI — provisioning-aware, non-demonstration only.
     React.createElement('div', { style: { height: '20px' } }),
-    hubTriadIndexCard({ index: 'rri', title: 'RRI · Regulatory Readiness Index', subtitle: 'How prepared your organisation is to respond to regulatory change.', row: rriRow, value: rriVal }),
+    hubTriadIndexCard({
+      index: 'rri', title: 'RRI · Regulatory Readiness Index',
+      subtitle: 'How prepared your organisation is to respond to regulatory change.',
+      row: rriRow, value: rriVal,
+      disclosures: rriRow ? [
+        (rriRow.eintp ? ('Evidence integrity — coverage ' + (rriRow.eintp.ec != null ? rriRow.eintp.ec + '%' : '—') + ' · freshness ' + (rriRow.eintp.ef != null ? rriRow.eintp.ef + '%' : '—') + ' · disputed ' + (rriRow.eintp.def != null ? rriRow.eintp.def : '—')) : 'Evidence integrity profile pending'),
+        (rriRow.rsi ? 'Stability indicator: ' + String(rriRow.rsi) : 'Stability indicator pending'),
+      ] : [],
+      flags: [],
+    }),
     React.createElement('div', { style: { height: '14px' } }),
-    hubTriadIndexCard({ index: 'cci', title: 'CCI · Compliance Conduct Index', subtitle: 'How your practices compare against best practice.', row: cciRow, value: cciVal })
+    hubTriadIndexCard({
+      index: 'cci', title: 'CCI · Compliance Conduct Index',
+      subtitle: 'How your practices compare against best practice.',
+      row: cciRow, value: cciVal,
+      disclosures: cciRow ? [
+        'Computation mode: ' + (cciRow.computation_mode === 'public_only' ? 'Public-Only (published records; non-public claims and settlements not included)' : String(cciRow.computation_mode || '—')),
+        'Credibility weight (CW): ' + (hubAceiIsNum(cciRow.cw) ? hubAceiF2(cciRow.cw) : '—'),
+        'Sector baseline tier: ' + (cciRow.scb_tier || '—'),
+      ] : [],
+      flags: cciRow ? [].concat(
+        cciRow.low_credibility === true ? ['Low Credibility — the score is predominantly sector-derived at this claim volume (CW below 0.30).'] : [],
+        cciRow.verification_ceiling_applied === true ? ['Verification Ceiling — published score capped at 79 pending independently verified settlement data.'] : []
+      ) : [],
+    })
   );
 }
 
