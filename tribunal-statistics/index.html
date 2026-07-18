@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- CSP — SEC-001 §3.2 (RULE 22) -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+<!-- Consent-gated analytics loader — FIRST script, PECR opt-in (RULE 10) -->
+<script src="/assets/js/ailane-cookie-consent.js"></script>
+
+<title>UK Employment Tribunal Statistics · Ailane</title>
+<meta name="description" content="Aggregate statistical intelligence derived from published UK employment tribunal decisions and public regulator enforcement registers. Information, not legal advice.">
+
+<!-- Ailane favicon / app icons — estate head standard (AMD-246, RULE 35) -->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#0a0e1a">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#0a0e1a;--bg-2:#0c1220;--surface:#111826;--surface-2:#0e1524;
+  --border:rgba(255,255,255,0.08);--border-2:rgba(255,255,255,0.14);
+  --text:#E6ECF5;--text-2:#AEBACE;--muted:#7E8BA3;
+  --cyan:#38BDF8;--cyan-2:#0EA5E9;--green:#34D399;--purple:#A78BFA;--amber:#FBBF24;
+  --font-d:'Outfit',sans-serif;--font-b:'IBM Plex Sans',sans-serif;--font-m:'IBM Plex Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-b);line-height:1.6;min-height:100vh;}
+a{color:var(--cyan);}
+.container{max-width:960px;margin:0 auto;padding:0 20px;}
+
+header.site{border-bottom:1px solid var(--border);background:rgba(10,14,26,0.9);backdrop-filter:blur(12px);position:sticky;top:0;z-index:10;}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;max-width:960px;margin:0 auto;gap:12px;flex-wrap:wrap;}
+.wordmark{font-family:var(--font-d);font-weight:800;letter-spacing:0.06em;font-size:1.05rem;text-decoration:none;color:var(--text);}
+.wordmark .ai{color:var(--cyan);}
+.nav-links{display:flex;gap:16px;flex-wrap:wrap;}
+.nav-links a{font-size:0.82rem;color:var(--text-2);text-decoration:none;}
+.nav-links a:hover{color:var(--cyan);}
+
+.hero{padding:52px 0 24px;}
+.eyebrow{font-family:var(--font-m);font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--cyan);margin-bottom:14px;}
+h1{font-family:var(--font-d);font-weight:800;font-size:clamp(1.8rem,5vw,3rem);line-height:1.1;letter-spacing:-0.01em;}
+.lede{color:var(--text-2);font-size:1.02rem;margin-top:16px;max-width:640px;}
+
+.counters{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:32px 0 8px;}
+.counter{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 18px;}
+.counter .num{font-family:var(--font-m);font-weight:600;font-size:clamp(1.5rem,4vw,2.1rem);line-height:1.1;}
+.counter .cap{font-size:0.72rem;color:var(--muted);margin-top:8px;text-transform:uppercase;letter-spacing:0.06em;}
+.counter.c1 .num{color:var(--green);}
+.counter.c2 .num{color:var(--cyan);}
+.counter.c3 .num{color:var(--purple);}
+.asof{font-family:var(--font-m);font-size:0.76rem;color:var(--muted);margin-top:6px;}
+
+section.block{padding:30px 0;border-top:1px solid var(--border);}
+.block h2{font-family:var(--font-d);font-weight:700;font-size:1.4rem;letter-spacing:-0.01em;}
+.block p.intro{color:var(--text-2);margin-top:8px;max-width:680px;}
+
+.table-wrap{overflow-x:auto;margin-top:18px;border:1px solid var(--border);border-radius:14px;}
+table{width:100%;border-collapse:collapse;min-width:520px;}
+thead th{text-align:left;font-family:var(--font-d);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);padding:12px 16px;background:var(--surface-2);border-bottom:1px solid var(--border);}
+thead th.num,tbody td.num{text-align:right;font-family:var(--font-m);}
+tbody td{padding:11px 16px;border-bottom:1px solid var(--border);font-size:0.88rem;color:var(--text);}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:rgba(56,189,248,0.04);}
+.floor-note{font-size:0.78rem;color:var(--muted);margin-top:12px;line-height:1.55;}
+
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:18px;}
+.cat-cell{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;}
+.cat-cell .lbl{font-size:0.78rem;color:var(--text-2);}
+.cat-cell .val{font-family:var(--font-m);font-weight:600;font-size:1.3rem;color:var(--cyan);margin-top:4px;}
+.caption{font-size:0.78rem;color:var(--muted);margin-top:12px;}
+
+.cite{font-family:var(--font-m);font-size:0.72rem;color:var(--muted);margin-top:16px;background:var(--surface-2);border:1px dashed var(--border-2);border-radius:10px;padding:10px 14px;word-break:break-word;}
+.cite b{color:var(--text-2);font-weight:600;}
+
+.empty{padding:20px 16px;color:var(--muted);font-style:italic;font-size:0.86rem;text-align:center;}
+
+footer.site{border-top:1px solid var(--border);margin-top:20px;padding:30px 0 44px;background:var(--surface-2);}
+.disclaimer{font-size:0.8rem;color:var(--text-2);line-height:1.6;max-width:760px;}
+.identity{font-size:0.76rem;color:var(--muted);margin-top:16px;}
+.footer-links{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;}
+.footer-links a{font-size:0.8rem;color:var(--text-2);text-decoration:none;}
+.footer-links a:hover{color:var(--cyan);}
+
+@media(max-width:640px){
+  .counters{grid-template-columns:1fr;}
+  .hero{padding:34px 0 18px;}
+}
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="nav">
+    <a href="/" class="wordmark"><span class="ai">AI</span>LANE</a>
+    <nav class="nav-links">
+      <a href="/tribunal-statistics/">Statistics</a>
+      <a href="/tribunal-statistics/methodology/">Methodology</a>
+      <a href="/terms/">Terms</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+    <!-- HERO + COUNTERS -->
+    <section class="hero" id="overview">
+      <div class="eyebrow">Regulatory Intelligence</div>
+      <h1>UK Employment Tribunal Statistics</h1>
+      <p class="lede">Aggregate statistical intelligence derived from published UK employment tribunal decisions and public regulator enforcement registers. Information, not legal advice.</p>
+
+      <div class="counters">
+        <div class="counter c1">
+          <div class="num" data-stat="decisions">134,835</div>
+          <div class="cap">Tribunal decisions</div>
+        </div>
+        <div class="counter c2">
+          <div class="num" data-stat="enrichment">35,709</div>
+          <div class="cap">Enrichment records</div>
+        </div>
+        <div class="counter c3">
+          <div class="num" data-stat="enforcement">31,324</div>
+          <div class="cap">Enforcement events</div>
+        </div>
+      </div>
+      <div class="asof">Current as of <span data-asof>17 July 2026</span>.</div>
+      <div class="cite" id="cite-overview">
+        <b>How to cite:</b> Source: Ailane UK Employment Tribunal Statistics, ailane.ai/tribunal-statistics/ — current as of <span data-asof>17 July 2026</span>.
+      </div>
+    </section>
+
+    <!-- SECTOR COHORT TABLE (hero panel) -->
+    <section class="block" id="sector-cohorts">
+      <h2>Sector cohorts</h2>
+      <p class="intro">Employer cohorts by sector, with decided tribunal cases and the ratio of decided cases to distinct employers.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Sector</th>
+              <th class="num">Employers</th>
+              <th class="num">Tribunal cases</th>
+              <th class="num">Cases / employer</th>
+            </tr>
+          </thead>
+          <tbody id="cohorts-body">
+            <tr><td colspan="4"><div class="empty">Cohort statistics load from the live corpus. If they are not shown, the current computation is being prepared.</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="floor-note">Cohorts shown meet the estate publication floor of at least 25 distinct employers and 10 decided cases. Aggregate statistics only — no client data is included.</p>
+      <div class="cite" id="cite-cohorts">
+        <b>How to cite:</b> Source: Ailane UK Employment Tribunal Statistics, ailane.ai/tribunal-statistics/#sector-cohorts — current as of <span data-asof>17 July 2026</span>.
+      </div>
+    </section>
+
+    <!-- CLAIM-CATEGORY FREQUENCY -->
+    <section class="block" id="claim-categories">
+      <h2>Claim-category frequency</h2>
+      <p class="intro">Decided cases counted by ACEI claim category across the corpus.</p>
+      <div class="cat-grid" id="cats-grid">
+        <div class="cat-cell" style="grid-column:1/-1;"><div class="empty">Category frequencies load from the live corpus. If they are not shown, the current computation is being prepared.</div></div>
+      </div>
+      <p class="caption">Category naming keyed to the ACEI Founding Constitution v1.0 taxonomy.</p>
+      <div class="cite" id="cite-categories">
+        <b>How to cite:</b> Source: Ailane UK Employment Tribunal Statistics, ailane.ai/tribunal-statistics/#claim-categories — current as of <span data-asof>17 July 2026</span>.
+      </div>
+    </section>
+
+    <!-- METHODOLOGY LINK -->
+    <section class="block" id="about">
+      <h2>How these figures are produced</h2>
+      <p class="intro">Statistics recompute from the live corpus at page load. Sources, the aggregate-only discipline, and the publication floor are set out on the methodology page.</p>
+      <p style="margin-top:14px;"><a href="/tribunal-statistics/methodology/">Read the methodology →</a></p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="container">
+    <p class="disclaimer">Ailane publishes statistical intelligence derived from published UK tribunal decisions. This is information, not legal advice. Computation date shown per statistic. Full terms: <a href="/terms/">ailane.ai/terms/</a>.</p>
+    <p class="identity">© 2026 AI Lane Limited · Company No. 17035654 · ICO Reg. No. 00013389720 · Trading as Ailane · ailane.ai</p>
+    <nav class="footer-links">
+      <a href="/tribunal-statistics/">Statistics</a>
+      <a href="/tribunal-statistics/methodology/">Methodology</a>
+      <a href="/terms/">Terms</a>
+      <a href="/privacy/">Privacy</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+/* Public estate figures — LIVE from fn_campaign_public_stats() (anon, read-only).
+   Passive: no auth, no session, no redirect. Mirrors the homepage counter idiom.
+   Static fallbacks stay put on any failure — never blank, never error. */
+(function(){
+  var SB='https://cnbsxwtvazfvzmltkuvx.supabase.co';
+  var KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+  function pick(s,keys){ for(var i=0;i<keys.length;i++){ if(s[keys[i]]!=null) return s[keys[i]]; } return null; }
+  function fmtDate(v){ try{ var d=new Date(v); if(isNaN(d.getTime())) return String(v); return d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}); }catch(e){ return String(v); } }
+  function num(v){ return Number(v).toLocaleString('en-GB'); }
+  try{
+    fetch(SB+'/rest/v1/rpc/fn_campaign_public_stats',{
+      method:'POST',
+      headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'},
+      body:'{}'
+    })
+    .then(function(r){ return r.ok?r.json():null; })
+    .then(function(d){
+      if(!d) return; var s=Array.isArray(d)?d[0]:d; if(!s) return;
+
+      /* Hero counters — overwrite static fallbacks exactly like the homepage. */
+      document.querySelectorAll('[data-stat]').forEach(function(el){
+        var k=el.getAttribute('data-stat'); var v=null;
+        if(k==='decisions') v=pick(s,['decisions','total_decisions','tribunal_decisions','decisions_total']);
+        else if(k==='enrichment') v=pick(s,['enrichment','enrichment_records','enrichment_count','enrichment_total']);
+        else if(k==='enforcement') v=pick(s,['enforcement','enforcement_events','enforcement_count','enforcement_total']);
+        else v=s[k];
+        if(v!=null&&!isNaN(Number(v))) el.textContent=num(v);
+      });
+
+      /* Computation date. */
+      var asof=pick(s,['as_of','as_of_date','current_as_of','computed_at']);
+      if(asof){ document.querySelectorAll('[data-asof]').forEach(function(el){ el.textContent=fmtDate(asof); }); }
+
+      /* Sector cohort table. */
+      var cohorts=pick(s,['sector_cohorts','cohorts','sectors']);
+      if(Array.isArray(cohorts)&&cohorts.length){
+        var body=document.getElementById('cohorts-body'); if(body){
+          body.innerHTML=cohorts.map(function(c){
+            var name=c.sector_name||c.sector||c.name||'—';
+            var emp=pick(c,['employer_count','employers','distinct_employers']);
+            var cases=pick(c,['tribunal_cases','cases','decided_cases']);
+            var per=pick(c,['cases_per_employer','ratio']);
+            if(per==null&&emp&&cases) per=(Number(cases)/Number(emp)).toFixed(2);
+            return '<tr><td>'+String(name)+'</td>'
+              +'<td class="num">'+(emp!=null?num(emp):'—')+'</td>'
+              +'<td class="num">'+(cases!=null?num(cases):'—')+'</td>'
+              +'<td class="num">'+(per!=null?(isNaN(Number(per))?String(per):Number(per).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})):'—')+'</td></tr>';
+          }).join('');
+        }
+      }
+
+      /* ACEI claim-category frequency — numeric labels only (constitutional taxonomy pending). */
+      var cats=pick(s,['acei_category_frequency','category_frequency','claim_categories']);
+      var pairs=[];
+      if(Array.isArray(cats)){
+        cats.forEach(function(c){
+          var n=pick(c,['category','category_number','acei_category','n','category_id']);
+          var ct=pick(c,['count','case_count','cases','frequency']);
+          if(n!=null) pairs.push([n,ct]);
+        });
+      } else if(cats&&typeof cats==='object'){
+        Object.keys(cats).forEach(function(k){ pairs.push([k,cats[k]]); });
+      }
+      pairs.sort(function(a,b){ return Number(a[0])-Number(b[0]); });
+      if(pairs.length){
+        var grid=document.getElementById('cats-grid'); if(grid){
+          grid.innerHTML=pairs.map(function(p){
+            return '<div class="cat-cell"><div class="lbl">ACEI Category '+String(p[0])+'</div><div class="val">'+(p[1]!=null&&!isNaN(Number(p[1]))?num(p[1]):'—')+'</div></div>';
+          }).join('');
+        }
+      }
+    })
+    .catch(function(){ /* leave static fallbacks; never blank, never redirect */ });
+  }catch(e){ /* passive: do nothing */ }
+})();
+</script>
+</body>
+</html>

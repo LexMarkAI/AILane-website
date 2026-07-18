@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- CSP — SEC-001 §3.2 (RULE 22) -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+<!-- Consent-gated analytics loader — FIRST script, PECR opt-in (RULE 10) -->
+<script src="/assets/js/ailane-cookie-consent.js"></script>
+
+<title>Methodology · UK Employment Tribunal Statistics · Ailane</title>
+<meta name="description" content="How Ailane produces its UK employment tribunal statistics: sources, the aggregate-only discipline, the PF-BM-1 publication floor, and update cadence.">
+
+<!-- Ailane favicon / app icons — estate head standard (AMD-246, RULE 35) -->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#0a0e1a">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#0a0e1a;--surface:#111826;--surface-2:#0e1524;
+  --border:rgba(255,255,255,0.08);--border-2:rgba(255,255,255,0.14);
+  --text:#E6ECF5;--text-2:#AEBACE;--muted:#7E8BA3;--cyan:#38BDF8;
+  --font-d:'Outfit',sans-serif;--font-b:'IBM Plex Sans',sans-serif;--font-m:'IBM Plex Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{-webkit-font-smoothing:antialiased;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-b);line-height:1.65;min-height:100vh;}
+a{color:var(--cyan);}
+.container{max-width:760px;margin:0 auto;padding:0 20px;}
+
+header.site{border-bottom:1px solid var(--border);background:rgba(10,14,26,0.9);backdrop-filter:blur(12px);position:sticky;top:0;z-index:10;}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;max-width:760px;margin:0 auto;gap:12px;flex-wrap:wrap;}
+.wordmark{font-family:var(--font-d);font-weight:800;letter-spacing:0.06em;font-size:1.05rem;text-decoration:none;color:var(--text);}
+.wordmark .ai{color:var(--cyan);}
+.nav-links{display:flex;gap:16px;flex-wrap:wrap;}
+.nav-links a{font-size:0.82rem;color:var(--text-2);text-decoration:none;}
+.nav-links a:hover{color:var(--cyan);}
+
+.hero{padding:48px 0 8px;}
+.eyebrow{font-family:var(--font-m);font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--cyan);margin-bottom:12px;}
+h1{font-family:var(--font-d);font-weight:800;font-size:clamp(1.7rem,4.5vw,2.5rem);line-height:1.12;}
+.lede{color:var(--text-2);margin-top:14px;}
+
+section.block{padding:26px 0;border-top:1px solid var(--border);}
+.block:first-of-type{border-top:none;}
+h2{font-family:var(--font-d);font-weight:700;font-size:1.2rem;margin-bottom:10px;}
+p{color:var(--text-2);margin-bottom:12px;}
+ul{color:var(--text-2);margin:0 0 12px 20px;}
+ul li{margin-bottom:8px;}
+strong{color:var(--text);font-weight:600;}
+.callout{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--cyan);border-radius:10px;padding:14px 18px;margin:6px 0 14px;}
+.callout .k{font-family:var(--font-m);font-size:0.72rem;letter-spacing:0.06em;text-transform:uppercase;color:var(--cyan);margin-bottom:6px;}
+
+footer.site{border-top:1px solid var(--border);margin-top:20px;padding:30px 0 44px;background:var(--surface-2);}
+.disclaimer{font-size:0.8rem;color:var(--text-2);line-height:1.6;}
+.identity{font-size:0.76rem;color:var(--muted);margin-top:16px;}
+.footer-links{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;}
+.footer-links a{font-size:0.8rem;color:var(--text-2);text-decoration:none;}
+.footer-links a:hover{color:var(--cyan);}
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="nav">
+    <a href="/" class="wordmark"><span class="ai">AI</span>LANE</a>
+    <nav class="nav-links">
+      <a href="/tribunal-statistics/">Statistics</a>
+      <a href="/tribunal-statistics/methodology/">Methodology</a>
+      <a href="/terms/">Terms</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+    <section class="hero">
+      <div class="eyebrow">Methodology</div>
+      <h1>How these statistics are produced</h1>
+      <p class="lede">This page sets out the sources, the aggregate-only discipline, the publication floor, and the update cadence behind the <a href="/tribunal-statistics/">UK Employment Tribunal Statistics</a>.</p>
+    </section>
+
+    <section class="block">
+      <h2>Sources</h2>
+      <p>The statistics are computed from two categories of published material:</p>
+      <ul>
+        <li><strong>Published UK employment tribunal decisions</strong> released by HM Courts &amp; Tribunals Service and the judiciary.</li>
+        <li><strong>Public regulator enforcement registers</strong> maintained by UK regulators and enforcement bodies.</li>
+      </ul>
+      <p>Only material already in the public domain is used. Figures are counts and ratios computed over that published corpus.</p>
+    </section>
+
+    <section class="block">
+      <h2>Aggregate-only discipline</h2>
+      <p>Published figures are aggregate statistics: counts, cohort totals, and ratios. No client data is included, and no individual case is singled out for identification through these pages.</p>
+      <div class="callout">
+        <div class="k">Aggregate only</div>
+        Statistics describe groups of decisions and employers in the aggregate. They are information about the published record, not advice about any particular organisation or matter.
+      </div>
+    </section>
+
+    <section class="block">
+      <h2>Publication floor (PF-BM-1)</h2>
+      <p>A cohort is published only when it clears the estate publication floor, <strong>PF-BM-1</strong>: at least <strong>25 distinct employers</strong> and at least <strong>10 decided cases</strong>. Cohorts below either threshold are held back from publication.</p>
+      <div class="callout">
+        <div class="k">PF-BM-1 floor</div>
+        Minimum 25 distinct employers and 10 decided cases per published cohort. Cohorts shown on the statistics page all meet this floor.
+      </div>
+    </section>
+
+    <section class="block">
+      <h2>Update cadence</h2>
+      <p>Statistics recompute from the live corpus at page load. Each figure reflects the corpus as it stood when the page was requested, and the computation date is shown alongside the headline figures.</p>
+    </section>
+
+    <section class="block">
+      <h2>Claim-category naming</h2>
+      <p>Claim-category counts are labelled by ACEI category number. The display names for those categories are keyed to the ACEI Founding Constitution v1.0 taxonomy and are applied as a separate content step.</p>
+    </section>
+
+    <section class="block">
+      <p><a href="/tribunal-statistics/">← Back to UK Employment Tribunal Statistics</a></p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="container">
+    <p class="disclaimer">Ailane publishes statistical intelligence derived from published UK tribunal decisions. This is information, not legal advice. Computation date shown per statistic. Full terms: <a href="/terms/">ailane.ai/terms/</a>.</p>
+    <p class="identity">© 2026 AI Lane Limited · Company No. 17035654 · ICO Reg. No. 00013389720 · Trading as Ailane · ailane.ai</p>
+    <nav class="footer-links">
+      <a href="/tribunal-statistics/">Statistics</a>
+      <a href="/tribunal-statistics/methodology/">Methodology</a>
+      <a href="/terms/">Terms</a>
+      <a href="/privacy/">Privacy</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>
