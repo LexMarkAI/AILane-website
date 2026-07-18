@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- CSP — SEC-001 §3.2 (RULE 22) -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+<!-- Consent-gated analytics loader — FIRST script, PECR opt-in (RULE 10) -->
+<script src="/assets/js/ailane-cookie-consent.js"></script>
+
+<!-- Supabase JS — protected page: FIRST functional script for the auth guard -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<title>Ailane · Campaign Command Tile</title>
+<meta name="robots" content="noindex, nofollow">
+
+<!-- Ailane favicon / app icons — estate head standard (AMD-246, RULE 35) -->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#0a0e1a">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg-void:#050810;--bg-base:#070B14;--bg-surface:#0C1220;--bg-elevated:#111B2E;--bg-hover:#162238;--bg-glass:rgba(12,18,32,0.85);
+  --border-subtle:rgba(255,255,255,0.04);--border-default:rgba(255,255,255,0.07);--border-strong:rgba(255,255,255,0.12);--border-accent:rgba(14,165,233,0.3);
+  --text-primary:#E2E8F0;--text-secondary:#AEBACE;--text-muted:#8390A6;--text-accent:#38BDF8;
+  --accent-cyan:#0EA5E9;--accent-cyan-dim:rgba(14,165,233,0.15);--accent-green:#10B981;--accent-green-dim:rgba(16,185,129,0.15);
+  --accent-red:#EF4444;--accent-red-dim:rgba(239,68,68,0.15);--accent-amber:#F59E0B;--accent-amber-dim:rgba(245,158,11,0.15);
+  --accent-purple:#8B5CF6;--accent-purple-dim:rgba(139,92,246,0.15);
+  --radius-sm:8px;--radius-md:12px;--radius-lg:16px;
+  --font-display:'Outfit',sans-serif;--font-body:'IBM Plex Sans',sans-serif;--font-mono:'IBM Plex Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:18px;-webkit-font-smoothing:antialiased;}
+body{background:var(--bg-void);color:var(--text-primary);font-family:var(--font-body);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(14,165,233,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(14,165,233,0.02) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0;}
+.wrap{position:relative;z-index:1;}
+
+/* auth gate */
+.auth-gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:20px;}
+.auth-gate .logo-mark{font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent-cyan);}
+.pulse-ring{width:40px;height:40px;border:2px solid var(--accent-cyan);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ts{font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);}
+
+/* top bar */
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--border-subtle);background:var(--bg-glass);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;flex-wrap:wrap;gap:10px;}
+.top-bar-left{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.back-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-surface);color:var(--text-secondary);font-family:var(--font-body);font-size:0.75rem;cursor:pointer;text-decoration:none;transition:all 0.2s;}
+.back-btn:hover{border-color:var(--border-accent);color:var(--text-accent);}
+.page-title{font-family:var(--font-display);font-size:1rem;font-weight:700;}
+.page-title span{color:var(--accent-purple);}
+.top-bar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.status-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;font-size:0.65rem;font-family:var(--font-mono);font-weight:500;}
+.status-pill.live{background:var(--accent-green-dim);color:var(--accent-green);border:1px solid rgba(16,185,129,0.2);}
+.status-pill .dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse-dot 2s ease-in-out infinite;}
+@keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+.main{max-width:1400px;margin:0 auto;padding:20px 28px 60px;display:flex;flex-direction:column;gap:16px;}
+
+/* metrics strip */
+.kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;}
+.kpi-card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:14px 16px;}
+.kpi-card .label{font-size:0.56rem;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;}
+.kpi-card .value{font-family:var(--font-mono);font-size:1.3rem;font-weight:600;line-height:1.2;}
+.kpi-card .sub{font-size:0.56rem;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;}
+
+/* cards / panels */
+.card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);overflow:hidden;}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px 0;flex-wrap:wrap;}
+.card-head-title{font-family:var(--font-display);font-size:0.85rem;font-weight:600;color:var(--text-primary);}
+.card-head-badge{font-family:var(--font-mono);font-size:0.6rem;padding:3px 8px;border-radius:100px;background:var(--bg-hover);color:var(--text-muted);border:1px solid var(--border-subtle);}
+.card-body{padding:12px 18px 16px;}
+.section-note{font-size:0.66rem;color:var(--text-muted);line-height:1.5;margin-bottom:10px;}
+
+/* chips */
+.chip{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:100px;font-size:0.6rem;font-family:var(--font-mono);font-weight:600;border:1px solid;}
+.chip.cyan{background:var(--accent-cyan-dim);color:var(--accent-cyan);border-color:rgba(14,165,233,0.2);}
+.chip.green{background:var(--accent-green-dim);color:var(--accent-green);border-color:rgba(16,185,129,0.2);}
+.chip.red{background:var(--accent-red-dim);color:var(--accent-red);border-color:rgba(239,68,68,0.2);}
+.chip.amber{background:var(--accent-amber-dim);color:var(--accent-amber);border-color:rgba(245,158,11,0.2);}
+.chip.purple{background:var(--accent-purple-dim);color:var(--accent-purple);border-color:rgba(139,92,246,0.2);}
+.chip.grey{background:var(--bg-hover);color:var(--text-muted);border-color:var(--border-subtle);}
+
+/* queue / item cards */
+.item{background:var(--bg-base);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:10px;}
+.item:last-child{margin-bottom:0;}
+.item-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+.item-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.item-when{font-family:var(--font-mono);font-size:0.62rem;color:var(--text-muted);}
+.mono-block{font-family:var(--font-mono);font-size:0.72rem;line-height:1.55;color:var(--text-secondary);white-space:pre-wrap;word-break:break-word;background:var(--bg-void);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:10px 12px;}
+.item-link{display:inline-block;margin-top:6px;font-size:0.64rem;font-family:var(--font-mono);color:var(--accent-cyan);text-decoration:none;word-break:break-all;}
+.item-link:hover{text-decoration:underline;}
+.item-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+
+/* buttons */
+.btn{font-family:var(--font-body);font-size:0.7rem;font-weight:600;padding:6px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-elevated);color:var(--text-secondary);cursor:pointer;transition:all 0.18s;}
+.btn:hover{border-color:var(--border-strong);color:var(--text-primary);}
+.btn.primary{background:var(--accent-cyan-dim);color:var(--accent-cyan);border-color:rgba(14,165,233,0.25);}
+.btn.primary:hover{background:rgba(14,165,233,0.24);}
+.btn.green{background:var(--accent-green-dim);color:var(--accent-green);border-color:rgba(16,185,129,0.25);}
+.btn.green:hover{background:rgba(16,185,129,0.24);}
+.btn.red{background:var(--accent-red-dim);color:var(--accent-red);border-color:rgba(239,68,68,0.25);}
+.btn.red:hover{background:rgba(239,68,68,0.24);}
+.btn.amber{background:var(--accent-amber-dim);color:var(--accent-amber);border-color:rgba(245,158,11,0.25);}
+.btn:disabled{opacity:0.5;cursor:not-allowed;}
+.btn.flash{background:var(--accent-green);color:#04120b;border-color:transparent;}
+.btn.armed{background:var(--accent-red);color:#fff;border-color:transparent;}
+
+/* compliance verdict */
+.verdict{background:var(--bg-void);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:9px 11px;margin:8px 0;}
+.verdict-title{font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:6px;}
+.verdict-row{display:flex;align-items:center;gap:7px;font-size:0.66rem;color:var(--text-secondary);padding:2px 0;}
+.verdict-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.verdict-dot.pass{background:var(--accent-green);}
+.verdict-dot.fail{background:var(--accent-red);}
+
+/* channel health rows */
+.chan-row{display:grid;grid-template-columns:1.1fr auto auto auto 1fr;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border-subtle);}
+.chan-row:last-child{border-bottom:none;}
+.chan-name{font-size:0.76rem;font-weight:600;color:var(--text-primary);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.chan-sub{font-size:0.58rem;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;}
+.ctl-label{font-size:0.55rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;display:block;}
+.select,.num,.txt{font-family:var(--font-mono);font-size:0.68rem;background:var(--bg-void);color:var(--text-primary);border:1px solid var(--border-default);border-radius:var(--radius-sm);padding:5px 8px;}
+.num{width:78px;}
+.txt{width:100%;resize:vertical;font-family:var(--font-mono);line-height:1.5;}
+.toggle{cursor:pointer;width:40px;height:22px;border-radius:100px;border:1px solid var(--border-default);background:var(--bg-void);position:relative;transition:all 0.2s;flex-shrink:0;}
+.toggle .knob{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--text-muted);transition:all 0.2s;}
+.toggle.on{background:var(--accent-green-dim);border-color:rgba(16,185,129,0.4);}
+.toggle.on .knob{left:20px;background:var(--accent-green);}
+.stale-badge{font-family:var(--font-mono);font-size:0.56rem;padding:2px 7px;border-radius:100px;background:var(--accent-red-dim);color:var(--accent-red);border:1px solid rgba(239,68,68,0.3);}
+
+/* promos */
+.wave-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:14px;}
+.wave-card{background:var(--bg-base);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:12px 14px;}
+.wave-name{font-size:0.72rem;font-weight:600;color:var(--text-primary);margin-bottom:8px;}
+.wave-stat{display:flex;justify-content:space-between;font-size:0.64rem;color:var(--text-secondary);padding:2px 0;}
+.wave-stat b{font-family:var(--font-mono);color:var(--text-primary);}
+.progress{height:6px;border-radius:100px;background:var(--bg-void);overflow:hidden;margin-top:8px;}
+.progress .fill{height:100%;background:var(--accent-cyan);border-radius:100px;transition:width 0.5s;}
+.issue-form{display:flex;flex-direction:column;gap:8px;background:var(--bg-base);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px;}
+.issue-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
+.field{display:flex;flex-direction:column;gap:3px;}
+.codes-block{margin-top:10px;background:var(--bg-void);border:1px dashed var(--border-accent);border-radius:var(--radius-sm);padding:12px;}
+.codes-block .cap{font-size:0.62rem;color:var(--accent-amber);margin-bottom:8px;line-height:1.5;}
+.codes-list{font-family:var(--font-mono);font-size:0.78rem;color:var(--text-primary);line-height:1.8;word-break:break-all;}
+
+/* outreach */
+.count-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;}
+.count-cell{background:var(--bg-base);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:10px 12px;text-align:center;}
+.count-cell .n{font-family:var(--font-mono);font-size:1.15rem;font-weight:700;color:var(--text-primary);}
+.count-cell .l{font-size:0.56rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:2px;}
+.out-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--border-subtle);}
+.out-row:last-child{border-bottom:none;}
+.out-org{font-size:0.74rem;font-weight:600;color:var(--text-primary);}
+.out-contact{font-size:0.62rem;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;}
+.out-gate{font-size:0.6rem;color:var(--text-secondary);font-family:var(--font-mono);margin-top:4px;max-width:340px;word-break:break-word;}
+.out-right{text-align:right;flex-shrink:0;}
+
+/* kill switch */
+.killbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.killbar .note{font-size:0.62rem;color:var(--text-muted);width:100%;margin-bottom:2px;}
+
+.empty{font-size:0.72rem;color:var(--text-muted);padding:14px 4px;font-style:italic;}
+.toast-wrap{position:fixed;bottom:22px;right:22px;z-index:400;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--bg-elevated);border:1px solid var(--border-accent);border-radius:var(--radius-md);padding:11px 15px;font-size:0.74rem;color:var(--text-primary);box-shadow:0 8px 32px rgba(0,0,0,0.4);max-width:340px;}
+
+@media(max-width:1000px){.kpi-strip{grid-template-columns:repeat(3,1fr);}.chan-row{grid-template-columns:1fr 1fr;}.count-strip{grid-template-columns:1fr 1fr;}}
+@media(max-width:640px){.kpi-strip{grid-template-columns:1fr 1fr;}.main{padding:16px;}.top-bar{padding:12px 16px;}}
+</style>
+</head>
+<body style="visibility:hidden">
+
+<div class="wrap">
+  <div class="auth-gate" id="gate">
+    <div class="logo-mark">AILANE</div>
+    <div class="pulse-ring"></div>
+    <div class="ts">Authenticating…</div>
+  </div>
+
+  <div id="app" style="display:none">
+    <div class="top-bar">
+      <div class="top-bar-left">
+        <a href="/AiLaneCEO/analytics/" class="back-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          Analytics
+        </a>
+        <div class="page-title">Campaign <span>Command</span></div>
+      </div>
+      <div class="top-bar-right">
+        <div class="status-pill live"><div class="dot"></div>LIVE</div>
+        <div class="ts" id="clock"></div>
+      </div>
+    </div>
+
+    <div class="main">
+      <!-- PANEL 6 — Metrics strip (top of page) -->
+      <div class="kpi-strip" id="metrics"></div>
+
+      <!-- Kill-switch bar -->
+      <div class="card">
+        <div class="card-head"><div class="card-head-title">Channel Kill-Switch</div><div class="card-head-badge">Two-tap arm</div></div>
+        <div class="card-body"><div class="killbar" id="killbar"><div class="empty">Loading channels…</div></div></div>
+      </div>
+
+      <!-- PANEL 1 — Ritual queue -->
+      <div class="card">
+        <div class="card-head"><div class="card-head-title">Ritual Queue</div><div class="card-head-badge" id="ritual-count">—</div></div>
+        <div class="card-body">
+          <div class="section-note">Approved and ritual-scheduled items awaiting manual publication, soonest first (Europe/London). Copy the body, publish on the channel, then mark it published to log the dispatch.</div>
+          <div id="ritual"><div class="empty">Loading…</div></div>
+        </div>
+      </div>
+
+      <!-- PANEL 2 — Approvals -->
+      <div class="card">
+        <div class="card-head"><div class="card-head-title">Approvals</div><div class="card-head-badge" id="approvals-count">—</div></div>
+        <div class="card-body">
+          <div class="section-note">Generated items pending approval, oldest first. Review the compliance verdict before approving. An edit re-queues the item as pending for re-gate on the next generation run's audit.</div>
+          <div id="approvals"><div class="empty">Loading…</div></div>
+        </div>
+      </div>
+
+      <!-- PANEL 3 — Channel health -->
+      <div class="card">
+        <div class="card-head"><div class="card-head-title">Channel Health</div><div class="card-head-badge">Dead-man's-switch</div></div>
+        <div class="card-body">
+          <div class="section-note">Per-channel controls. A red badge marks a channel whose last generation is older than 26 hours on a weekday.</div>
+          <div id="channels"><div class="empty">Loading…</div></div>
+        </div>
+      </div>
+
+      <!-- PANEL 4 — Promo waves -->
+      <div class="card">
+        <div class="card-head"><div class="card-head-title">Promo Waves</div><div class="card-head-badge">Wave 1 cap 50 · review at 25</div></div>
+        <div class="card-body">
+          <div class="section-note">Complimentary Knowledge Library grants aggregated by wave. Wave 1 is capped at 50 issued codes with a review gate at 25 redemptions.</div>
+          <div id="waves"><div class="empty">Loading…</div></div>
+          <div class="section-label" style="font-size:0.66rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin:14px 0 8px;">Issue codes</div>
+          <div class="issue-form" id="issue-form">
+            <div class="issue-row">
+              <div class="field"><label class="ctl-label">Count</label><input class="num" type="number" id="pi-count" min="1" max="50" value="5"></div>
+              <div class="field" style="flex:1;min-width:150px;"><label class="ctl-label">Source tag</label><input class="txt" type="text" id="pi-source" placeholder="e.g. wave1-linkedin"></div>
+            </div>
+            <div class="field"><label class="ctl-label">Emails (optional, one per line)</label><textarea class="txt" id="pi-emails" rows="3" placeholder="name@example.com"></textarea></div>
+            <div><button class="btn primary" id="pi-issue">Issue codes</button></div>
+            <div id="pi-result"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL 5 — Outreach lane -->
+      <div class="card">
+        <div class="card-head"><div class="card-head-title">Outreach Lane</div><div class="card-head-badge">Read-only · Waves 1–2 Director-side</div></div>
+        <div class="card-body">
+          <div class="count-strip" id="outreach-counts"></div>
+          <div id="outreach"><div class="empty">Loading…</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   CAMPAIGN COMMAND TILE — AILANE-CC-BRIEF-CAMP-SITE-001 (AMD-281)
+   CEO-only. Auth guard mirrors AiLaneCEO/analytics/index.html:
+   getSession() → JWT email check → onAuthStateChange fallback →
+   silent redirect to /AiLaneCEO/ on failure. Body hidden until pass.
+   All data access is raw fetch + Bearer token + apikey (RULE 2);
+   Director-only RLS is the server-side gate.
+   ═══════════════════════════════════════════════════════════════════ */
+const SUPABASE_URL='https://cnbsxwtvazfvzmltkuvx.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+const CEO_EMAIL='mark@ailane.ai';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+window.eileenSupabase=sb;
+let TOKEN=null;
+
+/* ── Auth guard ── */
+function grant(token){
+  TOKEN=token;
+  document.getElementById('gate').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.body.style.visibility='visible';
+  boot();
+}
+function deny(){ window.location.replace('/AiLaneCEO/'); }
+(async function guard(){
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    if(session){
+      const p=JSON.parse(atob(session.access_token.split('.')[1]));
+      if(p.email===CEO_EMAIL){ grant(session.access_token); return; }
+      deny(); return;
+    }
+    const t=setTimeout(deny,4000);
+    sb.auth.onAuthStateChange((ev,sess)=>{
+      if(sess){
+        clearTimeout(t);
+        const p=JSON.parse(atob(sess.access_token.split('.')[1]));
+        if(p.email===CEO_EMAIL){ grant(sess.access_token); } else { deny(); }
+      }
+    });
+  }catch(e){ deny(); }
+})();
+
+/* ── Helpers ── */
+function authHeaders(extra){ return Object.assign({'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+TOKEN,'Content-Type':'application/json'}, extra||{}); }
+async function restGet(path){
+  try{ const r=await fetch(SUPABASE_URL+'/rest/v1/'+path,{headers:authHeaders()}); if(!r.ok) return null; const t=await r.text(); return t?JSON.parse(t):[]; }
+  catch(e){ return null; }
+}
+async function restCount(path){
+  try{
+    const r=await fetch(SUPABASE_URL+'/rest/v1/'+path,{headers:authHeaders({'Prefer':'count=exact','Range':'0-0','Range-Unit':'items'})});
+    if(!r.ok) return null;
+    const cr=r.headers.get('content-range'); if(cr&&cr.indexOf('/')>-1){ const n=Number(cr.split('/')[1]); return isNaN(n)?null:n; }
+    return null;
+  }catch(e){ return null; }
+}
+async function restPatch(path,body){
+  try{ const r=await fetch(SUPABASE_URL+'/rest/v1/'+path,{method:'PATCH',headers:authHeaders({'Prefer':'return=minimal'}),body:JSON.stringify(body)}); return r.ok; }
+  catch(e){ return false; }
+}
+async function restPost(path,body){
+  try{ const r=await fetch(SUPABASE_URL+'/rest/v1/'+path,{method:'POST',headers:authHeaders({'Prefer':'return=minimal'}),body:JSON.stringify(body)}); return r.ok; }
+  catch(e){ return false; }
+}
+async function rpcAnon(fn){
+  try{
+    const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:'{}'});
+    if(!r.ok) return null; return await r.json();
+  }catch(e){ return null; }
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function londonTime(iso){
+  if(!iso) return '—';
+  try{ return new Date(iso).toLocaleString('en-GB',{timeZone:'Europe/London',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
+  catch(e){ return String(iso); }
+}
+function relAge(iso){
+  if(!iso) return 'never';
+  const ms=Date.now()-new Date(iso).getTime(); if(isNaN(ms)) return String(iso);
+  const h=Math.floor(ms/3600000); if(h<1) return Math.max(0,Math.floor(ms/60000))+'m ago'; if(h<48) return h+'h ago'; return Math.floor(h/24)+'d ago';
+}
+function channelChip(ch){
+  const map={twitter:'cyan',x:'cyan',linkedin:'cyan',bluesky:'cyan',email:'purple',reddit:'amber',blog:'green'};
+  return '<span class="chip '+(map[(ch||'').toLowerCase()]||'grey')+'">'+esc(ch||'—')+'</span>';
+}
+function toast(msg){
+  const w=document.getElementById('toasts'); const el=document.createElement('div'); el.className='toast'; el.textContent=msg; w.appendChild(el);
+  setTimeout(()=>{ el.remove(); },3800);
+}
+
+/* ── Boot ── */
+function boot(){
+  const c=document.getElementById('clock');
+  function tick(){ c.textContent=new Date().toLocaleString('en-GB',{timeZone:'Europe/London',weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+' · London'; }
+  tick(); setInterval(tick,30000);
+  loadMetrics(); loadRitual(); loadApprovals(); loadChannels(); loadWaves(); loadOutreach();
+  document.getElementById('pi-issue').addEventListener('click',issueCodes);
+}
+
+/* ═══ PANEL 6 — Metrics strip ═══ */
+async function loadMetrics(){
+  const host=document.getElementById('metrics');
+  const cells=[
+    {k:'decisions',label:'Tribunal Decisions',sub:'Public estate',color:'var(--accent-green)'},
+    {k:'enrichment',label:'Enrichment Records',sub:'Public estate',color:'var(--accent-cyan)'},
+    {k:'enforcement',label:'Enforcement Events',sub:'Public estate',color:'var(--accent-purple)'},
+    {k:'queue',label:'Queue (approved)',sub:'Awaiting ritual',color:'var(--accent-amber)'},
+    {k:'pending',label:'Pending Approval',sub:'Needs review',color:'var(--accent-red)'},
+    {k:'today',label:'Dispatched Today',sub:'Successful',color:'var(--text-secondary)'}
+  ];
+  host.innerHTML=cells.map(c=>'<div class="kpi-card"><div class="label">'+c.label+'</div><div class="value" data-m="'+c.k+'" style="color:'+c.color+'">—</div><div class="sub">'+c.sub+'</div></div>').join('');
+  function set(k,v){ const el=host.querySelector('[data-m="'+k+'"]'); if(el&&v!=null&&!isNaN(Number(v))) el.textContent=Number(v).toLocaleString('en-GB'); }
+
+  // Public estate counters (anon RPC, mirrors homepage idiom, silent-catch)
+  const pub=await rpcAnon('fn_campaign_public_stats');
+  if(pub){ const s=Array.isArray(pub)?pub[0]:pub; if(s){
+    set('decisions', s.decisions!=null?s.decisions:(s.total_decisions!=null?s.total_decisions:s.tribunal_decisions));
+    set('enrichment', s.enrichment!=null?s.enrichment:(s.enrichment_records!=null?s.enrichment_records:s.enrichment_count));
+    set('enforcement', s.enforcement!=null?s.enforcement:(s.enforcement_events!=null?s.enforcement_events:s.enforcement_count));
+  }}
+
+  // Authenticated counts (silent-catch each; failed → em-dash retained)
+  const qApproved=await restCount('campaign_content_queue?select=id&status=in.(approved,ritual_scheduled)');
+  set('queue', qApproved);
+  const qPending=await restCount('campaign_content_queue?select=id&status=eq.pending_approval');
+  set('pending', qPending);
+  const startOfDay=new Date(); startOfDay.setHours(0,0,0,0);
+  const today=await restCount('campaign_dispatch_log?select=id&success=eq.true&created_at=gte.'+encodeURIComponent(startOfDay.toISOString()));
+  set('today', today);
+}
+
+/* ═══ PANEL 1 — Ritual queue ═══ */
+async function loadRitual(){
+  const host=document.getElementById('ritual');
+  const rows=await restGet('campaign_content_queue?status=in.(approved,ritual_scheduled)&order=scheduled_for.asc');
+  document.getElementById('ritual-count').textContent=(rows?rows.length:0)+' waiting';
+  if(!rows||rows.length===0){ host.innerHTML='<div class="empty">No approved items waiting. Generation runs weekday mornings.</div>'; return; }
+  host.innerHTML=rows.map(r=>{
+    const id=esc(r.id);
+    return '<div class="item" data-id="'+id+'">'
+      +'<div class="item-top"><div class="item-meta">'+channelChip(r.channel)
+        +'<span class="chip grey">'+esc(r.content_class||'—')+'</span>'
+        +'<span class="chip '+(r.status==='ritual_scheduled'?'amber':'green')+'">'+esc(r.status)+'</span>'
+      +'</div><span class="item-when">'+londonTime(r.scheduled_for)+'</span></div>'
+      +'<div class="mono-block">'+esc(r.body||'')+'</div>'
+      +(r.link_url?'<a class="item-link" href="'+esc(r.link_url)+'" target="_blank" rel="noopener">'+esc(r.link_url)+esc(r.utm_suffix||'')+'</a>':'')
+      +'<div class="item-actions">'
+        +'<button class="btn" data-act="copy">Copy</button>'
+        +'<button class="btn green" data-act="published">Mark published</button>'
+      +'</div></div>';
+  }).join('');
+  host.querySelectorAll('.item').forEach(el=>{
+    const id=el.getAttribute('data-id');
+    const row=rows.find(x=>String(x.id)===String(id));
+    el.querySelector('[data-act="copy"]').addEventListener('click',function(){
+      const text=(row.body||'')+(row.link_url?('\n'+row.link_url+(row.utm_suffix||'')):'');
+      navigator.clipboard.writeText(text).then(()=>{ this.textContent='Copied ✓'; this.classList.add('flash'); setTimeout(()=>{ this.textContent='Copy'; this.classList.remove('flash'); },1400); });
+    });
+    el.querySelector('[data-act="published"]').addEventListener('click',async function(){
+      this.disabled=true; this.textContent='Logging…';
+      const nowIso=new Date().toISOString();
+      const ok=await restPatch('campaign_content_queue?id=eq.'+encodeURIComponent(id),{status:'dispatched',dispatched_at:nowIso});
+      if(ok){ await restPost('campaign_dispatch_log',{queue_item_id:row.id,channel:row.channel,mode:'ritual',success:true}); toast('Marked published · dispatch logged'); }
+      else { toast('Could not update — check connection'); this.disabled=false; this.textContent='Mark published'; return; }
+      loadRitual(); loadMetrics();
+    });
+  });
+}
+
+/* ═══ PANEL 2 — Approvals ═══ */
+function renderVerdict(compliance){
+  if(!compliance) return '';
+  let obj=compliance; if(typeof compliance==='string'){ try{ obj=JSON.parse(compliance); }catch(e){ return '<div class="verdict"><div class="verdict-title">Compliance</div><div class="verdict-row">'+esc(compliance)+'</div></div>'; } }
+  let rows='';
+  const checks=obj.checks||obj.results||obj;
+  if(checks&&typeof checks==='object'){
+    Object.keys(checks).forEach(k=>{
+      const v=checks[k]; const passed=(v===true||v==='pass'||(v&&v.pass===true)||(v&&v.status==='pass'));
+      const failed=(v===false||v==='fail'||(v&&v.pass===false)||(v&&v.status==='fail'));
+      if(passed||failed){ rows+='<div class="verdict-row"><span class="verdict-dot '+(passed?'pass':'fail')+'"></span>'+esc(k)+' — '+(passed?'pass':'fail')+'</div>'; }
+    });
+  }
+  const hits=obj.banned_constructs||obj.banned||obj.banned_hits;
+  if(Array.isArray(hits)&&hits.length){ rows+='<div class="verdict-row"><span class="verdict-dot fail"></span>Banned constructs: '+esc(hits.join(', '))+'</div>'; }
+  if(!rows) rows='<div class="verdict-row"><span class="verdict-dot pass"></span>No structured verdict fields</div>';
+  return '<div class="verdict"><div class="verdict-title">Compliance verdict</div>'+rows+'</div>';
+}
+async function loadApprovals(){
+  const host=document.getElementById('approvals');
+  const rows=await restGet('campaign_content_queue?status=eq.pending_approval&order=created_at.asc');
+  document.getElementById('approvals-count').textContent=(rows?rows.length:0)+' pending';
+  if(!rows||rows.length===0){ host.innerHTML='<div class="empty">Nothing awaiting approval.</div>'; return; }
+  host.innerHTML=rows.map(r=>{
+    const id=esc(r.id);
+    return '<div class="item" data-id="'+id+'">'
+      +'<div class="item-top"><div class="item-meta">'+channelChip(r.channel)+'<span class="chip grey">'+esc(r.content_class||'—')+'</span></div>'
+      +'<span class="item-when">'+londonTime(r.scheduled_for||r.created_at)+'</span></div>'
+      +'<div class="mono-block" data-role="body">'+esc(r.body||'')+'</div>'
+      +renderVerdict(r.compliance)
+      +'<div class="item-actions" data-role="actions">'
+        +'<button class="btn green" data-act="approve">Approve</button>'
+        +'<button class="btn" data-act="edit">Edit</button>'
+        +'<button class="btn red" data-act="reject">Reject</button>'
+      +'</div></div>';
+  }).join('');
+  host.querySelectorAll('.item').forEach(el=>{
+    const id=el.getAttribute('data-id');
+    const row=rows.find(x=>String(x.id)===String(id));
+    el.querySelector('[data-act="approve"]').addEventListener('click',async function(){
+      this.disabled=true; const ok=await restPatch('campaign_content_queue?id=eq.'+encodeURIComponent(id),{status:'approved'});
+      if(ok){ toast('Approved'); loadApprovals(); loadRitual(); loadMetrics(); } else { toast('Update failed'); this.disabled=false; }
+    });
+    el.querySelector('[data-act="reject"]').addEventListener('click',async function(){
+      const reason=prompt('Reason for rejection:'); if(reason==null) return;
+      this.disabled=true; const ok=await restPatch('campaign_content_queue?id=eq.'+encodeURIComponent(id),{status:'rejected',error:reason});
+      if(ok){ toast('Rejected'); loadApprovals(); loadMetrics(); } else { toast('Update failed'); this.disabled=false; }
+    });
+    el.querySelector('[data-act="edit"]').addEventListener('click',function(){
+      const bodyEl=el.querySelector('[data-role="body"]'); const actions=el.querySelector('[data-role="actions"]');
+      if(el.querySelector('[data-role="editor"]')) return;
+      const ta=document.createElement('textarea'); ta.className='txt'; ta.rows=6; ta.value=row.body||''; ta.setAttribute('data-role','editor');
+      bodyEl.style.display='none'; bodyEl.insertAdjacentElement('afterend',ta);
+      const save=document.createElement('button'); save.className='btn primary'; save.textContent='Save (keeps pending)';
+      const cancel=document.createElement('button'); cancel.className='btn'; cancel.textContent='Cancel';
+      const bar=document.createElement('div'); bar.className='item-actions'; bar.appendChild(save); bar.appendChild(cancel);
+      ta.insertAdjacentElement('afterend',bar); actions.style.display='none';
+      cancel.addEventListener('click',function(){ ta.remove(); bar.remove(); bodyEl.style.display=''; actions.style.display=''; });
+      save.addEventListener('click',async function(){
+        save.disabled=true; const ok=await restPatch('campaign_content_queue?id=eq.'+encodeURIComponent(id),{body:ta.value,status:'pending_approval'});
+        if(ok){ toast('Saved — re-gated on next run'); loadApprovals(); } else { toast('Save failed'); save.disabled=false; }
+      });
+    });
+  });
+}
+
+/* ═══ PANEL 3 — Channel health ═══ */
+function isStale(lastGen){
+  if(!lastGen) return true;
+  const day=new Date().getDay(); const weekday=(day>=1&&day<=5);
+  const ageH=(Date.now()-new Date(lastGen).getTime())/3600000;
+  return weekday && ageH>26;
+}
+async function loadChannels(){
+  const host=document.getElementById('channels');
+  const rows=await restGet('campaign_channel_registry?order=channel.asc');
+  if(!rows){ host.innerHTML='<div class="empty">Channel registry unavailable.</div>'; renderKillbar([]); return; }
+  if(rows.length===0){ host.innerHTML='<div class="empty">No channels registered.</div>'; renderKillbar([]); return; }
+  host.innerHTML=rows.map(r=>{
+    const ch=esc(r.channel); const stale=isStale(r.last_generation_at);
+    return '<div class="chan-row" data-ch="'+ch+'">'
+      +'<div><div class="chan-name">'+ch+(stale?' <span class="stale-badge">STALE &gt;26h</span>':'')+(r.paused_reason?' <span class="chip red">paused</span>':'')+'</div>'
+        +'<div class="chan-sub">gen '+relAge(r.last_generation_at)+' · dispatch '+relAge(r.last_dispatch_at)+(r.paused_reason?(' · '+esc(r.paused_reason)):'')+'</div></div>'
+      +'<div><label class="ctl-label">Enabled</label><div class="toggle'+(r.enabled?' on':'')+'" data-act="toggle"><div class="knob"></div></div></div>'
+      +'<div><label class="ctl-label">Mode</label><select class="select" data-act="mode"><option value="ritual"'+(r.dispatch_mode==='ritual'?' selected':'')+'>ritual</option><option value="api"'+(r.dispatch_mode==='api'?' selected':'')+'>api</option></select></div>'
+      +'<div><label class="ctl-label">Daily ceiling</label><input class="num" type="number" min="0" value="'+(r.daily_ceiling!=null?esc(r.daily_ceiling):0)+'" data-act="ceiling"></div>'
+      +'<div></div>'
+      +'</div>';
+  }).join('');
+  host.querySelectorAll('.chan-row').forEach(el=>{
+    const ch=el.getAttribute('data-ch'); const filter='channel=eq.'+encodeURIComponent(ch);
+    const row=rows.find(x=>String(x.channel)===String(ch));
+    el.querySelector('[data-act="toggle"]').addEventListener('click',async function(){
+      const next=!this.classList.contains('on');
+      const ok=await restPatch('campaign_channel_registry?'+filter,{enabled:next});
+      if(ok){ this.classList.toggle('on',next); row.enabled=next; toast(ch+' '+(next?'enabled':'disabled')); loadChannels(); } else toast('Update failed');
+    });
+    el.querySelector('[data-act="mode"]').addEventListener('change',async function(){
+      const ok=await restPatch('campaign_channel_registry?'+filter,{dispatch_mode:this.value}); toast(ok?(ch+' → '+this.value):'Update failed'); if(!ok) this.value=row.dispatch_mode||'ritual';
+    });
+    el.querySelector('[data-act="ceiling"]').addEventListener('change',async function(){
+      const v=Number(this.value); const ok=await restPatch('campaign_channel_registry?'+filter,{daily_ceiling:v}); toast(ok?(ch+' ceiling '+v):'Update failed');
+    });
+  });
+  renderKillbar(rows);
+}
+
+/* ── Kill-switch bar (two-tap arm within 5s, no confirm() dialogs) ── */
+function renderKillbar(rows){
+  const host=document.getElementById('killbar');
+  if(!rows||rows.length===0){ host.innerHTML='<div class="empty">No channels to control.</div>'; return; }
+  host.innerHTML='<div class="note">One tap arms (5s), second tap toggles the channel enabled/disabled.</div>'
+    +rows.map(r=>'<button class="btn'+(r.enabled?' amber':'')+'" data-ch="'+esc(r.channel)+'" data-en="'+(r.enabled?'1':'0')+'">'+(r.enabled?'Kill ':'Restore ')+esc(r.channel)+'</button>').join('');
+  host.querySelectorAll('button[data-ch]').forEach(btn=>{
+    let armed=false; let timer=null;
+    btn.addEventListener('click',async function(){
+      const ch=btn.getAttribute('data-ch'); const en=btn.getAttribute('data-en')==='1';
+      if(!armed){ armed=true; btn.classList.add('armed'); const base=btn.textContent; btn.textContent='Confirm — '+ch; timer=setTimeout(()=>{ armed=false; btn.classList.remove('armed'); btn.textContent=base; },5000); return; }
+      clearTimeout(timer); armed=false; btn.classList.remove('armed'); btn.disabled=true;
+      const ok=await restPatch('campaign_channel_registry?channel=eq.'+encodeURIComponent(ch),{enabled:!en});
+      if(ok){ toast(ch+' '+(!en?'restored':'killed')); loadChannels(); loadMetrics(); } else { toast('Kill-switch failed'); btn.disabled=false; }
+    });
+  });
+}
+
+/* ═══ PANEL 4 — Promo waves ═══ */
+async function loadWaves(){
+  const host=document.getElementById('waves');
+  const rows=await restGet('kl_promo_grants?select=wave,status');
+  if(!rows){ host.innerHTML='<div class="empty">Promo grants unavailable.</div>'; return; }
+  const agg={};
+  rows.forEach(r=>{
+    const w=r.wave||'unassigned'; agg[w]=agg[w]||{issued:0,redeemed:0,expired:0};
+    agg[w].issued++;
+    const st=(r.status||'').toLowerCase();
+    if(st==='redeemed'||st==='used') agg[w].redeemed++;
+    else if(st==='expired') agg[w].expired++;
+  });
+  const waves=Object.keys(agg).sort();
+  if(waves.length===0){ host.innerHTML='<div class="wave-grid"><div class="wave-card"><div class="wave-name">Wave 1</div><div class="wave-stat"><span>Issued</span><b>0 / 50</b></div><div class="wave-stat"><span>Redeemed</span><b>0 / 25</b></div><div class="wave-stat"><span>Expired</span><b>0</b></div></div></div>'; return; }
+  host.innerHTML='<div class="wave-grid">'+waves.map(w=>{
+    const a=agg[w]; const isW1=/1|one/i.test(w);
+    const issuedCap=isW1?' / 50':''; const redeemGate=isW1?' / 25':'';
+    const pct=isW1?Math.min(100,Math.round(a.issued/50*100)):0;
+    return '<div class="wave-card"><div class="wave-name">'+esc(w)+(isW1?' <span class="chip cyan">cap 50</span>':'')+'</div>'
+      +'<div class="wave-stat"><span>Issued</span><b>'+a.issued+issuedCap+'</b></div>'
+      +'<div class="wave-stat"><span>Redeemed</span><b>'+a.redeemed+redeemGate+'</b></div>'
+      +'<div class="wave-stat"><span>Expired</span><b>'+a.expired+'</b></div>'
+      +(isW1?'<div class="progress"><div class="fill" style="width:'+pct+'%"></div></div>'+(a.redeemed>=25?'<div class="wave-stat" style="margin-top:6px"><span class="chip amber">review gate reached (25)</span></div>':''):'')
+      +'</div>';
+  }).join('')+'</div>';
+}
+async function issueCodes(){
+  const btn=document.getElementById('pi-issue'); const out=document.getElementById('pi-result');
+  const count=Number(document.getElementById('pi-count').value)||0;
+  const source=document.getElementById('pi-source').value.trim();
+  const emails=document.getElementById('pi-emails').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(count<1){ toast('Enter a count of 1 or more'); return; }
+  btn.disabled=true; btn.textContent='Issuing…'; out.innerHTML='';
+  try{
+    const payload={count:count,source_tag:source}; if(emails.length) payload.emails=emails;
+    const r=await fetch(SUPABASE_URL+'/functions/v1/kl-promo-issue',{method:'POST',headers:authHeaders(),body:JSON.stringify(payload)});
+    const txt=await r.text();
+    if(!r.ok){ out.innerHTML='<div class="empty">Issue failed ('+r.status+'). '+esc(txt.slice(0,180))+'</div>'; }
+    else{
+      let codes=[]; try{ const j=JSON.parse(txt); codes=j.codes||j.grants||(Array.isArray(j)?j:[]); }catch(e){ codes=txt.split(/[\s,]+/).filter(Boolean); }
+      const list=(codes||[]).map(c=>typeof c==='string'?c:(c.code||JSON.stringify(c))).join('\n');
+      out.innerHTML='<div class="codes-block"><div class="cap">Codes display once — copy now. Phrase externally as: complimentary Quick Session (list value £29).</div><div class="codes-list">'+esc(list||'(no codes returned)')+'</div><div class="item-actions"><button class="btn primary" id="pi-copy">Copy codes</button></div></div>';
+      const cp=document.getElementById('pi-copy'); if(cp) cp.addEventListener('click',function(){ navigator.clipboard.writeText(list).then(()=>{ this.textContent='Copied ✓'; this.classList.add('flash'); }); });
+      toast('Issued '+(codes?codes.length:0)+' code(s)');
+      loadWaves();
+    }
+  }catch(e){ out.innerHTML='<div class="empty">Issue failed — network error.</div>'; }
+  btn.disabled=false; btn.textContent='Issue codes';
+}
+
+/* ═══ PANEL 5 — Outreach lane ═══ */
+function subTypeChip(t){
+  const v=(t||'').toLowerCase();
+  if(v.indexOf('corp')>-1) return '<span class="chip green">'+esc(t)+'</span>';
+  if(v.indexOf('individual')>-1||v.indexOf('person')>-1) return '<span class="chip red">'+esc(t)+'</span>';
+  return '<span class="chip amber">'+esc(t||'unknown')+'</span>';
+}
+async function loadOutreach(){
+  const host=document.getElementById('outreach'); const counts=document.getElementById('outreach-counts');
+  const rows=await restGet('campaign_outreach_log?order=created_at.desc&limit=50');
+  const suppress=await restCount('campaign_suppression?select=id');
+  let held=0,sent=0,supp=0;
+  if(rows){ rows.forEach(r=>{ const o=(r.outcome||'').toLowerCase(); if(o.indexOf('sent')>-1) sent++; else if(o.indexOf('suppress')>-1) supp++; else held++; }); }
+  counts.innerHTML=[
+    {n:rows?rows.length:0,l:'Recent (≤50)'},{n:held,l:'Held'},{n:sent,l:'Sent'},{n:(suppress!=null?suppress:supp),l:'Suppressed'}
+  ].map(c=>'<div class="count-cell"><div class="n">'+c.n+'</div><div class="l">'+c.l+'</div></div>').join('');
+  if(!rows){ host.innerHTML='<div class="empty">Outreach log unavailable.</div>'; return; }
+  if(rows.length===0){ host.innerHTML='<div class="empty">No outreach records yet. Sends are Director-side in Waves 1–2.</div>'; return; }
+  host.innerHTML=rows.map(r=>{
+    let gate=r.gate_results; if(gate&&typeof gate==='object') gate=JSON.stringify(gate);
+    return '<div class="out-row"><div>'
+      +'<div class="out-org">'+esc(r.org||r.organisation||'—')+'</div>'
+      +'<div class="out-contact">'+esc(r.contact||r.contact_email||'—')+'</div>'
+      +(gate?'<div class="out-gate">'+esc(String(gate).slice(0,240))+'</div>':'')
+      +'</div><div class="out-right">'+subTypeChip(r.subscriber_type)+'<div class="out-contact" style="margin-top:6px">'+esc(r.outcome||'—')+'</div></div></div>';
+  }).join('');
+}
+</script>
+</body>
+</html>
