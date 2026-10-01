@@ -187,7 +187,7 @@ Compare URL format: `https://github.com/LexMarkAI/AILane-website/compare/main...
 Before writing any code:
 1. Read every file you will modify, IN FULL.
 2. Report exactly what you found (structure, IDs, function names).
-3. Wait for confirmation before proceeding.
+3. Proceed immediately — do not wait for confirmation (RULE 33: briefs are fully actionable). The only exception is RULE 30: halt and escalate on a harness-vs-brief conflict.
 4. Include explicit scope exclusion list: what you will NOT modify.
 
 ## FILE & FOLDER DELETION
