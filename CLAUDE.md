@@ -125,8 +125,8 @@ Gold is Director-authorised per element (AMD-279 / CEO-RAT-GOLD-DV-001, 17 Jul 2
 - Terms: `ailane.ai/terms/`
 - Privacy: `ailane.ai/privacy/`
 
-## PRIVATE ADDRESS — NEVER OUTPUT PUBLICLY
-`4 Min-Y-Mor, Barry, Wales, CF62 6QG` — internal filings only.
+## REGISTERED OFFICE — PUBLIC BY LAW (AMD-288)
+`4 Min-Y-Mor, Barry, CF62 6QG` is AI Lane Limited's registered office. It appears in public footers and legal pages because the Companies (Trading Disclosures) Regulations 2015 reg 25 require it. Use it only as the registered office in trading disclosures: never present it as a contact, correspondence or visiting address, and never pair it with personal information about the Director.
 
 ## PRODUCT LANGUAGE (banned terms)
 - "Flash Check" → "Contract Compliance Check"
