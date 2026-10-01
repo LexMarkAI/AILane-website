@@ -702,11 +702,7 @@
       var regKeys = Object.keys(reg);
       // AMD-288 — the Design Partner Programme Addendum is shown only to organisations the
       // server requires it of (it is in their gaps) or that have already accepted it.
-      regKeys = regKeys.filter(function (k) {
-        if (k !== 'beta') return true;
-        var inGaps = Array.isArray(gaps) && gaps.some(function (g) { return g && String(g.agreement_key).toLowerCase() === 'beta'; });
-        return inGaps || acceptedDateFor('beta', reg.beta) !== null;
-      });
+      regKeys = regKeys.filter(function (k) { return k !== 'beta' || betaApplies(gaps, reg); });
       var blocking = blockingGaps(gaps);              // OOX §5 — unpublished-required (fail-closed) gaps
       var blockingCards = blockingCardsHtml(blocking); // '' when none
 
@@ -802,9 +798,17 @@
     // True when every current+ready register agreement is accepted (hydrated
     // truth). With no register yet, defer to the server gate. Drives Step 3's
     // marker and the awaiting summary off the same source (OOX §1.1/§1.2).
+    // AMD-288 — the Design Partner Programme Addendum applies only where the server requires it
+    // (it is in this organisation's gaps) or it has already been accepted. One rule for the card
+    // list (step3Panel) and the Step 3 completion status (agreementsAllAccepted).
+    function betaApplies(gaps, reg) {
+      var inGaps = Array.isArray(gaps) && gaps.some(function (g) { return g && String(g.agreement_key).toLowerCase() === 'beta'; });
+      return inGaps || (!!reg && !!reg.beta && acceptedDateFor('beta', reg.beta) !== null);
+    }
+
     function agreementsAllAccepted(passed, gaps) {
       var reg = agreements || {};
-      var keys = Object.keys(reg);
+      var keys = Object.keys(reg).filter(function (k) { return k !== 'beta' || betaApplies(gaps, reg); });
       if (keys.length === 0) return !!(passed && gaps.length === 0);
       for (var i = 0; i < keys.length; i++) {
         if (acceptedDateFor(keys[i], reg[keys[i]]) === null) return false;
