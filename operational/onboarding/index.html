@@ -211,7 +211,8 @@
       privacy: 'Privacy Notice', privacy_notice: 'Privacy Notice',
       msa: 'Master Services Agreement', master_services_agreement: 'Master Services Agreement',
       dpa: 'Data Processing Agreement', data_processing_agreement: 'Data Processing Agreement',
-      aup: 'Acceptable-Use Policy', acceptable_use: 'Acceptable-Use Policy', acceptable_use_policy: 'Acceptable-Use Policy'
+      aup: 'Acceptable-Use Policy', acceptable_use: 'Acceptable-Use Policy', acceptable_use_policy: 'Acceptable-Use Policy',
+      beta: 'Design Partner Programme Addendum'
     };
     function agreementTitle(key) {
       if (!key) return 'Agreement';
@@ -699,6 +700,13 @@
 
       var reg = agreements || {};
       var regKeys = Object.keys(reg);
+      // AMD-288 — the Design Partner Programme Addendum is shown only to organisations the
+      // server requires it of (it is in their gaps) or that have already accepted it.
+      regKeys = regKeys.filter(function (k) {
+        if (k !== 'beta') return true;
+        var inGaps = Array.isArray(gaps) && gaps.some(function (g) { return g && String(g.agreement_key).toLowerCase() === 'beta'; });
+        return inGaps || acceptedDateFor('beta', reg.beta) !== null;
+      });
       var blocking = blockingGaps(gaps);              // OOX §5 — unpublished-required (fail-closed) gaps
       var blockingCards = blockingCardsHtml(blocking); // '' when none
 
@@ -737,6 +745,13 @@
           cards += '<div class="card-msg ok-msg">&#10003; Accepted' + (acceptedDate ? ' — recorded ' + esc(acceptedDate) : '') + '</div>';
         } else {
           outstanding.push(agreementTitle(lkey));
+          if (lkey === 'beta') {
+            cards += '<div class="card-msg signpost" role="note">Before you accept, note three terms of this Addendum: ' +
+                     'pre-release features are provided as is (clause 2); ' +
+                     'each party\'s liability is capped at £1,000, subject to the exceptions in clause 7; ' +
+                     'and access is complimentary for 90 days, with no automatic conversion to a paid subscription (clause 3). ' +
+                     'The full text is one click away above — read it before accepting.</div>';
+          }
           if (lkey === 'msa') {
             cards += '<div class="card-msg signpost" role="note">Before you accept, three terms of this Agreement are specifically signposted: ' +
                      'AI Lane\'s liability is capped (clauses 13.2–13.4); ' +
