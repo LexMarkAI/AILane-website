@@ -22,6 +22,9 @@ name: Post-deploy cache freshness check
 
 on:
   page_build:          # fires when GitHub Pages finishes building/deploying the branch
+  workflow_run:        # fires after the allowlist deploy (Pages source = GitHub Actions)
+    workflows: ["Deploy site (allowlist)"]
+    types: [completed]
   workflow_dispatch:   # allow manual re-checks on demand
 
 permissions:
@@ -31,7 +34,7 @@ jobs:
   freshness:
     # page_build fires for build attempts; only assert on a successful build.
     # workflow_dispatch has no build payload, so allow it through unconditionally.
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.build.status == 'built' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.build.status == 'built' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     runs-on: ubuntu-latest
     steps:
       - name: Verify clean URLs serve current live-bound HTML
