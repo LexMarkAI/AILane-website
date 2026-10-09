@@ -1,0 +1,38 @@
+name: Deploy site (allowlist)
+# AILANE-CC-BRIEF-SITE-PUBLISH-ALLOWLIST-001 — publish ONLY website files to ailane.ai.
+# Internal files (CC briefs, CLAUDE.md, SQL migrations, Edge Function sources, scripts,
+# deployment notes) stay in the repo but are never served. Requires Settings > Pages >
+# Source = "GitHub Actions" (Director, one-time).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Build allowlisted site
+        run: python3 tools/site-publish/site_allowlist.py build _site
+      - name: Verify build (fails on internal files or broken local references)
+        run: python3 tools/site-publish/site_allowlist.py verify _site
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
