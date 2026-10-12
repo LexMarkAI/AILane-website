@@ -4168,7 +4168,7 @@ function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpires
   // GOVWS-SITE-001 §2 — governance mode reads "Ailane Governance" and links to
   // /governance/ (additive: govMode is false outside governance ⇒ byte-identical).
   var govMode = klGovernanceMode();
-  var brandLabel = operationalMode ? 'Ailane Operational' : (govMode ? 'Ailane Governance' : 'AILANE Knowledge Library');
+  var brandSuffix = operationalMode ? 'Operational' : (govMode ? 'Governance' : 'Knowledge Library');
   var brandHref = operationalMode ? '/operational/' : (govMode ? '/governance/' : '/');
   return (
     <div className="kl-topbar">
@@ -4179,18 +4179,17 @@ function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpires
           <line x1="3" y1="18" x2="21" y2="18"></line>
         </svg>
       </button>
+      {/* NEXUS-LOGO-004 — Ailane brand lockup (AMD-291 §4/§5). Styling lives in
+          assets/css/brand-lockup.css; no Nexus hex is set here (NEXUS-001 §11). */}
       <a
-        className="kl-topbar-title"
+        className="kl-topbar-title ail-lockup ail-lockup--sm"
         href={brandHref}
-        style={{
-          color: '#22D3EE',
-          textDecoration: 'none',
-          fontFamily: "'DM Sans', sans-serif",
-          fontWeight: 700,
-          fontSize: '16px',
-          cursor: 'pointer',
-        }}
-      >{brandLabel}</a>
+        aria-label={'Ailane ' + brandSuffix + ' \u2014 home'}
+      >
+        <span className="ail-mark" aria-hidden="true"><img src="/assets/img/ailane-nexus-mark.svg" width="28" height="28" alt="" /></span>
+        <span className="ail-word"><span className="ail-ai">Ai</span>lane</span>
+        <span className="ail-suffix">{brandSuffix}</span>
+      </a>
       <div className="kl-topbar-right">
         {/* NOTIF-PREFS-UI-001 (Stage C · C3) — vault in-app notification bell,
             authenticated hub sessions only. */}
