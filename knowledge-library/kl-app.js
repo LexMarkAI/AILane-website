@@ -5111,23 +5111,18 @@
       badgeLabel = "PER-SESSION";
     }
     var govMode = klGovernanceMode();
-    var brandLabel = operationalMode ? "Ailane Operational" : govMode ? "Ailane Governance" : "AILANE Knowledge Library";
+    var brandSuffix = operationalMode ? "Operational" : govMode ? "Governance" : "Knowledge Library";
     var brandHref = operationalMode ? "/operational/" : govMode ? "/governance/" : "/";
     return /* @__PURE__ */ React.createElement("div", { className: "kl-topbar" }, /* @__PURE__ */ React.createElement("button", { className: "kl-topbar-toggle", onClick: onToggleSidebar, "aria-label": sidebarOpen ? "Collapse sidebar" : "Expand sidebar" }, /* @__PURE__ */ React.createElement("svg", { width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "12", x2: "21", y2: "12" }), /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "6", x2: "21", y2: "6" }), /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "18", x2: "21", y2: "18" }))), /* @__PURE__ */ React.createElement(
       "a",
       {
-        className: "kl-topbar-title",
+        className: "kl-topbar-title ail-lockup ail-lockup--sm",
         href: brandHref,
-        style: {
-          color: "#22D3EE",
-          textDecoration: "none",
-          fontFamily: "'DM Sans', sans-serif",
-          fontWeight: 700,
-          fontSize: "16px",
-          cursor: "pointer"
-        }
+        "aria-label": "Ailane " + brandSuffix + " \u2014 home"
       },
-      brandLabel
+      /* @__PURE__ */ React.createElement("span", { className: "ail-mark", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("img", { src: "/assets/img/ailane-nexus-mark.svg", width: "28", height: "28", alt: "" })),
+      /* @__PURE__ */ React.createElement("span", { className: "ail-word" }, /* @__PURE__ */ React.createElement("span", { className: "ail-ai" }, "Ai"), "lane"),
+      /* @__PURE__ */ React.createElement("span", { className: "ail-suffix" }, brandSuffix)
     ), /* @__PURE__ */ React.createElement("div", { className: "kl-topbar-right" }, hubSession && /* @__PURE__ */ React.createElement(HubNotifBell, { hubSession }), accessType === "per_session" && sessionExpiresAt && /* @__PURE__ */ React.createElement(SessionCountdown, { expiresAt: sessionExpiresAt, onExpired: onSessionExpired }), hasKLSession && !hasSubscription && /* @__PURE__ */ React.createElement(KLTickerBell, { onOpenLawInstrument: onOpenHubLaw }), /* @__PURE__ */ React.createElement("span", { className: "kl-tier-badge " + badgeClass }, badgeLabel), hasKLSession && !hasSubscription && /* @__PURE__ */ React.createElement(KLSignOutControl, null)));
   }
   var PANEL_DEFS = [
