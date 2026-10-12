@@ -141,7 +141,15 @@ nav {
   color: var(--text-heading);
   font-style: normal;
   letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
 }
+/* NEXUS-LOGO-001 — Nexus brand mark (static SVG; nexus.js instance when budget allows, see initNavNexus) */
+.logo-mark { width: 40px; height: 40px; flex: none; display: block; }
+.logo-mark img, .logo-mark canvas { width: 40px; height: 40px; display: block; }
+.logo-ai, .footer-brand .logo-ai { color: var(--cyan); }
 .nav-links { display: flex; gap: 28px; }
 .nav-links a { color: var(--text-dim); font-size: 0.92rem; font-weight: 500; }
 .nav-links a:hover { color: var(--text); }
@@ -921,7 +929,10 @@ footer {
 </head><body>
 <nav>
   <div class="nav-inner">
-    <a href="/" class="logo">Ail<span style="color:var(--cyan)">ane</span></a>
+    <a href="/" class="logo" aria-label="Ailane — home">
+      <span class="logo-mark" aria-hidden="true"><img src="/assets/img/ailane-nexus-mark.svg" width="40" height="40" alt=""></span>
+      <span class="logo-word"><span class="logo-ai">Ai</span>lane</span>
+    </a>
     <div class="nav-links">
       <a href="#eileen-section" data-i18n="nav.eileen">Eileen</a>
       <a href="#products" data-i18n="nav.products">Check · Research · Create</a>
@@ -1347,7 +1358,7 @@ footer {
 <!-- ── FOOTER ──────────────────────────────────────────────── -->
 <footer>
   <div class="container footer-inner">
-    <span class="footer-brand">Ail<span style="color:var(--cyan)">ane</span></span>
+    <span class="footer-brand"><span class="logo-ai">Ai</span>lane</span>
     <span class="footer-legal">AI Lane Limited · Company No. 17035654 &middot; Registered in England and Wales &middot; Registered office: 4 Min-Y-Mor, Barry, CF62 6QG · ICO Reg. No. 00013389720</span>
     <div class="footer-links">
       <a href="/terms/" data-i18n="footer.links.terms">Terms of Service</a>
@@ -2469,6 +2480,28 @@ function initEileenContextExit() {
 /* ── Nexus: live data visualisation (Art. 13.1) ──────────────
    Renderer lives in /assets/js/nexus.js — window.AilaneNexus.
    Weights seed from legacy distribution; v3 claims_frequency rebalances them live. */
+/* ── NEXUS-LOGO-001: nav mark → live Nexus instance, budget-gated (NEXUS-001 §9) ──
+   Budget defaults to 3 (spec). Director may set <body data-nexus-budget="4"> once
+   NEXUS-001 is amended; no code change is required at that point. */
+function initNavNexus() {
+  var mark = document.querySelector('.logo-mark');
+  if (!mark || !window.AilaneNexus || !window.AilaneNexus.createNexus) return;
+  var budget = parseInt(document.body.getAttribute('data-nexus-budget'), 10) || 3;
+  var live = document.querySelectorAll('#hero-nexus, #nexus-intro, #eileen-nexus').length;
+  if (live >= budget) return;               /* static SVG stays — budget exhausted */
+  var c = document.createElement('canvas');
+  c.width = 40; c.height = 40;
+  c.setAttribute('aria-hidden', 'true');
+  while (mark.firstChild) mark.removeChild(mark.firstChild);
+  mark.appendChild(c);
+  window.AilaneNexus.createNexus(c, {
+    pageTier: 'landing',
+    size: 40,
+    interactive: false,
+    showRelationships: false,
+    dataSource: 'eileen-nexus-intel'
+  });
+}
 /* ── Bootstrap ─────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async function() {
   // Render initial strip + ticker from FALLBACK so the page never shows
@@ -2534,6 +2567,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         dataSource: 'eileen-nexus-intel'
       });
     }
+    initNavNexus();
   }
 
   // Keep ticker + Nexus in sync with upstream — re-poll every 5 min (matches pg_cron cadence).
