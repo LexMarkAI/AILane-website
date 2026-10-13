@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ailane · Estate Presence</title>
+<meta name="robots" content="noindex, nofollow">
+
+<!-- Consent-gated analytics loader — FIRST script in <head> (RULE 10 v2.5). No inline gtag. -->
+<script src="/assets/js/ailane-cookie-consent.js"></script>
+
+<!-- CSP (SEC-001 §3.2 / RULE 22) — canonical site CSP extended as a STRICT SUPERSET with
+     https://unpkg.com + 'unsafe-eval' in script-src, which this Babel-Standalone React page
+     requires. Mirrors the sibling AiLaneCEO/intelligence-alerts page. Narrows nothing. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com https://unpkg.com 'unsafe-inline' 'unsafe-eval'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<!-- Supabase CDN first (protected-page auth convention, RULE 26) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- React + Babel Standalone (internal CEO page — RULE 23; mirrors sibling AiLaneCEO rooms) -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.7/babel.min.js"></script>
+
+<style>
+:root{--bg-void:#050810;--bg-base:#070B14;--bg-surface:#0C1220;--bg-elevated:#111B2E;--bg-hover:#162238;--bg-glass:rgba(12,18,32,0.85);--border-subtle:rgba(255,255,255,0.04);--border-default:rgba(255,255,255,0.07);--border-strong:rgba(255,255,255,0.12);--border-accent:rgba(14,165,233,0.3);--text-primary:#E2E8F0;--text-secondary:#AEBACE;--text-muted:#8390A6;--text-accent:#38BDF8;--accent-cyan:#0EA5E9;--accent-cyan-dim:rgba(14,165,233,0.15);--accent-green:#10B981;--accent-green-dim:rgba(16,185,129,0.15);--accent-red:#EF4444;--accent-red-dim:rgba(239,68,68,0.15);--accent-amber:#F59E0B;--accent-amber-dim:rgba(245,158,11,0.15);--accent-purple:#8B5CF6;--accent-purple-dim:rgba(139,92,246,0.15);--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--font-display:'Outfit',sans-serif;--font-body:'IBM Plex Sans',sans-serif;--font-mono:'IBM Plex Mono',monospace;
+  /* chart series — validated pair on the #0C1220 surface (lightness band, CVD, contrast all pass) */
+  --series-online:#0284C7;--series-active:#059669;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:15px;-webkit-font-smoothing:antialiased;}
+body{background:var(--bg-void);color:var(--text-primary);font-family:var(--font-body);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(14,165,233,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(14,165,233,0.02) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0;}
+#root{position:relative;z-index:1;}
+
+.top-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 28px;border-bottom:1px solid var(--border-subtle);background:var(--bg-glass);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;flex-wrap:wrap;}
+.top-bar-left{display:flex;align-items:center;gap:12px;}
+.back-btn{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-surface);color:var(--text-secondary);font-family:var(--font-body);font-size:0.75rem;cursor:pointer;text-decoration:none;transition:all 0.2s;}
+.back-btn:hover{border-color:var(--border-accent);color:var(--text-accent);}
+.page-title{font-family:var(--font-display);font-size:1rem;font-weight:700;}
+.page-title span{color:var(--accent-cyan);}
+.top-bar-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.status-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;font-size:0.65rem;font-family:var(--font-mono);font-weight:500;}
+.status-pill.live{background:var(--accent-green-dim);color:var(--accent-green);border:1px solid rgba(16,185,129,0.2);}
+.status-pill.stale{background:var(--bg-hover);color:var(--text-muted);border:1px solid var(--border-default);}
+.status-pill .dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse-dot 2s ease-in-out infinite;}
+@keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.ts{font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);}
+.refresh-btn{padding:6px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-surface);color:var(--text-secondary);font-family:var(--font-mono);font-size:0.68rem;cursor:pointer;transition:all 0.15s;}
+.refresh-btn:hover{border-color:var(--border-accent);color:var(--text-accent);}
+
+.main{max-width:1180px;margin:0 auto;padding:22px 28px 60px;display:flex;flex-direction:column;gap:16px;}
+.intro{font-size:0.8rem;color:var(--text-secondary);line-height:1.55;}
+.intro strong{color:var(--text-primary);font-weight:600;}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.kpi{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:16px 18px;display:flex;flex-direction:column;gap:6px;}
+.kpi-label{font-family:var(--font-display);font-size:0.66rem;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:var(--text-muted);display:flex;align-items:center;gap:7px;}
+.kpi-label .sw{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+.kpi-value{font-family:var(--font-display);font-size:2.1rem;font-weight:700;line-height:1;color:var(--text-primary);font-variant-numeric:tabular-nums;}
+.kpi-sub{font-size:0.7rem;color:var(--text-muted);}
+
+.grid-2{display:grid;grid-template-columns:1.65fr 1fr;gap:16px;align-items:start;}
+.panel{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:16px 18px 18px;}
+.panel-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+.panel-title{font-family:var(--font-display);font-size:0.86rem;font-weight:700;color:var(--text-primary);letter-spacing:0.02em;}
+.panel-note{font-family:var(--font-mono);font-size:0.6rem;color:var(--text-muted);}
+
+.roster{display:flex;flex-direction:column;gap:8px;}
+.person{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:var(--bg-base);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:10px 12px;}
+.avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:0.72rem;color:var(--text-primary);background:var(--bg-hover);border:1px solid var(--border-default);position:relative;}
+.avatar .st{position:absolute;right:-1px;bottom:-1px;width:10px;height:10px;border-radius:50%;border:2px solid var(--bg-base);}
+.st.active{background:var(--accent-green);}
+.st.online{background:var(--accent-cyan);}
+.p-name{font-size:0.82rem;font-weight:600;color:var(--text-primary);line-height:1.3;}
+.p-org{font-size:0.72rem;color:var(--text-secondary);margin-top:1px;}
+.p-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:100px;font-size:0.6rem;font-family:var(--font-mono);font-weight:500;border:1px solid;}
+.chip.cyan{background:var(--accent-cyan-dim);color:var(--accent-cyan);border-color:rgba(14,165,233,0.18);}
+.chip.green{background:var(--accent-green-dim);color:var(--accent-green);border-color:rgba(16,185,129,0.18);}
+.chip.purple{background:var(--accent-purple-dim);color:#A78BFA;border-color:rgba(139,92,246,0.2);}
+.chip.ghost{background:var(--bg-hover);color:var(--text-muted);border-color:var(--border-subtle);}
+.chip.amber{background:var(--accent-amber-dim);color:var(--accent-amber);border-color:rgba(245,158,11,0.2);}
+.p-time{text-align:right;font-family:var(--font-mono);font-size:0.64rem;color:var(--text-muted);line-height:1.6;white-space:nowrap;}
+.p-time .state{font-weight:600;}
+.p-time .state.active{color:var(--accent-green);}
+.p-time .state.online{color:var(--text-accent);}
+
+.empty-state{text-align:center;padding:30px 18px;color:var(--text-muted);font-size:0.82rem;border:1px dashed var(--border-default);border-radius:var(--radius-md);background:var(--bg-base);line-height:1.6;}
+.empty-state strong{color:var(--text-secondary);display:block;font-size:0.9rem;margin-bottom:4px;}
+.muted-note{font-family:var(--font-mono);font-size:0.72rem;color:var(--text-muted);padding:14px 4px;}
+.err-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-radius:var(--radius-md);border:1px solid rgba(239,68,68,0.35);border-left:3px solid var(--accent-red);background:linear-gradient(180deg,rgba(239,68,68,0.08),var(--bg-surface));color:#FCA5A5;font-size:0.8rem;font-weight:500;}
+.info-banner{padding:14px 16px;border-radius:var(--radius-md);border:1px solid var(--border-accent);border-left:3px solid var(--accent-cyan);background:linear-gradient(180deg,rgba(14,165,233,0.07),var(--bg-surface));color:var(--text-secondary);font-size:0.8rem;line-height:1.55;}
+
+.bars{display:flex;flex-direction:column;gap:10px;}
+.bar-row{display:grid;grid-template-columns:118px 1fr 28px;gap:10px;align-items:center;}
+.bar-label{font-size:0.74rem;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-track{height:12px;border-radius:4px;background:var(--bg-base);border:1px solid var(--border-subtle);overflow:hidden;}
+.bar-fill{height:100%;border-radius:0 4px 4px 0;background:var(--series-online);}
+.bar-val{font-family:var(--font-mono);font-size:0.72rem;color:var(--text-primary);text-align:right;font-variant-numeric:tabular-nums;}
+.sub-title{font-family:var(--font-display);font-size:0.66rem;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:var(--text-muted);margin:16px 0 8px;}
+
+.chart-wrap{position:relative;width:100%;min-width:0;}
+.panel,.grid-2>*{min-width:0;}
+.chart-wrap svg{display:block;overflow:visible;}
+.legend{display:flex;gap:14px;flex-wrap:wrap;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:0.68rem;color:var(--text-secondary);}
+.legend-item .sw{width:14px;height:3px;border-radius:2px;}
+.axis-text{font-family:'IBM Plex Mono',monospace;font-size:10px;fill:#8390A6;}
+.end-label{font-family:'IBM Plex Mono',monospace;font-size:10.5px;fill:#AEBACE;}
+.tooltip{position:absolute;pointer-events:none;background:var(--bg-elevated);border:1px solid var(--border-strong);border-radius:var(--radius-sm);padding:8px 10px;font-size:0.7rem;color:var(--text-primary);box-shadow:0 8px 24px rgba(0,0,0,0.45);white-space:nowrap;transform:translate(-50%,-100%);margin-top:-10px;z-index:5;}
+.tooltip .tt-time{font-family:var(--font-mono);font-size:0.62rem;color:var(--text-muted);margin-bottom:4px;}
+.tooltip .tt-row{display:flex;align-items:center;gap:6px;line-height:1.6;}
+.tooltip .tt-row .sw{width:8px;height:8px;border-radius:2px;}
+
+.feed{display:flex;flex-direction:column;}
+.feed-row{display:grid;grid-template-columns:62px 1fr auto;gap:12px;align-items:baseline;padding:9px 2px;border-bottom:1px solid var(--border-subtle);}
+.feed-row:last-child{border-bottom:none;}
+.feed-time{font-family:var(--font-mono);font-size:0.66rem;color:var(--text-muted);}
+.feed-what{font-size:0.78rem;color:var(--text-primary);line-height:1.4;}
+.feed-who{font-size:0.7rem;color:var(--text-secondary);margin-top:1px;}
+
+.about{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:14px 18px;font-size:0.72rem;color:var(--text-muted);line-height:1.6;}
+.about summary{cursor:pointer;color:var(--text-secondary);font-family:var(--font-display);font-weight:600;font-size:0.76rem;}
+.about ul{margin:8px 0 0 18px;}
+.about li{margin-bottom:3px;}
+.page-disclaimer{margin-top:6px;font-size:0.62rem;color:var(--text-muted);line-height:1.55;font-style:italic;border-top:1px solid var(--border-subtle);padding-top:14px;}
+
+@media (max-width:980px){.grid-2{grid-template-columns:1fr;}}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,1fr);}.main{padding:16px 16px 48px;}.top-bar{padding:12px 16px;}.person{grid-template-columns:auto 1fr;}.p-time{grid-column:2;text-align:left;}}
+</style>
+<!-- Ailane favicon / app icons — estate head standard (AMD-246, RULE 35) -->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#0a0e1a">
+</head>
+<body style="visibility:hidden">
+<div id="root"></div>
+
+<script type="text/babel">
+const {useState,useEffect,useCallback,useRef} = React;
+
+// ─── Canonical config (RULE 2: raw fetch + Bearer + apikey) — same constants as sibling AiLaneCEO pages ───
+const SUPABASE_URL='https://cnbsxwtvazfvzmltkuvx.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+const CEO_EMAIL='mark@ailane.ai';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const REFRESH_MS=60000;
+const C_ONLINE='#0284C7';
+const C_ACTIVE='#059669';
+const TZ='Europe/London';
+
+async function rpc(token, fn, params){
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method:'POST',
+    headers:{ 'Authorization':`Bearer ${token}`, 'apikey':SUPABASE_ANON_KEY, 'Content-Type':'application/json' },
+    body: JSON.stringify(params||{})
+  });
+  let json=null;
+  try{ json = await res.json(); }catch(e){ json=null; }
+  return { ok: res.ok, status: res.status, json };
+}
+
+// ─── formatting helpers ───
+function num(v){ const n=Number(v); return isFinite(n)?n:0; }
+function hhmm(iso){ if(!iso) return '—'; const d=new Date(iso); if(isNaN(d)) return '—'; return d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:TZ}); }
+function dayLabel(day){ const d=new Date(day+'T12:00:00Z'); return isNaN(d)?day:d.toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:TZ}); }
+function ago(iso){
+  if(!iso) return '—';
+  const s=Math.max(0,(Date.now()-new Date(iso).getTime())/1000);
+  if(s<60) return 'just now';
+  if(s<3600) return Math.round(s/60)+' min ago';
+  if(s<86400) return Math.round(s/3600)+' h ago';
+  return Math.round(s/86400)+' d ago';
+}
+function initials(name){
+  const t=String(name||'?').replace(/@.*/,'').split(/[\s._-]+/).filter(Boolean);
+  return ((t[0]||'?')[0]+((t[1]||'')[0]||'')).toUpperCase();
+}
+// Measure the container so charts draw at true pixel size (text stays 10-11 px at any width).
+function useWidth(ref, fallback, dep){
+  const [w,setW]=useState(fallback);
+  useEffect(()=>{
+    if(!ref.current) return;
+    const el=ref.current;
+    const set=()=>{ const cw=el.getBoundingClientRect().width; if(cw>0) setW(Math.round(cw)); };
+    set();
+    if(typeof ResizeObserver==='undefined'){ window.addEventListener('resize', set); return ()=>window.removeEventListener('resize', set); }
+    const ro=new ResizeObserver(set); ro.observe(el); return ()=>ro.disconnect();
+  },[ref, dep]); // re-attach when the chart replaces its empty state
+  return w;
+}
+function niceMax(v){ if(v<=4) return 4; if(v<=10) return 10; const p=Math.pow(10,Math.floor(Math.log10(v))); return Math.ceil(v/p)*p; }
+
+// ─── KPI tile ───
+function Kpi({label, value, sub, swatch}){
+  return (
+    <div className="kpi">
+      <div className="kpi-label">{swatch && <span className="sw" style={{background:swatch}}/>}{label}</div>
+      <div className="kpi-value">{value}</div>
+      {sub && <div className="kpi-sub">{sub}</div>}
+    </div>
+  );
+}
+
+// ─── Who is on the estate now ───
+function Roster({people, windows}){
+  if(!people.length){
+    return (
+      <div className="empty-state">
+        <strong>Nobody else is signed in right now.</strong>
+        Your own session is not counted. Signed in means a session refreshed in the last {windows.online_minutes} minutes;
+        active means activity in the last {windows.active_minutes}.
+      </div>
+    );
+  }
+  return (
+    <div className="roster">
+      {people.map((p,i)=>(
+        <div className="person" key={i}>
+          <div className="avatar">{initials(p.name)}<span className={'st '+(p.status==='active'?'active':'online')}/></div>
+          <div>
+            <div className="p-name">{p.name||'Unnamed account'}</div>
+            <div className="p-org">{p.organisation||'No organisation recorded'}</div>
+            <div className="p-chips">
+              <span className="chip cyan">{p.surface}{p.surface_detail && p.surface_detail!==p.organisation ? ' · '+p.surface_detail : ''}</span>
+              <span className="chip purple">{p.segment}</span>
+              {p.is_demo && <span className="chip amber">Demo / simulation</span>}
+            </div>
+          </div>
+          <div className="p-time">
+            <div className={'state '+(p.status==='active'?'active':'online')}>{p.status==='active'?'● Active':'○ Signed in'}</div>
+            <div>last seen {ago(p.last_seen)}</div>
+            {p.signed_in_at && <div>since {hhmm(p.signed_in_at)}</div>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Where they are (single series, so no legend; values labelled) ───
+function BarList({counts, empty}){
+  const rows=Object.entries(counts||{}).map(([k,v])=>[k,num(v)]).sort((a,b)=>b[1]-a[1]);
+  if(!rows.length) return <div className="muted-note">{empty}</div>;
+  const max=Math.max(1,...rows.map(r=>r[1]));
+  return (
+    <div className="bars">
+      {rows.map(([k,v])=>(
+        <div className="bar-row" key={k} title={k+': '+v}>
+          <div className="bar-label">{k}</div>
+          <div className="bar-track"><div className="bar-fill" style={{width:Math.max(4,(v/max)*100)+'%'}}/></div>
+          <div className="bar-val">{v}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Last 24 hours: signed in (area + line) and active (line), crosshair tooltip ───
+function Timeline({points}){
+  const [hover,setHover]=useState(null);
+  const wrap=useRef(null);
+  const pts=(points||[]).map(p=>({t:new Date(p.at).getTime(), online:num(p.online), active:num(p.active), at:p.at})).filter(p=>!isNaN(p.t));
+  const W=useWidth(wrap, 760, pts.length>=2);
+  if(pts.length<2){
+    return <div ref={wrap} className="empty-state"><strong>History is building.</strong>A snapshot is taken every 10 minutes. The 24-hour chart fills in as snapshots arrive.</div>;
+  }
+  const H=220,L=34,R=82,T=12,B=26;
+  const now=Date.now(), t0=now-24*3600*1000;
+  const maxY=niceMax(Math.max(1,...pts.map(p=>Math.max(p.online,p.active))));
+  const x=t=>L+(W-L-R)*((t-t0)/(now-t0));
+  const y=v=>T+(H-T-B)*(1-v/maxY);
+  const path=key=>pts.map((p,i)=>(i?'L':'M')+x(p.t).toFixed(1)+' '+y(p[key]).toFixed(1)).join(' ');
+  const area=path('online')+` L ${x(pts[pts.length-1].t).toFixed(1)} ${y(0)} L ${x(pts[0].t).toFixed(1)} ${y(0)} Z`;
+  const yTicks=[0,maxY/2,maxY].map(v=>Math.round(v));
+  const xTicks=[];
+  const first=new Date(t0); first.setMinutes(0,0,0);
+  const step=W<520?6:3; // fewer hour labels on narrow screens so they never collide
+  for(let t=first.getTime()+3600*1000; t<=now; t+=3600*1000){ if(new Date(t).getUTCHours()%step===0) xTicks.push(t); }
+  const last=pts[pts.length-1];
+  function onMove(e){
+    const r=wrap.current.getBoundingClientRect();
+    const px=(e.clientX-r.left)*(W/r.width);
+    let best=null,bd=1e9;
+    pts.forEach(p=>{ const d=Math.abs(x(p.t)-px); if(d<bd){bd=d;best=p;} });
+    setHover(best);
+  }
+  const lo=y(last.online), la=y(last.active);
+  const sep=Math.abs(lo-la)<12;
+  return (
+    <div className="chart-wrap" ref={wrap} onMouseMove={onMove} onMouseLeave={()=>setHover(null)}>
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Signed-in and active users over the last 24 hours, one point every 10 minutes">
+        {yTicks.map((v,i)=>(
+          <g key={i}>
+            <line x1={L} x2={W-R} y1={y(v)} y2={y(v)} stroke="rgba(255,255,255,0.06)" strokeWidth="1"/>
+            <text x={L-8} y={y(v)+3.5} textAnchor="end" className="axis-text">{v}</text>
+          </g>
+        ))}
+        {xTicks.map(t=>(
+          <text key={t} x={x(t)} y={H-8} textAnchor="middle" className="axis-text">{new Date(t).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:TZ})}</text>
+        ))}
+        <path d={area} fill={C_ONLINE} opacity="0.16"/>
+        <path d={path('online')} fill="none" stroke={C_ONLINE} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
+        <path d={path('active')} fill="none" stroke={C_ACTIVE} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
+        <circle cx={x(last.t)} cy={lo} r="4" fill={C_ONLINE} stroke="#0C1220" strokeWidth="2"/>
+        <circle cx={x(last.t)} cy={la} r="4" fill={C_ACTIVE} stroke="#0C1220" strokeWidth="2"/>
+        <text x={x(last.t)+9} y={(sep?Math.min(lo,la)-4:lo)+3.5} className="end-label">{last.online} signed in</text>
+        <text x={x(last.t)+9} y={(sep?Math.max(lo,la)+10:la)+3.5} className="end-label">{last.active} active</text>
+        {hover && (
+          <g>
+            <line x1={x(hover.t)} x2={x(hover.t)} y1={T} y2={y(0)} stroke="rgba(255,255,255,0.25)" strokeWidth="1" strokeDasharray="3 3"/>
+            <circle cx={x(hover.t)} cy={y(hover.online)} r="4" fill={C_ONLINE} stroke="#0C1220" strokeWidth="2"/>
+            <circle cx={x(hover.t)} cy={y(hover.active)} r="4" fill={C_ACTIVE} stroke="#0C1220" strokeWidth="2"/>
+          </g>
+        )}
+      </svg>
+      {hover && (
+        <div className="tooltip" style={{left:(x(hover.t)/W*100)+'%', top:(y(Math.max(hover.online,hover.active))/H*100)+'%'}}>
+          <div className="tt-time">{hhmm(hover.at)}</div>
+          <div className="tt-row"><span className="sw" style={{background:C_ONLINE}}/>Signed in <strong>{hover.online}</strong></div>
+          <div className="tt-row"><span className="sw" style={{background:C_ACTIVE}}/>Active <strong>{hover.active}</strong></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Last 30 days: daily peak signed in (single series bars, hover tooltip) ───
+function Daily({days}){
+  const [hover,setHover]=useState(null);
+  const wrap=useRef(null);
+  const ds=(days||[]).map(d=>({day:d.day, peak:num(d.peak_online), active:num(d.peak_active)}));
+  const W=useWidth(wrap, 520, ds.length>=2);
+  if(ds.length<2){
+    return <div ref={wrap} className="empty-state"><strong>Daily history starts today.</strong>Each day shows the highest number of people signed in at once.</div>;
+  }
+  const H=160,L=34,R=10,T=16,B=24;
+  const maxY=niceMax(Math.max(1,...ds.map(d=>d.peak)));
+  const bw=(W-L-R)/ds.length;
+  const y=v=>T+(H-T-B)*(1-v/maxY);
+  const peakIdx=ds.reduce((bi,d,i)=>d.peak>ds[bi].peak?i:bi,0);
+  return (
+    <div className="chart-wrap" ref={wrap} onMouseLeave={()=>setHover(null)}>
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Daily peak of people signed in at once over the last 30 days">
+        {[0,maxY/2,maxY].map((v,i)=>(
+          <g key={i}>
+            <line x1={L} x2={W-R} y1={y(v)} y2={y(v)} stroke="rgba(255,255,255,0.06)"/>
+            <text x={L-8} y={y(v)+3.5} textAnchor="end" className="axis-text">{Math.round(v)}</text>
+          </g>
+        ))}
+        {ds.map((d,i)=>{
+          const h=Math.max(d.peak>0?3:0, y(0)-y(d.peak));
+          const bx=L+i*bw+1, bwid=Math.max(2,bw-2);
+          return (
+            <g key={d.day} onMouseEnter={()=>setHover(i)}>
+              <rect x={L+i*bw} y={T} width={bw} height={H-T-B} fill="transparent"/>
+              {h>0 && <path d={`M ${bx} ${y(0)} L ${bx} ${y(0)-h+Math.min(4,h)} Q ${bx} ${y(0)-h} ${bx+Math.min(4,bwid/2)} ${y(0)-h} L ${bx+bwid-Math.min(4,bwid/2)} ${y(0)-h} Q ${bx+bwid} ${y(0)-h} ${bx+bwid} ${y(0)-h+Math.min(4,h)} L ${bx+bwid} ${y(0)} Z`} fill={C_ONLINE} opacity={hover===null||hover===i?1:0.55}/>}
+              {((ds.length-1-i)%(W<520?14:7)===0) && <text x={L+i*bw+bw/2} y={H-8} textAnchor="middle" className="axis-text">{dayLabel(d.day)}</text>}
+            </g>
+          );
+        })}
+        {ds[peakIdx].peak>0 && <text x={L+peakIdx*bw+bw/2} y={y(ds[peakIdx].peak)-5} textAnchor="middle" className="end-label">{ds[peakIdx].peak}</text>}
+      </svg>
+      {hover!==null && (
+        <div className="tooltip" style={{left:((L+hover*bw+bw/2)/W*100)+'%', top:(y(ds[hover].peak)/H*100)+'%'}}>
+          <div className="tt-time">{dayLabel(ds[hover].day)}</div>
+          <div className="tt-row"><span className="sw" style={{background:C_ONLINE}}/>Peak signed in <strong>{ds[hover].peak}</strong></div>
+          <div className="tt-row">Peak active <strong>{ds[hover].active}</strong></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Recent activity (24h) ───
+function Feed({items}){
+  if(!items.length) return <div className="muted-note">No sign-ins or product activity by other users in the last 24 hours.</div>;
+  return (
+    <div className="feed">
+      {items.map((r,i)=>(
+        <div className="feed-row" key={i}>
+          <div className="feed-time">{hhmm(r.at)}</div>
+          <div>
+            <div className="feed-what">{r.what}</div>
+            <div className="feed-who">{r.name||'Unnamed account'}{r.organisation ? ' · '+r.organisation : ''}</div>
+          </div>
+          <span className="chip ghost">{r.surface}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function App(){
+  const [auth,setAuth]=useState('checking');
+  const [token,setToken]=useState(null);
+  const [data,setData]=useState(null);
+  const [state,setState]=useState('loading'); // loading | ok | notlive | error
+  const [updated,setUpdated]=useState(null);
+  const mounted=useRef(true);
+  useEffect(()=>()=>{mounted.current=false;},[]);
+
+  // Auth guard (RULE 26) — CEO only; body hidden until confirmed; silent redirect to '/' on failure.
+  useEffect(()=>{(async()=>{
+    const deny=()=>window.location.replace('/');
+    const grant=(tok)=>{ if(mounted.current){ setToken(tok); setAuth('ok'); } };
+    let session=null;
+    try{ const r=await sb.auth.getSession(); session = r && r.data && r.data.session; }
+    catch(e){ console.warn('getSession failed', e); }
+    if(session){
+      try{
+        const p=JSON.parse(atob(session.access_token.split('.')[1]));
+        if(p.email===CEO_EMAIL){ grant(session.access_token); return; }
+      }catch(e){ /* malformed token — deny below */ }
+      return deny();
+    }
+    const t=setTimeout(deny, 6000);
+    sb.auth.onAuthStateChange((ev,sess)=>{
+      if(sess){
+        clearTimeout(t);
+        try{
+          const p=JSON.parse(atob(sess.access_token.split('.')[1]));
+          if(p.email===CEO_EMAIL){ grant(sess.access_token); } else { deny(); }
+        }catch(e){ deny(); }
+      }
+    });
+  })();},[]);
+  useEffect(()=>{ if(auth==='ok') document.body.style.visibility='visible'; },[auth]);
+
+  const load=useCallback(async()=>{
+    if(!token) return;
+    try{
+      const r=await rpc(token,'fn_ceo_estate_presence',{});
+      if(!mounted.current) return;
+      if(r.status===404){ setState('notlive'); return; }
+      if(!r.ok || !r.json || typeof r.json!=='object'){ console.error('fn_ceo_estate_presence HTTP '+r.status, r.json); setState(s=>s==='ok'?'ok':'error'); return; }
+      setData(r.json); setState('ok'); setUpdated(new Date());
+    }catch(e){ console.error('fn_ceo_estate_presence error', e); if(mounted.current) setState(s=>s==='ok'?'ok':'error'); }
+  },[token]);
+
+  // Poll every 60 s while the tab is visible; refresh immediately when it becomes visible again.
+  useEffect(()=>{
+    if(auth!=='ok'||!token) return;
+    load();
+    const id=setInterval(()=>{ if(document.visibilityState==='visible') load(); }, REFRESH_MS);
+    const onVis=()=>{ if(document.visibilityState==='visible') load(); };
+    document.addEventListener('visibilitychange', onVis);
+    return ()=>{ clearInterval(id); document.removeEventListener('visibilitychange', onVis); };
+  },[auth,token,load]);
+
+  if(auth!=='ok') return null;
+
+  const tot=(data&&data.totals)||{};
+  const win=(data&&data.windows)||{active_minutes:15, online_minutes:65};
+  const people=(data&&Array.isArray(data.people))?data.people:[];
+  const recent=(data&&Array.isArray(data.recent))?data.recent:[];
+  const hist=(data&&data.history)||{};
+  const fresh=updated && (Date.now()-updated.getTime()<3*REFRESH_MS);
+
+  return (
+    <div>
+      <div className="top-bar">
+        <div className="top-bar-left">
+          <a href="/AiLaneCEO/" className="back-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>Hub</a>
+          <div className="page-title">Estate <span>Presence</span></div>
+        </div>
+        <div className="top-bar-right">
+          <div className={'status-pill '+(fresh?'live':'stale')}><div className="dot"/>{fresh?'LIVE':'PAUSED'}</div>
+          <div className="ts">{updated?'updated '+updated.toLocaleTimeString('en-GB',{timeZone:TZ}):'loading…'} · refreshes every 60 s</div>
+          <button className="refresh-btn" onClick={load}>↻ Refresh</button>
+        </div>
+      </div>
+
+      <div className="main">
+        <div className="intro">Who is using the Ailane estate right now, where they are, and how usage has moved over the last day and month. <strong>Your own session is not counted.</strong></div>
+
+        {state==='loading' && <div className="muted-note">Loading estate presence…</div>}
+        {state==='notlive' && <div className="info-banner"><strong>Estate presence is not live yet.</strong> The backend function <code>fn_ceo_estate_presence</code> has not been deployed. This page will populate as soon as it is.</div>}
+        {state==='error' && <div className="err-banner"><span>Presence data could not be loaded.</span><button className="refresh-btn" onClick={load}>Retry</button></div>}
+
+        {data && (
+          <>
+            <div className="kpis">
+              <Kpi label="Signed in now" swatch={C_ONLINE} value={num(tot.online)} sub={'session active in the last '+win.online_minutes+' min'}/>
+              <Kpi label="Active now" swatch={C_ACTIVE} value={num(tot.active)} sub={'activity in the last '+win.active_minutes+' min'}/>
+              <Kpi label="Seen in 24 hours" value={num(tot.seen_24h)} sub={num(tot.seen_7d)+' in the last 7 days'}/>
+              <Kpi label="Accounts" value={num(tot.accounts)} sub={num(tot.new_accounts_7d)+' new this week'}/>
+            </div>
+
+            <div className="grid-2">
+              <div className="panel">
+                <div className="panel-head"><div className="panel-title">Who is on the estate now</div><div className="panel-note">{people.length} {people.length===1?'person':'people'}</div></div>
+                <Roster people={people} windows={win}/>
+              </div>
+              <div className="panel">
+                <div className="panel-head"><div className="panel-title">Where they are</div><div className="panel-note">people now, by surface</div></div>
+                <BarList counts={data.by_surface} empty="No one on any surface right now."/>
+                <div className="sub-title">By type of user</div>
+                <BarList counts={data.by_segment} empty="No one signed in right now."/>
+              </div>
+            </div>
+
+            <div className="panel">
+              <div className="panel-head">
+                <div className="panel-title">Last 24 hours</div>
+                <div className="legend">
+                  <span className="legend-item"><span className="sw" style={{background:C_ONLINE}}/>Signed in</span>
+                  <span className="legend-item"><span className="sw" style={{background:C_ACTIVE}}/>Active</span>
+                  <span className="panel-note">snapshot every {hist.cadence_minutes||10} min · {num(hist.snapshots_24h)} today</span>
+                </div>
+              </div>
+              <Timeline points={data.timeline_24h}/>
+            </div>
+
+            <div className="grid-2">
+              <div className="panel">
+                <div className="panel-head"><div className="panel-title">Last 30 days</div><div className="panel-note">daily peak signed in at once</div></div>
+                <Daily days={data.daily_30d}/>
+              </div>
+              <div className="panel">
+                <div className="panel-head"><div className="panel-title">Recent activity</div><div className="panel-note">last 24 hours · newest first</div></div>
+                <Feed items={recent}/>
+              </div>
+            </div>
+          </>
+        )}
+
+        <details className="about">
+          <summary>What this view shows, and what it never shows</summary>
+          <ul>
+            <li><strong>Signed in</strong>: an unexpired session refreshed in the last {win.online_minutes} minutes. <strong>Active</strong>: a sign-in, session refresh or product action in the last {win.active_minutes} minutes.</li>
+            <li>Sources are records the estate already keeps on the server: sign-in sessions, deal-room document access, Knowledge Library access and conversation records, and legal review room access. Nothing new is collected in visitors' browsers.</li>
+            <li>History is stored as counts only, every 10 minutes, and deleted after 90 days.</li>
+            <li>Never shown: IP addresses, device details, message or document content, individual analytics (Google Analytics is not linked to accounts), or anonymous visitors.</li>
+            <li>Lawful basis and records: see the governance note for this view (legitimate interests assessment, ROPA entry and privacy notice line).</li>
+          </ul>
+        </details>
+
+        <footer className="page-disclaimer">Internal operational view for the Director. Regulatory intelligence, not legal advice.</footer>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

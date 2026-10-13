@@ -823,6 +823,12 @@ body::after {
 .qtf-link { font-family: var(--font-mono); font-size: 0.64rem; color: var(--text-secondary); text-decoration: none; border: 1px solid var(--border-default); border-radius: 6px; padding: 5px 10px; }
 .qtf-link:hover { color: var(--accent-cyan); border-color: var(--border-accent); }
 
+/* ═══ ESTATE PRESENCE tile (AILANE-CC-BRIEF-ESTATE-PRESENCE-CEO-TILE-001) ═══ */
+.presence-spark-wrap { display: flex; align-items: flex-end; gap: 8px; }
+.presence-spark { display: block; width: 100%; height: 34px; }
+.presence-spark-cap { font-family: var(--font-mono); font-size: 0.56rem; color: var(--text-muted); white-space: nowrap; padding-bottom: 2px; }
+.presence-spark-empty { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-muted); padding: 10px 0 4px; }
+
 @media (max-width: 900px) { .command-grid { grid-template-columns: 1fr; } }
 @media (min-width: 901px) and (max-width: 1200px) { .command-grid { grid-template-columns: repeat(2, 1fr); } }
 </style>
@@ -1684,6 +1690,68 @@ function QTAiLaneFooter() {
   );
 }
 
+// ═══════════════════════════════════════════════
+// ESTATE PRESENCE — who is using the estate now (AILANE-CC-BRIEF-ESTATE-PRESENCE-CEO-TILE-001)
+// Reads the Director-only RPC fn_ceo_estate_presence. Server-side records only; no client tracking.
+// Series colour #0284C7 is validated on the #0C1220 surface (lightness band, CVD, contrast).
+// ═══════════════════════════════════════════════
+const PRESENCE_ONLINE = '#0284C7';
+
+function PresenceIcon() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
+}
+
+function PresenceSpark({ points }) {
+  const pts = (Array.isArray(points) ? points : [])
+    .map(p => ({ t: new Date(p.at).getTime(), v: Number(p.online) || 0 }))
+    .filter(p => !isNaN(p.t));
+  if (pts.length < 2) return <div className="presence-spark-empty">24-hour history builds every 10 minutes</div>;
+  const W = 240, H = 34, P = 3;
+  const max = Math.max(1, ...pts.map(p => p.v));
+  const t1 = Date.now(), t0 = t1 - 24 * 3600 * 1000;
+  const x = t => P + (W - 2 * P) * Math.max(0, Math.min(1, (t - t0) / (t1 - t0)));
+  const y = v => H - P - (H - 2 * P) * (v / max);
+  const line = pts.map((p, i) => (i ? 'L' : 'M') + x(p.t).toFixed(1) + ' ' + y(p.v).toFixed(1)).join(' ');
+  const area = line + ' L ' + x(pts[pts.length - 1].t).toFixed(1) + ' ' + (H - P) + ' L ' + x(pts[0].t).toFixed(1) + ' ' + (H - P) + ' Z';
+  const last = pts[pts.length - 1];
+  return (
+    <div className="presence-spark-wrap">
+      <svg className="presence-spark" viewBox={'0 0 ' + W + ' ' + H} preserveAspectRatio="none" role="img"
+        aria-label={'People signed in over the last 24 hours; now ' + last.v + ', peak ' + max}>
+        <path d={area} fill={PRESENCE_ONLINE} opacity="0.18" />
+        <path d={line} fill="none" stroke={PRESENCE_ONLINE} strokeWidth="2" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      </svg>
+      <span className="presence-spark-cap">24h · peak {max}</span>
+    </div>
+  );
+}
+
+function PresenceTileBody({ presence }) {
+  if (presence == null) return <div className="tile-headline">Loading…</div>;
+  if (presence === 'notlive') return <div className="tile-headline">Not yet live · backend function pending deployment.</div>;
+  if (presence === 'error') return <div className="tile-headline">Presence data unavailable.</div>;
+  const t = presence.totals || {};
+  const online = Number(t.online) || 0, active = Number(t.active) || 0;
+  const allSurfaces = Object.entries(presence.by_surface || {}).sort((a, b) => b[1] - a[1]);
+  const surfaces = allSurfaces.slice(0, 2);
+  const more = allSurfaces.length - surfaces.length;
+  return (
+    <React.Fragment>
+      <div className="tile-headline">
+        {online > 0
+          ? <span><strong>{online} signed in</strong> · {active} active now · {Number(t.seen_24h) || 0} seen today.</span>
+          : <span><strong>Quiet</strong> · nobody else signed in right now · {Number(t.seen_24h) || 0} seen in 24h.</span>}
+      </div>
+      <PresenceSpark points={presence.timeline_24h} />
+      <div className="tile-foot">
+        {surfaces.length > 0
+          ? surfaces.map(([k, v]) => <span key={k} className="chip green">{k} · {v}</span>).concat(more > 0 ? [<span key="more" className="chip cyan">+{more} more</span>] : [])
+          : <span className="chip cyan">{(Number(t.accounts) || 0) + ' accounts'}</span>}
+      </div>
+    </React.Fragment>
+  );
+}
+
 function CommandCentre({ token, sections }) {
   const H = { 'Authorization': `Bearer ${token}`, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' };
   const [modal, setModal] = React.useState(null);            // 'brief' | 'notices' | 'alerts'
@@ -1696,6 +1764,7 @@ function CommandCentre({ token, sections }) {
   const [intelOpen, setIntelOpen] = React.useState(null); // Intelligence Alerts launcher open-count: null=loading, number=ok, '–'=error (§3.2)
   const [certs, setCerts] = React.useState(null);
   const [rooms, setRooms] = React.useState(null);
+  const [presence, setPresence] = React.useState(null); // null=loading | object=ok | 'notlive' (RPC 404) | 'error'
   const mounted = React.useRef(true);
   React.useEffect(() => () => { mounted.current = false; }, []);
 
@@ -1762,6 +1831,24 @@ function CommandCentre({ token, sections }) {
     } catch (e) { console.error('ceo-portfolio-data dealrooms', e); }
   }
   React.useEffect(() => { if (token) { loadIntel(); loadAlerts(); loadCerts(); loadRooms(); loadIntelOpen(); } }, [token]);
+
+  // Estate Presence (AILANE-CC-BRIEF-ESTATE-PRESENCE-CEO-TILE-001). 404 = RPC not deployed yet.
+  // A failed refresh keeps the last good data on screen; it never throws.
+  async function loadPresence() {
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/fn_ceo_estate_presence`, { method: 'POST', headers: H, body: JSON.stringify({}) });
+      if (r.status === 404) { if (mounted.current) setPresence('notlive'); return; }
+      if (!r.ok) { console.warn('fn_ceo_estate_presence HTTP ' + r.status); if (mounted.current) setPresence(p => (p && typeof p === 'object') ? p : 'error'); return; }
+      const j = await r.json();
+      if (mounted.current) setPresence(j && typeof j === 'object' ? j : 'error');
+    } catch (e) { console.warn('fn_ceo_estate_presence error', e); if (mounted.current) setPresence(p => (p && typeof p === 'object') ? p : 'error'); }
+  }
+  React.useEffect(() => {
+    if (!token) return;
+    loadPresence();
+    const id = setInterval(() => { if (document.visibilityState === 'visible') loadPresence(); }, 60000);
+    return () => clearInterval(id);
+  }, [token]);
 
   async function generateBrief() {
     if (genBusy) return; setGenBusy(true); setGenMsg(null);
@@ -1870,6 +1957,19 @@ function CommandCentre({ token, sections }) {
                 : <span><strong>{intelOpen} open</strong> · Director intelligence alert inbox</span>)}
           </div>
         </Tile>
+
+        {/* 7 — ESTATE PRESENCE → console page (AILANE-CC-BRIEF-ESTATE-PRESENCE-CEO-TILE-001) */}
+        {(() => {
+          const pOnline = (presence && typeof presence === 'object' && presence.totals) ? (Number(presence.totals.online) || 0) : null;
+          const lit = pOnline != null && pOnline > 0;
+          return (
+            <Tile iconClass={lit ? 'green' : 'cyan'} accent={lit ? 'var(--accent-green)' : 'var(--accent-cyan)'} icon={<PresenceIcon />} title="Estate Presence"
+              status={pOnline != null ? <StatusDot color={lit ? 'var(--accent-green)' : 'var(--text-muted)'} label={pOnline + ' online'} /> : null}
+              onClick={() => window.location.href = '/AiLaneCEO/estate-presence/'}>
+              <PresenceTileBody presence={presence} />
+            </Tile>
+          );
+        })()}
 
       </div>
 
