@@ -30,7 +30,7 @@ Owner: AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720)
 
 ## EVERY HTML PAGE MUST INCLUDE
 
-### Analytics — consent-gated loader (no exceptions; PECR opt-in)
+### Analytics — consent-gated loader (every user-facing page; PECR opt-in)
 Every user-facing page MUST carry the consent loader as the FIRST script in `<head>`:
 ```html
 <script src="/assets/js/ailane-cookie-consent.js"></script>
@@ -38,6 +38,10 @@ Every user-facing page MUST carry the consent loader as the FIRST script in `<he
 Estate-wide since PR #443 (Privacy Notice v4.7). GA4 (measurement ID `G-NTNXWZN31C`) is loaded
 BY the consent script AFTER the visitor accepts — never up front. The always-on inline
 `gtag('js'/'config', …)` snippet is PROHIBITED on every page (it fires GA4 before consent, breaching PECR).
+
+**Exemption: `AiLaneCEO/**` (AMD-295).** The CEO dashboard is internal and Director-only and carries
+**no analytics of any kind**: no consent loader and no gtag. Do not add either to any `AiLaneCEO/` page.
+The CSP and favicon blocks below still apply; on these pages the CSP follows the charset and viewport tags.
 
 ### CSP Meta Tag (SEC-001 §3.2)
 ```html
