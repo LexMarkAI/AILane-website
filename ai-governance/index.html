@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI governance | Ailane</title>
+  <meta name="description" content="How Ailane uses AI, protects personal data and supports human review." />
+  <meta name="robots" content="index, follow" />
+  <!-- AILANE-CC-BRIEF-AUP-COMPLIANCE-WEBSITE-001 §5 · Governed by AILANE-AMD-REG-001. Public page — no auth, no Supabase CDN. -->
+
+  <script src="/assets/js/ailane-cookie-consent.js"></script>
+
+  <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy: #0F1B35;
+      --navy-mid: #1B2A4A;
+      --teal: #0EA5E9;
+      --white: #FFFFFF;
+      --grey-text: #94A3B8;
+      --grey-border: #2A3A5C;
+      --body-text: #CBD5E1;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--navy);
+      color: var(--body-text);
+      line-height: 1.8;
+      font-size: 1rem;
+    }
+
+    nav {
+      background: rgba(15, 27, 53, 0.97);
+      border-bottom: 1px solid var(--grey-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 0 2rem;
+    }
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a { color: var(--grey-text); text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--white); }
+    .nav-cta { background: var(--teal); color: var(--white) !important; padding: 0.45rem 1.1rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem !important; }
+
+    .page-header {
+      background: linear-gradient(135deg, var(--navy-mid) 0%, var(--navy) 100%);
+      border-bottom: 1px solid var(--grey-border);
+      padding: 3rem 2rem 2.5rem;
+      text-align: center;
+    }
+    .page-header h1 { font-size: 2.2rem; font-weight: 800; color: var(--white); letter-spacing: -0.03em; }
+
+    .content { max-width: 760px; margin: 0 auto; padding: 3rem 2rem 4rem; }
+    .content section + section { margin-top: 2.5rem; }
+    .content h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--white);
+      letter-spacing: -0.01em;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--grey-border);
+    }
+    .content p { color: var(--body-text); }
+    .content a { color: var(--teal); }
+
+    footer { background: var(--navy-mid); border-top: 1px solid var(--grey-border); padding: 2.5rem 2rem; text-align: center; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-links { display: flex; justify-content: center; gap: 2rem; list-style: none; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .footer-links a { color: var(--grey-text); text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--white); }
+    .footer-legal { font-size: 0.8rem; color: var(--grey-text); line-height: 1.7; }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 1rem; }
+      .nav-links { display: none; }
+      .page-header { padding: 2.25rem 1rem 2rem; }
+      .page-header h1 { font-size: 1.8rem; }
+      .content { padding: 2rem 1rem 3rem; }
+      .footer-links { gap: 1rem 1.5rem; }
+    }
+  </style>
+
+  <!-- Ailane favicon / app icons — estate head standard (AMD-246) -->
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#0a0e1a">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap">
+<link rel="stylesheet" href="/assets/css/brand-lockup.css">
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="https://ailane.ai/" class="ail-lockup" aria-label="Ailane — home"><span class="ail-mark" aria-hidden="true"><img src="/assets/img/ailane-nexus-mark.svg" width="40" height="40" alt=""></span><span class="ail-word"><span class="ail-ai">Ai</span>lane</span></a>
+    <ul class="nav-links">
+      <li><a href="https://ailane.ai/#how-it-works">How It Works</a></li>
+      <li><a href="https://ailane.ai/#pricing">Pricing</a></li>
+      <li><a href="https://ailane.ai/terms/">Terms</a></li>
+      <li><a href="https://ailane.ai/complaints/">Complaints</a></li>
+      <li><a href="https://ailane.ai/account/" class="nav-cta">Sign In</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="page-header">
+  <h1>AI governance</h1>
+</header>
+
+<main class="content">
+  <section>
+    <h2>How Ailane uses AI</h2>
+    <p>Ailane's analysis and its assistant, Eileen, use AI models provided by Anthropic (Claude) through Anthropic's commercial API. Every Ailane output that is produced with AI is labelled as such.</p>
+  </section>
+
+  <section>
+    <h2>Personal data and the AI provider</h2>
+    <p>Before a document is analysed, we remove names and other identifiers we can detect. If we cannot do this confidently, the document is not analysed and we ask for a template or a redacted copy instead. Anthropic states that it deletes inputs and outputs sent through its commercial API within 30 days, subject to limited exceptions described in its own policies, and that it does not train its models on commercial customer content. Uploaded documents are deleted from Ailane's systems once your report is produced.</p>
+  </section>
+
+  <section>
+    <h2>Human review and transparency</h2>
+    <p>Ailane provides regulatory intelligence, not legal advice, and does not make decisions about individuals. Where our output informs advice to, or a decision about, a specific person, our terms require it to be reviewed first by someone in your organisation with the authority and experience to depart from it, and the individual should be told that AI-assisted analysis was used. Eileen prompts both steps and can draft the note for you.</p>
+  </section>
+
+  <section>
+    <h2>Questions</h2>
+    <p>For questions about how we use AI or personal data, contact <a href="mailto:enquiries@ailane.ai">enquiries@ailane.ai</a>. See also our <a href="/privacy/">Privacy Policy</a>.</p>
+  </section>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <ul class="footer-links">
+      <li><a href="https://ailane.ai/">Home</a></li>
+      <li><a href="https://ailane.ai/terms/">Terms of Service</a></li>
+      <li><a href="https://ailane.ai/privacy/">Privacy Policy</a></li>
+      <li><a href="https://ailane.ai/complaints/">Complaint Handling Policy</a></li>
+      <li><a href="/ai-governance/" aria-current="page">AI governance</a></li>
+    </ul>
+    <p class="footer-legal">
+      &copy; 2026 AI Lane Limited &nbsp;&middot;&nbsp; Company No. 17035654 &middot; Registered in England and Wales &nbsp;&middot;&nbsp; ICO Reg. No. 00013389720<br/>
+      Ailane is a trading name of AI Lane Limited. UK Trademark No. UK00004347220.<br/>
+      Ailane provides regulatory intelligence. Nothing on this platform constitutes legal advice.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

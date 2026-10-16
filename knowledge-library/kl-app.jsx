@@ -6,6 +6,9 @@
 // JS; no network, no CSP impact). Hardens the Intelligence facet's two estate
 // HTML columns via an allowlist before dangerouslySetInnerHTML. See HubIntelFacet.
 import DOMPurify from 'dompurify';
+// AUP-COMPLIANCE-WEBSITE-001 §2–§3 — shared AI governance controls (window.AilaneAIGov):
+// the "Eileen is AI" line, individual-matter notice, reviewer sign-off and worker note.
+import '../assets/js/ailane-ai-governance.js';
 
 const { useState, useEffect, useRef, useCallback } = React;
 
@@ -2619,6 +2622,52 @@ function UploadCompleteMessage({ filename, charCount, documentId, onRunAnalysis,
   );
 }
 
+// ─── AI governance (AUP-COMPLIANCE-WEBSITE-001 §2–§3) ───
+// Layout for the "Eileen is AI" line; the notice/modal styles ship with
+// assets/js/ailane-ai-governance.js.
+(function () {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById('kl-aigov-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'kl-aigov-styles';
+  style.textContent = [
+    '.kl-eileen-ai-label { flex-shrink: 0; padding: 10px 32px 0; font-size: 12px; line-height: 1.5; color: #94A3B8; font-family: "DM Sans", sans-serif; }',
+    '.kl-welcome .kl-eileen-ai-label { max-width: 640px; margin: 0 auto 20px; padding: 0; text-align: center; }',
+    '@media (max-width: 767px) { .kl-eileen-ai-label { padding: 10px 16px 0; } .kl-welcome .kl-eileen-ai-label { padding: 0; } }',
+  ].join('\n');
+  document.head.appendChild(style);
+})();
+
+function klAiGovAuth() {
+  return window.__klToken ? { token: window.__klToken, anon: SUPABASE_ANON_KEY } : null;
+}
+
+// §2.1 — persistent, non-dismissible identity line above the message list. §2.2 —
+// logged once per page load for an authenticated user. Surface follows the chat
+// lane: the operational/governance hub talks to eileen-operational.
+function EileenAiIdentityLabel({ hubMode }) {
+  useEffect(function () {
+    var surface = (hubMode || klOperationalMode() || klGovernanceMode()) ? 'eileen_operational' : 'eileen_intelligence';
+    if (window.AilaneAIGov) window.AilaneAIGov.logIdentityShown(klAiGovAuth, surface);
+  }, []);
+  return <div className="kl-eileen-ai-label" role="note">{window.AilaneAIGov.IDENTITY_TEXT}</div>;
+}
+
+// §3.1–§3.3 — individual-matter notice + reviewer sign-off + worker note, built by
+// the shared module into a host node React leaves alone. UI state lives on meta
+// (the message's aigov object), so a remount shows "Review confirmed ✓" again.
+function AiGovIndividualMatter({ meta }) {
+  const hostRef = useRef(null);
+  useEffect(function () {
+    var host = hostRef.current;
+    if (!host || !window.AilaneAIGov) return undefined;
+    var node = window.AilaneAIGov.renderIndividualMatter(meta, { auth: klAiGovAuth });
+    if (node) host.appendChild(node);
+    return function () { if (node && node.parentNode === host) host.removeChild(node); };
+  }, [meta]);
+  return <div ref={hostRef} />;
+}
+
 // ─── MessageBubble ───
 
 function MessageBubble({ msg, onRunAnalysis, onVaultOnly, klPassHolder, hubMode }) {
@@ -2704,6 +2753,13 @@ function MessageBubble({ msg, onRunAnalysis, onVaultOnly, klPassHolder, hubMode 
           </div>
         )}
 
+        {/* AUP §3.4 — pseudonymisation line above the answer (absent field ⇒ nothing) */}
+        {msg.aigov && msg.aigov.pseudonymised > 0 && (
+          <p className="aigov-pseudo" style={{ marginTop: '8px', marginBottom: 0 }}>
+            {window.AilaneAIGov.pseudonymisedText(msg.aigov.pseudonymised)}
+          </p>
+        )}
+
         {/* Body: either the structured analysis result, or markdown text */}
         {renderAnalysisResult ? (
           <div className="kl-msg-body" style={{ marginTop: '8px' }}>
@@ -2716,6 +2772,9 @@ function MessageBubble({ msg, onRunAnalysis, onVaultOnly, klPassHolder, hubMode 
             dangerouslySetInnerHTML={{ __html: html }}
           />
         )}
+
+        {/* AUP §3.1–§3.3 — individual-matter notice directly under the answer */}
+        {msg.aigov && msg.aigov.noticeText && <AiGovIndividualMatter meta={msg.aigov} />}
 
         {/* Analysis trigger button — only when message is flagged analysisReady */}
         {msg.analysisReady && msg.documentId && !msg.analysisTriggered && (
@@ -3139,6 +3198,7 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
             }}>
               Eileen &middot; UK Employment Law Intelligence
             </div>
+            <EileenAiIdentityLabel hubMode={hubMode} />
             <div className="kl-welcome-input">
               <MessageInput onSend={onSend} disabled={isLoading} onInputChange={onInputChange} nexusState={nexusState} tier={tier} prefersReducedMotion={prefersReducedMotion} />
             </div>
@@ -3210,6 +3270,7 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
           }}>
             <CanonicalNexus size={52} interactive={false} showRelationships={false} nexusState={nexusState} />
           </div>
+          <EileenAiIdentityLabel hubMode={hubMode} />
           <div className="kl-messages" ref={scrollRef} role="log" aria-live="polite" onClick={function(e) {
             var target = e.target;
             if (target && target.classList && target.classList.contains('kl-ref-link')) {
@@ -8273,7 +8334,7 @@ function KLWorkspaceDrawer({ section, entry, onClose, onDiscuss, klPassHolder })
 function AdvisoryBanner() {
   return (
     <div className="kl-advisory">
-      <p>This is regulatory intelligence. It does not constitute legal advice. AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720)</p>
+      <p>This is regulatory intelligence. It does not constitute legal advice. AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720){' · '}<a href="/ai-governance/" style={{ color: 'inherit', textDecoration: 'underline' }}>AI governance</a></p>
     </div>
   );
 }
@@ -14137,6 +14198,9 @@ function App() {
     setNexusState('processing');
     try {
       var data;
+      // AUP-COMPLIANCE-WEBSITE-001 §3 — optional governance fields of the answer
+      // (individual_matter / notice_text / pseudonymised), normalised per lane.
+      var aigovMeta = null;
       if (hubMode) {
         // OOX-001 §1.3: hub mode routes Eileen to eileen-operational. Reuse the
         // operational request shape ({ question }) and normalise the response to
@@ -14145,6 +14209,7 @@ function App() {
         var hubData = await hubSendToEileen(hubSession, { question: clean });
         var hubText = hubData && (hubData.response || hubData.answer || hubData.text || hubData.message);
         data = hubText ? { response: hubText } : null;
+        if (hubText && window.AilaneAIGov) aigovMeta = window.AilaneAIGov.readMeta(hubData, 'eileen_operational');
       } else {
         // AMD-045 §4.8: Include domain context in Eileen request
         var requestBody = {
@@ -14173,6 +14238,7 @@ function App() {
           body: JSON.stringify(requestBody),
         });
         data = await resp.json();
+        if (data && data.response && window.AilaneAIGov) aigovMeta = window.AilaneAIGov.readMeta(data, 'eileen_intelligence');
       }
       if (data && data.response) {
         setMessages((prev) => [...prev, {
@@ -14187,6 +14253,7 @@ function App() {
           userMessage: clean,
           conversationId: data.conversation_id || data.id || data.conversationId || null,
           provisionsRetrieved: data.provisions_retrieved || data.provisions || null,
+          aigov: aigovMeta,
         }]);
         loadSessionHistory();
         setNexusState('presenting');

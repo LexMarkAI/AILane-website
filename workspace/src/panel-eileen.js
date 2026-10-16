@@ -5,6 +5,8 @@
  * Advisory banner: persistent, non-dismissable (CCI Annex D §D.6).
  */
 
+// AUP-COMPLIANCE-WEBSITE-001 §2–§3 — shared AI governance controls (window.AilaneAIGov).
+import '../../assets/js/ailane-ai-governance.js';
 import './eileen/nexus-avatar.js';
 import './eileen/eileen-chat.js';
 import './eileen/eileen-context.js';
@@ -104,6 +106,13 @@ AilaneEileenPanel.prototype.mount = function(container) {
   var chatCol = document.createElement('div');
   chatCol.style.cssText = 'display:flex;flex-direction:column;flex:1;min-width:0;';
 
+  // ---- "Eileen is AI" identity line (AUP-COMPLIANCE-WEBSITE-001 §2) ----
+  // Persistent, non-dismissible, directly above the message list (outside it, so
+  // session switches that clear the list never remove it).
+  var aiLabel = window.AilaneAIGov.identityLabel();
+  aiLabel.style.cssText = 'padding:8px 14px;border-bottom:1px solid #1e293b;';
+  chatCol.appendChild(aiLabel);
+
   // Messages container
   var messagesEl = document.createElement('div');
   messagesEl.className = 'ws-eileen-messages';
@@ -155,6 +164,18 @@ AilaneEileenPanel.prototype.mount = function(container) {
   inputRow.appendChild(sendBtn);
 
   chatCol.appendChild(inputRow);
+
+  // AUP-COMPLIANCE-WEBSITE-001 §5.4 — "AI governance" link at the foot of the
+  // Eileen surface (the workspace host pages have no shared footer).
+  var govRow = document.createElement('div');
+  govRow.style.cssText = 'padding:0 14px 10px;font-size:11px;';
+  var govLink = document.createElement('a');
+  govLink.href = '/ai-governance/';
+  govLink.textContent = 'AI governance';
+  govLink.style.cssText = 'color:#94a3b8;text-decoration:underline;';
+  govRow.appendChild(govLink);
+  chatCol.appendChild(govRow);
+
   body.appendChild(chatCol);
   this.el.appendChild(body);
 
@@ -203,6 +224,12 @@ AilaneEileenPanel.prototype.mount = function(container) {
       if (window.__setRailBadge) window.__setRailBadge('eileen', 'cyan');
     }
   });
+
+  // §2.2 — log the identity line once per page load (authenticated users only).
+  window.AilaneAIGov.logIdentityShown(function() {
+    var u = window.__ailaneUser;
+    return u && u.token ? { token: u.token, anon: window.__SUPABASE_ANON_KEY } : null;
+  }, 'eileen_intelligence');
 
   // Emit ready signal
   this.bus.emit('eileen:ready', {});

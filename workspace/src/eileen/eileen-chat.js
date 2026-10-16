@@ -89,7 +89,14 @@ function _formatDate(dateStr) {
   return day + ' ' + month + ' ' + year + ' ' + hours + ':' + mins;
 }
 
-function _createMessageBubble(type, content, timestamp) {
+// AUP-COMPLIANCE-WEBSITE-001 §3 — auth for the ai_governance_events writes.
+function _aigovAuth() {
+  var u = window.__ailaneUser;
+  return u && u.token ? { token: u.token, anon: window.__SUPABASE_ANON_KEY || ANON_KEY } : null;
+}
+
+// aigov: optional per-answer governance meta (window.AilaneAIGov.readMeta).
+function _createMessageBubble(type, content, timestamp, aigov) {
   var wrapper = document.createElement('div');
   wrapper.style.cssText = 'display:flex;gap:8px;' + (type === 'user' ? 'justify-content:flex-end;' : 'justify-content:flex-start;');
 
@@ -106,6 +113,15 @@ function _createMessageBubble(type, content, timestamp) {
 
   if (type === 'eileen') {
     bubble.innerHTML = _renderMarkdown(content);
+
+    // §3.4 pseudonymisation line above the answer; §3.1–§3.3 individual-matter
+    // notice + sign-off under it. Absent fields render nothing.
+    if (aigov && window.AilaneAIGov) {
+      var pseudo = window.AilaneAIGov.renderPseudonymised(aigov);
+      if (pseudo) bubble.insertBefore(pseudo, bubble.firstChild);
+      var notice = window.AilaneAIGov.renderIndividualMatter(aigov, { auth: _aigovAuth });
+      if (notice) bubble.appendChild(notice);
+    }
 
     // Save to Notes button
     var saveBtn = document.createElement('button');
@@ -196,8 +212,10 @@ async function _sendMessage(text) {
     var data = await response.json();
     _hideTyping();
 
-    var eileenText = data.response || data.message || data.reply || 'I was unable to process that request. Please try again.';
-    var eileenBubble = _createMessageBubble('eileen', eileenText, new Date().toISOString());
+    var realAnswer = data.response || data.message || data.reply;
+    var eileenText = realAnswer || 'I was unable to process that request. Please try again.';
+    var aigov = realAnswer && window.AilaneAIGov ? window.AilaneAIGov.readMeta(data, 'eileen_intelligence') : null;
+    var eileenBubble = _createMessageBubble('eileen', eileenText, new Date().toISOString(), aigov);
     _messagesEl.appendChild(eileenBubble);
     _scrollToBottom();
 
