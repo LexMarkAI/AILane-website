@@ -356,6 +356,8 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#0a0e1a">
+<link rel="stylesheet" href="/assets/css/ailane-commerce.css">
+<script src="/assets/js/ailane-commerce.js" defer></script>
 <link rel="stylesheet" href="/assets/css/brand-lockup.css">
 </head>
 <body style="visibility:hidden">
@@ -1799,6 +1801,7 @@
         wrap.appendChild(el('h2', 'section-head spaced', 'Solicitors Preparation Bundle'));
         var pane = el('section', 'pane');
         pane.setAttribute('aria-label', 'Solicitors Preparation Bundle');
+        pane.setAttribute('data-ailane-commerce-banner', '');
 
         pane.appendChild(el('p', 'pack-lead',
           'The guidance layer — your findings converted into a prioritised review agenda for your solicitor. Prepare one from any checked document’s card above.'));
@@ -1830,8 +1833,8 @@
         var buyRow = el('div');
         buyRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;align-items:center;';
         var buyErr = el('div', 'form-msg'); buyErr.hidden = true; buyErr.setAttribute('role', 'alert');
-        var addOne = el('button', 'btn-primary', 'Add a check — £19'); addOne.type = 'button';
-        var addBundle = el('button', 'btn-primary', 'Add a check + Solicitors Preparation Bundle — £29'); addBundle.type = 'button';
+        var addOne = el('button', 'btn-primary', 'Add a check — £19'); addOne.type = 'button'; addOne.setAttribute('data-ailane-buy', 'kl_check_addon');
+        var addBundle = el('button', 'btn-primary', 'Add a check + Solicitors Preparation Bundle — £29'); addBundle.type = 'button'; addBundle.setAttribute('data-ailane-buy', 'kl_check_addon_bundle');
 
         function startCheckAddon(productType) {
           var email = '';
@@ -1846,6 +1849,7 @@
             .then(function (r) { return r.json(); })
             .then(function (d) {
               if (d && d.url) { window.location.href = d.url; return; }
+              if (window.AilaneCommerce && window.AilaneCommerce.handleCheckoutError(null, d, { interest: productType, trigger: productType === 'kl_check_addon' ? addOne : addBundle })) { addOne.disabled = false; addBundle.disabled = false; return; }
               throw new Error((d && d.error) || 'no url');
             })
             .catch(function () {
