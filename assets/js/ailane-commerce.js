@@ -7,7 +7,7 @@
 
   var REST_BASE = 'https://cnbsxwtvazfvzmltkuvx.supabase.co/rest/v1';
   var FUNCTIONS_BASE = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co';
-  var ANON_KEY = '__ANON_KEY__';
+  var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
   var PRIVACY_URL = '/privacy/';
 
   var TEXT = {
