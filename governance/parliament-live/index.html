@@ -302,6 +302,7 @@
         <button type="button" class="eileen-prompt" data-prompt="Which tracked bills are closest to becoming law?">Which tracked bills are closest to becoming law?</button>
         <button type="button" class="eileen-prompt" data-prompt="Which of these affects us?">Which of these affects us?</button>
       </div>
+      <p class="eileen-intro" role="note">You are chatting with Eileen, Ailane's AI assistant. Eileen is an AI system, not a person. Eileen provides regulatory intelligence, not legal advice. Please describe staff by role or as 'Employee A' rather than by name.</p>
       <div class="eileen-messages" id="eileen-messages"></div>
       <div class="eileen-inputbar">
         <textarea class="eileen-input" id="eileen-input" rows="1" maxlength="4000"
@@ -309,7 +310,15 @@
         <button type="button" class="eileen-send" id="eileen-send" disabled>Ask</button>
       </div>
     </section>
+
+    <footer style="margin-top:48px;padding-top:16px;border-top:1px solid var(--border-dim, rgba(148,163,184,0.12));font-size:0.82rem;">
+      <a href="/ai-governance/">AI governance</a>
+    </footer>
   </main>
+
+  <!-- AI governance controls (AUP-COMPLIANCE-WEBSITE-001 §2–§3): identity-label log, individual-matter notice.
+       Loaded BEFORE the auth guard so no network wait sits between the guard and the app script. -->
+  <script src="/assets/js/ailane-ai-governance.js"></script>
 
   <!-- AUTH GUARD — runs before the app renders (matches operational/horizon/index.html live pattern, RULE 26) -->
   <script>
@@ -771,9 +780,15 @@
     var inputEl  = document.getElementById('eileen-input');
     var sendEl   = document.getElementById('eileen-send');
     var promptsEl = document.getElementById('eileen-prompts');
-    var convo = [];        // [{ role:'user'|'assistant', content }]
+    var convo = [];        // [{ role:'user'|'assistant', content, aigov? }]
     var sending = false;
     var lastUserText = null;
+
+    // AUP-COMPLIANCE-WEBSITE-001 §2.2 — the identity line above the message list is
+    // static markup; log that it was shown (once per page load, authenticated only).
+    var AIGOV = window.AilaneAIGov || null;
+    var AIGOV_AUTH = { token: token, anon: anonKey };
+    if (AIGOV) AIGOV.logIdentityShown(AIGOV_AUTH, 'eileen_operational');
 
     function escapeHtml(s) {
       return String(s == null ? '' : s)
@@ -828,11 +843,17 @@
         wrap.appendChild(el('div', 'eileen-msg-label', m.role === 'assistant' ? 'Eileen' : 'You'));
         var body = el('div', 'eileen-msg-body');
         if (m.role === 'assistant') {
+          // §3.4 — pseudonymisation line above the answer (absent field ⇒ nothing).
+          var pseudo = AIGOV && AIGOV.renderPseudonymised(m.aigov);
+          if (pseudo) wrap.appendChild(pseudo);
           body.innerHTML = renderMarkdown(m.content);   // server text, rendered verbatim (escape-first)
         } else {
           body.appendChild(el('p', null, m.content));
         }
         wrap.appendChild(body);
+        // §3.1–§3.3 — individual-matter notice + sign-off under the answer.
+        var notice = m.role === 'assistant' && AIGOV && AIGOV.renderIndividualMatter(m.aigov, { auth: AIGOV_AUTH });
+        if (notice) wrap.appendChild(notice);
         msgsEl.appendChild(wrap);
       });
     }
@@ -889,7 +910,7 @@
           clearTransient();
           var resp = (data && typeof data.response === 'string') ? data.response : '';
           if (!resp) throw new Error('empty');
-          convo.push({ role: 'assistant', content: resp });
+          convo.push({ role: 'assistant', content: resp, aigov: AIGOV ? AIGOV.readMeta(data, 'eileen_operational') : null });
           setSending(false);
           renderConvo();
         })

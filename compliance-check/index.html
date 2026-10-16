@@ -602,6 +602,19 @@ footer {
   color: var(--white);
 }
 .btn-download-docx:hover { background: rgba(255,255,255,0.1); }
+/* AUP-COMPLIANCE-WEBSITE-001 §4 — AI transparency receipt */
+.ai-receipt {
+  background: var(--navy);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px; padding: 18px 20px;
+  margin-bottom: 24px;
+}
+.ai-receipt h3 {
+  font-size: 10px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--teal-light); margin-bottom: 10px;
+}
+.ai-receipt p { font-size: 12.5px; color: var(--grey-400); line-height: 1.6; }
+.ai-receipt p + p { margin-top: 6px; }
 .email-notice {
   font-size: 12px; color: var(--grey-600);
   margin-top: 12px;
@@ -1098,8 +1111,13 @@ footer {
       </ul>
       <div class="price-note" style="background:rgba(56,189,248,0.07);border:1px solid rgba(56,189,248,0.20);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:0.8rem;color:rgba(255,255,255,0.75);line-height:1.5">Want solicitor-ready preparation too? The £29 Compliance Check Bundle includes the Solicitors Preparation Bundle alongside this Exposure Report — better value than buying separately.</div>
       <div class="d6-consent" id="consent-cc-19">
-        <input type="checkbox" id="cc-19" onchange="togglePayBtn('pay-19', 'cc-19')">
+        <input type="checkbox" id="cc-19" onchange="togglePayBtn('pay-19', 'cc-19', 'biz-19')">
         <label for="cc-19">I confirm I have read and agree to the <a href="https://ailane.ai/terms/" target="_blank">Terms of Service</a> and <a href="https://ailane.ai/privacy/" target="_blank">Privacy Policy</a>. I understand this analysis does not constitute legal advice and I will seek qualified legal advice before acting on any findings.</label>
+      </div>
+      <!-- AUP-COMPLIANCE-WEBSITE-001 §1 — business purchase declaration (second mandatory box) -->
+      <div class="d6-consent" id="consent-biz-19">
+        <input type="checkbox" id="biz-19" onchange="togglePayBtn('pay-19', 'cc-19', 'biz-19')">
+        <label for="biz-19">I confirm I am purchasing on behalf of a business, for use in its employment operations, and not as an individual reviewing my own terms of employment.</label>
       </div>
       <!-- Wired via create-checkout (AMD-263 D2) -->
       <a id="pay-19" href="#" class="btn-pay disabled-pay" onclick="return startCheckout('scan_anonymous','cc-19',this)">Single Contract Check — £19</a>
@@ -1121,8 +1139,13 @@ footer {
         <li>Assessed against ERA 2025 &amp; forward provisions</li>
       </ul>
       <div class="d6-consent" id="consent-cc-29">
-        <input type="checkbox" id="cc-29" onchange="togglePayBtn('pay-29', 'cc-29')">
+        <input type="checkbox" id="cc-29" onchange="togglePayBtn('pay-29', 'cc-29', 'biz-29')">
         <label for="cc-29">I confirm I have read and agree to the <a href="https://ailane.ai/terms/" target="_blank">Terms of Service</a> and <a href="https://ailane.ai/privacy/" target="_blank">Privacy Policy</a>. I understand this analysis does not constitute legal advice and I will seek qualified legal advice before acting on any findings.</label>
+      </div>
+      <!-- AUP-COMPLIANCE-WEBSITE-001 §1 — business purchase declaration (second mandatory box) -->
+      <div class="d6-consent" id="consent-biz-29">
+        <input type="checkbox" id="biz-29" onchange="togglePayBtn('pay-29', 'cc-29', 'biz-29')">
+        <label for="biz-29">I confirm I am purchasing on behalf of a business, for use in its employment operations, and not as an individual reviewing my own terms of employment.</label>
       </div>
       <!-- Wired via create-checkout (AMD-263 D2) -->
       <a id="pay-29" href="#" class="btn-pay disabled-pay" onclick="return startCheckout('compliance_check_bundle','cc-29',this)">Compliance Check Bundle — £29</a>
@@ -1142,8 +1165,13 @@ footer {
         <li>Six bundle documents delivered in total</li>
       </ul>
       <div class="d6-consent" id="consent-cc-49">
-        <input type="checkbox" id="cc-49" onchange="togglePayBtn('pay-49', 'cc-49')">
+        <input type="checkbox" id="cc-49" onchange="togglePayBtn('pay-49', 'cc-49', 'biz-49')">
         <label for="cc-49">I confirm I have read and agree to the <a href="https://ailane.ai/terms/" target="_blank">Terms of Service</a> and <a href="https://ailane.ai/privacy/" target="_blank">Privacy Policy</a>. I understand this analysis does not constitute legal advice and I will seek qualified legal advice before acting on any findings.</label>
+      </div>
+      <!-- AUP-COMPLIANCE-WEBSITE-001 §1 — business purchase declaration (second mandatory box) -->
+      <div class="d6-consent" id="consent-biz-49">
+        <input type="checkbox" id="biz-49" onchange="togglePayBtn('pay-49', 'cc-49', 'biz-49')">
+        <label for="biz-49">I confirm I am purchasing on behalf of a business, for use in its employment operations, and not as an individual reviewing my own terms of employment.</label>
       </div>
       <!-- Wired via create-checkout (AMD-263 D2) · three-document intake ACTIVE (THREE-DOC-ACTIVATE-001) -->
       <a id="pay-49" href="#" class="btn-pay disabled-pay" onclick="return startCheckout('scan_report','cc-49',this)">Three-Document Bundle — £49</a>
@@ -1346,6 +1374,9 @@ footer {
       <div class="email-notice" id="email-notice"></div>
     </div>
 
+    <!-- AUP-COMPLIANCE-WEBSITE-001 §4 — AI transparency receipt (rendered by renderAiReceipt) -->
+    <div id="ai-receipt"></div>
+
     <!-- GOLIVE003 §C.3 — £19 Solicitors Preparation Bundle upsell (rendered for one_time_scan only) -->
     <div id="pack-upsell-row"></div>
 
@@ -1428,6 +1459,7 @@ footer {
       <a href="https://ailane.ai/terms/">Terms of Service</a>
       <a href="https://ailane.ai/privacy/">Privacy Policy</a>
       <a href="https://ailane.ai/complaints/">Complaints Policy</a>
+      <a href="/ai-governance/">AI governance</a>
       <a href="mailto:support@ailane.ai">support@ailane.ai</a>
     </div>
     <div class="footer-legal">
@@ -1462,6 +1494,9 @@ function withCheckSession(url) {
 const EXPOSURE_URL  = (id) => withCheckSession(`${SUPABASE_BASE}/generate-check-exposure-pdf?upload_id=${id}`);
 const PACK_URL      = (id) => withCheckSession(`${SUPABASE_BASE}/generate-check-pack-pdf?upload_id=${id}`);
 const BUNDLE_TIERS  = ['check_bundle', 'three_doc_bundle'];
+// AUP-COMPLIANCE-WEBSITE-001 §1 — version of the Terms accepted at checkout, sent to
+// create-checkout with business_declaration. The legal-pages brief moves this to '4.6'.
+const TERMS_VERSION = '4.5';
 let sessionTier     = '';
 let docsAllowed     = 1;
 let docsUsed        = 0;
@@ -1528,11 +1563,13 @@ function captureUTM() {
 }
 
 // ── CONSENT / PAY BUTTON ───────────────────────────────────────────────────────
-function togglePayBtn(btnId, checkId) {
+// bizId (AUP §1): the business-declaration box — the button enables only when both are ticked.
+function togglePayBtn(btnId, checkId, bizId) {
   const btn = document.getElementById(btnId);
   const chk = document.getElementById(checkId);
   if (!btn || !chk) return;
-  if (chk.checked) {
+  const biz = bizId ? document.getElementById(bizId) : null;
+  if (chk.checked && (!bizId || (biz && biz.checked))) {
     btn.classList.remove('disabled-pay');
   } else {
     btn.classList.add('disabled-pay');
@@ -1552,6 +1589,15 @@ function checkConsent(checkId) {
 var CREATE_CHECKOUT_URL = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/create-checkout';
 function startCheckout(productType, consentId, el, extra) {
   try { if (!checkConsent(consentId)) return false; } catch (e) { return false; }
+  // AUP-COMPLIANCE-WEBSITE-001 §1 — business purchase declaration (cc-NN pairs with biz-NN).
+  // Inline message rather than alert(); the request only ever carries business_declaration: true.
+  var bizBox = document.getElementById(consentId.replace(/^cc-/, 'biz-'));
+  var errEl = document.getElementById('checkout-error-' + consentId);
+  if (!bizBox || !bizBox.checked) {
+    if (errEl) errEl.textContent = 'Please confirm you are purchasing on behalf of a business before proceeding.';
+    return false;
+  }
+  if (errEl) errEl.textContent = '';
   if (el.dataset.busy === '1') return false;
   el.dataset.busy = '1';
   var prior = el.textContent;
@@ -1560,7 +1606,7 @@ function startCheckout(productType, consentId, el, extra) {
   fetch(CREATE_CHECKOUT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ product_type: productType, ...(extra || {}) })
+    body: JSON.stringify({ product_type: productType, ...(extra || {}), business_declaration: true, terms_version: TERMS_VERSION })
   }).then(function (r) { return r.json(); }).then(function (d) {
     if (d && d.url) { window.location.href = d.url; return; }
     throw new Error((d && d.error) || 'no url');
@@ -1631,7 +1677,7 @@ async function beginVerify(sessionId, attempt) {
         break;
       case 'complete':
         uploadId = d.existing_upload_id;
-        renderResults(d.overall_score, d.finding_counts, d.email, null);
+        renderResults(d.overall_score, d.finding_counts, d.email, null, d.ai_receipt);
         break;
       case 'out_of_scope':
         showState('oos');
@@ -1816,7 +1862,7 @@ async function poll() {
     if (status === 'complete') {
       clearInterval(pollTimer);
       uploadId = d.existing_upload_id || uploadId;
-      renderResults(d.overall_score, d.finding_counts, d.email, null);
+      renderResults(d.overall_score, d.finding_counts, d.email, null, d.ai_receipt);
     } else if (status === 'out_of_scope') {
       clearInterval(pollTimer);
       showState('oos');
@@ -1878,7 +1924,7 @@ function startNextDocument() {
   return false;
 }
 
-function renderResults(score, findingCounts, email, fileName) {
+function renderResults(score, findingCounts, email, fileName, aiReceipt) {
   showState('results');
   // EXPOSURE-LEAD-001 — the /100 presentation is retired (Director, 4 Jul 2026).
   // Ring methodology IDENTICAL to the Exposure Report renderer and to
@@ -1995,8 +2041,43 @@ function renderResults(score, findingCounts, email, fileName) {
     }
   }
 
+  // AUP-COMPLIANCE-WEBSITE-001 §4 — AI transparency receipt.
+  renderAiReceipt(aiReceipt);
+
   // GOLIVE003 §C — offer the £19 Solicitors Preparation Bundle after a completed single Contract Check.
   renderPackUpsell();
+}
+
+// ── AI TRANSPARENCY RECEIPT (AUP-COMPLIANCE-WEBSITE-001 §4) ─────────────────
+// The fixed lines always render; the names-removed and generated lines render only
+// when ai_receipt carries those fields (absent receipt ⇒ fixed lines only).
+function renderAiReceipt(receipt) {
+  const host = document.getElementById('ai-receipt');
+  if (!host) return;
+  const r = (receipt && typeof receipt === 'object') ? receipt : {};
+  const lines = ['Produced with AI-assisted analysis (provider: Anthropic, Claude).'];
+  const n = typeof r.names_removed === 'number' ? r.names_removed
+    : (typeof r.names_removed === 'string' && /^\d+$/.test(r.names_removed.trim()) ? Number(r.names_removed) : NaN);
+  if (isFinite(n) && n >= 0) {
+    lines.push('Names and identifiers we could detect were removed before analysis (' + Math.floor(n) + ' replaced).');
+  }
+  lines.push("What was checked: the uploaded document against UK employment law requirements in Ailane's Knowledge Library.");
+  lines.push("What was not checked: your organisation's wider practices, facts outside the document, or how a court or tribunal would decide a particular case.");
+  lines.push('This is regulatory intelligence, not legal advice. Before changing contracts or making decisions about any individual, have the findings reviewed by a qualified adviser.');
+  if (r.generated_at) {
+    const g = new Date(r.generated_at);
+    if (!isNaN(g.getTime())) lines.push('Generated: ' + g.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }));
+  }
+  host.innerHTML = '';
+  const box = document.createElement('section');
+  box.className = 'ai-receipt';
+  box.setAttribute('aria-labelledby', 'ai-receipt-title');
+  const h = document.createElement('h3');
+  h.id = 'ai-receipt-title';
+  h.textContent = 'AI transparency receipt';
+  box.appendChild(h);
+  lines.forEach(function (t) { const p = document.createElement('p'); p.textContent = t; box.appendChild(p); });
+  host.appendChild(box);
 }
 
 // ── GOLIVE003 §C — SOLICITORS PREPARATION BUNDLE UPSELL ─────────────────────
@@ -2004,6 +2085,9 @@ function renderPackUpsell() {
   const el = document.getElementById('pack-upsell-row');
   if (!el) return;
   el.innerHTML = '';
+  // AUP §1.3 — whether the original check purchase carried the business declaration is
+  // not determinable client-side (it is not on the session response and does not survive
+  // the Stripe redirect), so the add-on shows the same business box as the tiers.
   // one_time_scan is the £19 single Contract Check. The Compliance Check Bundle (£29)
   // and Three-Document Bundle (£49) already include the Solicitors Preparation Bundle.
   if (sessionTier !== 'one_time_scan') return;
@@ -2017,8 +2101,12 @@ function renderPackUpsell() {
         <p>The full four-layer preparation document — each clause as read, the exposure, your solicitor agenda, and labelled illustrative statutory clauses — with your contract as an appendix. Delivered by email as a PDF.</p>
       </div>
       <div class="d6-consent" id="consent-cc-pack">
-        <input type="checkbox" id="cc-pack" onchange="togglePayBtn('pay-pack','cc-pack')">
+        <input type="checkbox" id="cc-pack" onchange="togglePayBtn('pay-pack','cc-pack','biz-pack')">
         <label for="cc-pack">I confirm I have read and agree to the <a href="https://ailane.ai/terms/" target="_blank">Terms of Service</a> and <a href="https://ailane.ai/privacy/" target="_blank">Privacy Policy</a>. I understand this analysis does not constitute legal advice and I will seek qualified legal advice before acting on any findings.</label>
+      </div>
+      <div class="d6-consent" id="consent-biz-pack">
+        <input type="checkbox" id="biz-pack" onchange="togglePayBtn('pay-pack','cc-pack','biz-pack')">
+        <label for="biz-pack">I confirm I am purchasing on behalf of a business, for use in its employment operations, and not as an individual reviewing my own terms of employment.</label>
       </div>
       <a id="pay-pack" href="#" class="btn-pay disabled-pay" onclick="return startCheckout('pack_addon','cc-pack',this,{ upload_id: '${uploadId}' })">Add the Solicitors Preparation Bundle — £19</a>
       <div id="checkout-error-cc-pack" class="checkout-error" style="color:#ff9a9a;font-size:12px;min-height:16px;margin-top:6px"></div>
