@@ -1,5 +1,5 @@
 /* ailane-commerce.js — purchase-pause notice and reopen notification sign-up.
-   AILANE-CC-BRIEF-COMMERCE-PAUSE-SITE-001 · v1.0 · 16 October 2026
+   AILANE-CC-BRIEF-COMMERCE-PAUSE-SITE-001 · v1.1 · 16 October 2026 (SITE-002: on-load key, refresh(), paused controls clickable)
    Vanilla JS, no dependencies. No authentication, no session reads, no redirects (RULE 27-safe).
    Server strings are rendered with textContent only. */
 (function () {
@@ -7,7 +7,7 @@
 
   var REST_BASE = 'https://cnbsxwtvazfvzmltkuvx.supabase.co/rest/v1';
   var FUNCTIONS_BASE = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co';
-  var ANON_KEY = '__ANON_KEY__';
+  var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
   var PRIVACY_URL = '/privacy/';
 
   var TEXT = {
@@ -300,6 +300,8 @@
     Array.prototype.forEach.call(buys, function (b) {
       if (b.getAttribute('data-ailane-decorated') === '1') return;
       b.setAttribute('data-ailane-decorated', '1');
+      if (b.hasAttribute('disabled')) { b.setAttribute('data-ailane-was-disabled', '1'); b.removeAttribute('disabled'); }
+      if (b.getAttribute('aria-disabled') === 'true' && s.waitlist_enabled) b.removeAttribute('aria-disabled');
       var label = s.waitlist_enabled ? TEXT.buttonPaused : TEXT.buttonUnavailable;
       var target = b.querySelector('[data-ailane-buy-label]') || (b.children.length === 0 ? b : null);
       if (target) {
@@ -365,10 +367,11 @@
   }
 
   window.AilaneCommerce = {
-    version: '1.0',
+    version: '1.1',
     getStatus: getStatus,
     openNotice: openNotice,
-    handleCheckoutError: handleCheckoutError
+    handleCheckoutError: handleCheckoutError,
+    refresh: function () { return getStatus().then(decorate); }
   };
 
   function init() { getStatus().then(decorate); }
