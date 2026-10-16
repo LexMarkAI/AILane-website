@@ -14,6 +14,8 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#0a0e1a">
+  <link rel="stylesheet" href="/assets/css/ailane-commerce.css">
+  <script src="/assets/js/ailane-commerce.js" defer></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{background:#060D1B;color:#fff;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
@@ -54,7 +56,7 @@
       <input type="checkbox" id="op-consent" onchange="toggleOpBtn()">
       <label for="op-consent">I confirm I have read and agree to the <a href="https://ailane.ai/terms/" target="_blank">Terms of Service</a> and <a href="https://ailane.ai/privacy/" target="_blank">Privacy Policy</a>. I understand Ailane provides regulatory intelligence, not legal advice. The subscription renews monthly and can be cancelled at any time from Manage billing.</label>
     </div>
-    <a id="op-pay" href="#" class="btn disabled-pay" onclick="return startCheckout('operational','op-consent',this)">Start Operational — £199/month</a>
+    <a id="op-pay" href="#" class="btn disabled-pay" data-ailane-buy="operational" onclick="return startCheckout('operational','op-consent',this)">Start Operational — £199/month</a>
     <div id="checkout-error-op-consent" class="err"></div>
     <div class="manage">Existing subscriber? <a href="/billing/">Manage billing</a></div>
     <div class="legal">AI Lane Limited · Co. 17035654 · ICO 00013389720 · Regulatory intelligence, not legal advice.</div>
@@ -87,6 +89,7 @@
       body: JSON.stringify({ product_type: productType })
     }).then(function (r) { return r.json(); }).then(function (d) {
       if (d && d.url) { window.location.href = d.url; return; }
+      if (window.AilaneCommerce && window.AilaneCommerce.handleCheckoutError(null, d, { interest: productType, trigger: el })) { el.dataset.busy = '0'; el.textContent = prior; return; }
       throw new Error((d && d.error) || 'no url');
     }).catch(function () {
       el.dataset.busy = '0';

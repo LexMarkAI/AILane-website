@@ -850,6 +850,8 @@ footer {
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#0a0e1a">
+<link rel="stylesheet" href="/assets/css/ailane-commerce.css">
+<script src="/assets/js/ailane-commerce.js" defer></script>
 <link rel="stylesheet" href="/assets/css/brand-lockup.css">
 </head>
 <body>
@@ -1079,7 +1081,7 @@ footer {
 
   <!-- PRICING -->
 
-  <section class="section scroll-anchor" id="pricing">
+  <section class="section scroll-anchor" id="pricing" data-ailane-commerce-banner>
     <div class="section-inner">
       <div class="section-label">Pricing</div>
       <h2 class="section-heading">One-time checks. No subscription required.</h2>
@@ -1120,7 +1122,7 @@ footer {
         <label for="biz-19">I confirm I am purchasing on behalf of a business, for use in its employment operations, and not as an individual reviewing my own terms of employment.</label>
       </div>
       <!-- Wired via create-checkout (AMD-263 D2) -->
-      <a id="pay-19" href="#" class="btn-pay disabled-pay" onclick="return startCheckout('scan_anonymous','cc-19',this)">Single Contract Check — £19</a>
+      <a id="pay-19" href="#" class="btn-pay disabled-pay" data-ailane-buy="scan_anonymous" onclick="return startCheckout('scan_anonymous','cc-19',this)">Single Contract Check — £19</a>
       <div id="checkout-error-cc-19" class="checkout-error" style="color:#ff9a9a;font-size:12px;min-height:16px;margin-top:6px"></div>
     </div>
 
@@ -1148,7 +1150,7 @@ footer {
         <label for="biz-29">I confirm I am purchasing on behalf of a business, for use in its employment operations, and not as an individual reviewing my own terms of employment.</label>
       </div>
       <!-- Wired via create-checkout (AMD-263 D2) -->
-      <a id="pay-29" href="#" class="btn-pay disabled-pay" onclick="return startCheckout('compliance_check_bundle','cc-29',this)">Compliance Check Bundle — £29</a>
+      <a id="pay-29" href="#" class="btn-pay disabled-pay" data-ailane-buy="compliance_check_bundle" onclick="return startCheckout('compliance_check_bundle','cc-29',this)">Compliance Check Bundle — £29</a>
       <div id="checkout-error-cc-29" class="checkout-error" style="color:#ff9a9a;font-size:12px;min-height:16px;margin-top:6px"></div>
     </div>
 
@@ -1174,7 +1176,7 @@ footer {
         <label for="biz-49">I confirm I am purchasing on behalf of a business, for use in its employment operations, and not as an individual reviewing my own terms of employment.</label>
       </div>
       <!-- Wired via create-checkout (AMD-263 D2) · three-document intake ACTIVE (THREE-DOC-ACTIVATE-001) -->
-      <a id="pay-49" href="#" class="btn-pay disabled-pay" onclick="return startCheckout('scan_report','cc-49',this)">Three-Document Bundle — £49</a>
+      <a id="pay-49" href="#" class="btn-pay disabled-pay" data-ailane-buy="scan_report" onclick="return startCheckout('scan_report','cc-49',this)">Three-Document Bundle — £49</a>
       <div id="checkout-error-cc-49" class="checkout-error" style="color:#ff9a9a;font-size:12px;min-height:16px;margin-top:6px"></div>
     </div>
   </div>
@@ -1609,6 +1611,7 @@ function startCheckout(productType, consentId, el, extra) {
     body: JSON.stringify({ product_type: productType, ...(extra || {}), business_declaration: true, terms_version: TERMS_VERSION })
   }).then(function (r) { return r.json(); }).then(function (d) {
     if (d && d.url) { window.location.href = d.url; return; }
+    if (window.AilaneCommerce && window.AilaneCommerce.handleCheckoutError(null, d, { interest: productType, trigger: el })) { el.dataset.busy = '0'; el.textContent = prior; return; }
     throw new Error((d && d.error) || 'no url');
   }).catch(function () {
     el.dataset.busy = '0';
