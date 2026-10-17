@@ -114,7 +114,7 @@ Gold is Director-authorised per element (AMD-279 / CEO-RAT-GOLD-DV-001, 17 Jul 2
 
 ### Auth Guard Pattern (protected pages only)
 1. `<body style="visibility:hidden">`
-2. Supabase CDN FIRST in `<head>`
+2. Supabase CDN in `<head>`, immediately after the consent loader (RULE 10, where that rule requires one) and the CSP meta (RULE 22), and before any guard script — the guard polls for the client, so the loader and CSP ahead of it do not delay the guard. (Per AILANE-SKILL-PATCH-CC-BRIEF-PREFLIGHT-001, ratified.)
 3. Guard script: `getSession()` → fallback `onAuthStateChange` with 6s timeout
 4. Decode JWT, check tier/email
 5. Success: `document.body.style.visibility = 'visible'`
