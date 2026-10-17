@@ -77,7 +77,7 @@ Gold is Director-authorised per element (AMD-279 / CEO-RAT-GOLD-DV-001, 17 Jul 2
   Missing secret → HTTP 500 with structured error, log secret name (not value).
 
 ### Deployment
-- Edge Functions managed via Supabase Dashboard ONLY. CLI not installed.
+- Edge Functions deploy via `ailane-cc-brief` RULE 13 Paths A–D. Path D: merging to `LexMarkAI/ailane-backend` `main` deploys changed functions through `deploy-functions.yml`. This repository deploys no Edge Functions. (AMD-313.)
 - NEVER deploy a replacement without reading production source first.
 - Download zip → inspect → surgical modification → deploy.
 
@@ -114,14 +114,14 @@ Gold is Director-authorised per element (AMD-279 / CEO-RAT-GOLD-DV-001, 17 Jul 2
 
 ### Auth Guard Pattern (protected pages only)
 1. `<body style="visibility:hidden">`
-2. Supabase CDN in `<head>`, immediately after the consent loader (RULE 10, where that rule requires one) and the CSP meta (RULE 22), and before any guard script — the guard polls for the client, so the loader and CSP ahead of it do not delay the guard. (Per AILANE-SKILL-PATCH-CC-BRIEF-PREFLIGHT-001, ratified.)
+2. Supabase CDN in `<head>`, after the consent loader (RULE 10, where that rule requires one) and the CSP meta (RULE 22), and before the guard script. Other library scripts may sit between the CSP and the Supabase CDN; ordinary scripts execute in document order, so the client is defined before the guard runs. (AMD-313.)
 3. Guard script: `getSession()` → fallback `onAuthStateChange` with 6s timeout
 4. Decode JWT, check tier/email
 5. Success: `document.body.style.visibility = 'visible'`
 6. Failure: `window.location.replace('/login/')` — NEVER show error UI
 
 ### Supabase CDN Placement
-- Protected pages (dashboards, intelligence): YES — first in `<head>`
+- Protected pages (dashboards, intelligence): YES — Supabase CDN in `<head>`, after the consent loader (RULE 10, where that rule requires one) and the CSP meta (RULE 22), and before the guard script. Other library scripts may sit between the CSP and the Supabase CDN; ordinary scripts execute in document order, so the client is defined before the guard runs. (AMD-313.)
 - Public pages (terms, privacy, ticker, landing): NO
 - index.html (landing page): NEVER
 
