@@ -1333,7 +1333,7 @@ const INGEST_STATUS_COLORS = {
   no_pipeline: 'var(--accent-amber)',
 };
 
-function IngestionHealthCard({ ingestion }) {
+function IngestionHealthCard({ ingestion, meta }) {
   const rows = Array.isArray(ingestion) ? ingestion : [];
   return (
     <div className="card" style={{'--card-accent': 'var(--accent-cyan)', cursor:'default'}}>
@@ -1342,7 +1342,7 @@ function IngestionHealthCard({ ingestion }) {
           <div className="card-icon cyan"><Icons.zap /></div>
           <div className="card-title">Ingestion Health</div>
         </div>
-        <span className="card-badge">Reconciliation</span>
+        <span className="card-badge">{meta && meta.last_reconcile ? 'Reconciled ' + timeAgo(meta.last_reconcile.started_at) : 'Reconciliation'}</span>
       </div>
       <div className="card-body">
         {rows.length === 0 ? (
@@ -1363,6 +1363,7 @@ function IngestionHealthCard({ ingestion }) {
                     {status.replace(/_/g, ' ')}
                     {r && r.drift_count != null ? ' · drift ' + r.drift_count : ''}
                     {r && r.staleness_hours != null ? ' · ' + r.staleness_hours + 'h' : ''}
+                    {r && r.detail && r.detail.held_older_than_source != null ? ' · updated at source ' + r.detail.held_older_than_source : ''}
                   </span>
                 </div>
               );
@@ -1370,6 +1371,183 @@ function IngestionHealthCard({ ingestion }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ─── Enrichment progress — W2526, v2.4 standard (AILANE-CC-BRIEF-CEO-ENRICHMENT-PROGRESS) ───
+// Fed by POST rest/v1/rpc/fn_ceo_enrichment_progress (Director only; read-only). Refreshes every 5 minutes.
+// 404 = the database function is not created yet; any other failure keeps the last good figures.
+const ENRICH_FLAG_LABELS = {
+  low_confidence: 'Low confidence', verbatim_miss: 'Exact-quote check', auto_gate: 'Automatic gate',
+  quarantine: 'Quarantined', special_category_review: 'Special-category review', qa_disagree: 'QA disagreement',
+  schema_drop: 'Schema drop', other: 'Other',
+};
+function enrichPct(n, d) {
+  const a = Number(n), b = Number(d);
+  if (!isFinite(a) || !isFinite(b) || b <= 0) return '—';
+  return (100 * a / b).toFixed(1) + '%';
+}
+function enrichNum(v) {
+  const n = Number(v);
+  if (!isFinite(n)) return '—';
+  return n.toLocaleString('en-GB');
+}
+function enrichUsd(v) {
+  const n = Number(v);
+  if (!isFinite(n)) return '—';
+  return '$' + n.toFixed(2);
+}
+function EnrichBar({ label, value, limit, note }) {
+  const v = Number(value), l = Number(limit);
+  const ok = isFinite(v) && isFinite(l) && l > 0;
+  const frac = ok ? Math.min(1, v / l) : 0;
+  let color = 'var(--accent-green)';
+  if (ok && frac >= 0.9) color = 'var(--accent-red)';
+  else if (ok && frac >= 0.7) color = 'var(--accent-amber)';
+  return (
+    <div style={{marginBottom: 8}}>
+      <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem'}}>
+        <span>{label}</span><span style={{color}}>{note}</span>
+      </div>
+      <div style={{height: 6, background: 'rgba(148,163,184,0.15)', borderRadius: 3, overflow: 'hidden'}}>
+        <div style={{width: (frac * 100).toFixed(1) + '%', height: '100%', background: color}} />
+      </div>
+    </div>
+  );
+}
+function EnrichStat({ label, value, sub }) {
+  return (
+    <div style={{padding: '8px 10px', border: '1px solid rgba(148,163,184,0.15)', borderRadius: 8}}>
+      <div style={{fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)'}}>{label}</div>
+      <div style={{fontSize: '1.15rem', fontWeight: 600}}>{value}</div>
+      <div style={{fontSize: '0.68rem', color: 'var(--text-muted)'}}>{sub}</div>
+    </div>
+  );
+}
+function EnrichmentProgressCard({ token }) {
+  const [p, setP] = React.useState(null);      // null = loading | object = data
+  const [err, setErr] = React.useState(null);  // null | 'notlive' | 'error'
+  React.useEffect(() => {
+    let alive = true;
+    async function load() {
+      if (!token) return;
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/fn_ceo_enrichment_progress`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
+        if (r.status === 404) { if (alive) setErr('notlive'); return; }
+        if (!r.ok) { console.warn('fn_ceo_enrichment_progress HTTP ' + r.status); if (alive) setErr('error'); return; }
+        const j = await r.json();
+        if (alive) { setP(j); setErr(null); }
+      } catch (e) {
+        console.warn('fn_ceo_enrichment_progress error', e);
+        if (alive) setErr('error');
+      }
+    }
+    load();
+    const t = setInterval(load, 300000);
+    return () => { alive = false; clearInterval(t); };
+  }, [token]);
+
+  const wave = (p && p.wave) || {};
+  const lim = (p && p.limits) || {};
+  const bud = (p && p.budget) || {};
+  const v = (p && p.v24) || {};
+  const qa = (p && p.qa_disagreement) || {};
+  const aud = (p && p.agreement_audit) || {};
+  const flags = (p && p.flagged_by_class) || {};
+  const pace = (p && p.pace_applied_per_hour) || [];
+  const rem = (p && p.remaining) || [];
+  const rq = (p && p.reextract_queue) || {};
+  const halts = Number((p && p.halt_flags_open) || 0);
+  const floorYear = wave.date_floor ? Number(String(wave.date_floor).slice(0, 4)) : null;
+  const tiers = Array.isArray(wave.tier_order) ? wave.tier_order : [];
+  const inScope = rem.filter(x => tiers.indexOf(x.tier) >= 0 && floorYear !== null && Number(x.year) >= floorYear);
+  const inScopeTotal = inScope.reduce((a, x) => a + Number(x.n || 0), 0);
+  const usable = Number(lim.monthly_limit_usd || 0) - Number(lim.cron_reserve_usd || 0);
+
+  let statusColor = 'var(--text-muted)';
+  let statusLabel = '—';
+  if (p && wave.enabled === true) { statusColor = 'var(--accent-green)'; statusLabel = 'running'; }
+  if (p && halts > 0) { statusColor = 'var(--accent-red)'; statusLabel = 'halted (' + halts + ')'; }
+  else if (p && wave.enabled === false) { statusColor = 'var(--accent-amber)'; statusLabel = 'stopped'; }
+
+  let body = null;
+  if (!p && err === 'notlive') body = <div className="reg-muted">Awaiting the data function (fn_ceo_enrichment_progress).</div>;
+  else if (!p && err === 'error') body = <div className="reg-muted">Enrichment progress unavailable.</div>;
+  else if (!p) body = <div className="reg-muted">Loading enrichment progress…</div>;
+  else body = (
+    <div>
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 12}}>
+        <EnrichStat label="Enriched (v2.4)" value={enrichNum(v.total)} sub={'dual-pass verified ' + enrichNum(v.dual_pass_verified)} />
+        <EnrichStat label="Verified, unflagged" value={enrichNum(v.verified_unflagged)} sub={enrichPct(v.verified_unflagged, v.total) + ' of v2.4'} />
+        <EnrichStat label="Re-enriched from older" value={enrichNum(v.replaced_older_version)} sub={'first-time ' + enrichNum(v.first_enrichment) + ' · undetermined ' + enrichNum(v.not_determinable)} />
+        <EnrichStat label="Flagged for review" value={enrichNum(v.flagged)} sub={enrichPct(v.flagged, v.total) + ' of v2.4'} />
+        <EnrichStat label="Remaining in scope" value={enrichNum(inScopeTotal)} sub={'floor ' + (wave.date_floor || '—') + ' · ' + tiers.join(', ')} />
+      </div>
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16}}>
+        <div>
+          <div className="reg-muted" style={{marginBottom: 6}}>Quality gates</div>
+          {Object.keys(qa).map(k => (
+            <EnrichBar key={'qa' + k} label={'QA disagreement · ' + k.replace(/_/g, ' ')} value={qa[k].rate} limit={lim.qa_stop_pct}
+              note={enrichPct(qa[k].disagree, Number(qa[k].agree) + Number(qa[k].disagree)) + ' / stop ' + enrichPct(lim.qa_stop_pct, 1)} />
+          ))}
+          <EnrichBar label={'Agreement audit · ' + enrichNum(aud.decided) + ' decided'} value={aud.not_confirmed_rate} limit={lim.audit_halt_pct}
+            note={enrichPct(aud.not_confirmed_rate, 1) + ' / halt above ' + enrichPct(lim.audit_halt_pct, 1)} />
+        </div>
+        <div>
+          <div className="reg-muted" style={{marginBottom: 6}}>Spend (API, this month)</div>
+          <EnrichBar label="Month to date" value={bud.month_to_date_usd} limit={usable} note={enrichUsd(bud.month_to_date_usd) + ' / ' + enrichUsd(usable)} />
+          <EnrichBar label="Programme to date" value={bud.programme_to_date_usd} limit={lim.programme_ceiling_usd} note={enrichUsd(bud.programme_to_date_usd) + ' / ' + enrichUsd(lim.programme_ceiling_usd)} />
+          <EnrichBar label="Fable 5.1" value={bud.fable_to_date_usd} limit={lim.fable_cap_usd} note={enrichUsd(bud.fable_to_date_usd) + ' / ' + enrichUsd(lim.fable_cap_usd)} />
+          <EnrichBar label="Opus adjudication" value={bud.opus_adjudication_to_date_usd} limit={lim.opus_adjudication_cap_usd} note={enrichUsd(bud.opus_adjudication_to_date_usd) + ' / ' + enrichUsd(lim.opus_adjudication_cap_usd)} />
+        </div>
+        <div>
+          <div className="reg-muted" style={{marginBottom: 6}}>Flagged by class</div>
+          <div className="tx-list">
+            {Object.keys(flags).sort((a, b) => Number(flags[b]) - Number(flags[a])).map(k => (
+              <div className="tx-row" key={'f' + k}>
+                <div className="tx-left"><span className="tx-name">{ENRICH_FLAG_LABELS[k] || k}</span></div>
+                <span className="tx-amount" style={{fontSize: '0.7rem'}}>{enrichNum(flags[k])}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className="reg-muted" style={{marginBottom: 6}}>Applied per hour · document re-reading</div>
+          <div className="tx-list">
+            {pace.map(x => (
+              <div className="tx-row" key={'p' + x.hour}>
+                <div className="tx-left"><span className="tx-name">{String(x.hour).slice(11, 16) + ' UTC'}</span></div>
+                <span className="tx-amount" style={{fontSize: '0.7rem'}}>{enrichNum(x.n)}</span>
+              </div>
+            ))}
+            <div className="tx-row">
+              <div className="tx-left"><span className="tx-name">Re-reading queue</span></div>
+              <span className="tx-amount" style={{fontSize: '0.7rem'}}>{'queued ' + enrichNum(rq.queued || 0) + ' · done ' + enrichNum(Number(rq.replaced || 0) + Number(rq.kept_legacy || 0)) + ' · failed ' + enrichNum(rq.failed || 0)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="reg-muted" style={{marginTop: 10, fontSize: '0.68rem'}}>
+        {'Updated ' + timeAgo(p.generated_at) + ' · last submit ' + timeAgo(wave.last_submit_at) + (wave.disabled_reason ? ' · ' + wave.disabled_reason : '')}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="card" style={{'--card-accent': 'var(--accent-purple)', cursor: 'default'}}>
+      <div className="card-header">
+        <div className="card-title-group">
+          <div className="card-icon purple"><Icons.chart /></div>
+          <div className="card-title">Enrichment — v2.4 standard</div>
+        </div>
+        <span className="card-badge">{(wave.phase || 'W2526') + ' · '}<StatusDot color={statusColor} label={statusLabel} /></span>
+      </div>
+      <div className="card-body">{body}</div>
     </div>
   );
 }
@@ -2318,7 +2496,13 @@ function App() {
 
         <div className="grid-row two-col">
           <CalendarCard />
-          <IngestionHealthCard ingestion={data?.ingestion_health} />
+          <IngestionHealthCard ingestion={sections.ingestion_health} meta={sections.ingestion_meta} />
+        </div>
+
+        {/* Ingestion & Enrichment — W2526 v2.4 progress (AILANE-CC-BRIEF-CEO-ENRICHMENT-PROGRESS) */}
+        <div className="section-band"><div className="section-label">Ingestion &amp; Enrichment</div><div className="band-rule" /></div>
+        <div className="grid-row full">
+          <EnrichmentProgressCard token={token} />
         </div>
 
         {/* QTAiLane — demoted to a dormant footer (RULE 14) */}
