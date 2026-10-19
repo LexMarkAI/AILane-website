@@ -190,30 +190,46 @@
     const [reviewers, setReviewers] = useState(null);
     const [loading, setLoading] = useState(true);
     useEffect(() => {
+      let sub = null, established = false, t = null, active = true;
+      function onAuthEvent(ev, sess) {
+        if (established) {
+          if (sess && (ev === "TOKEN_REFRESHED" || ev === "SIGNED_IN" || ev === "USER_UPDATED")) {
+            const p = JSON.parse(atob(sess.access_token.split(".")[1]));
+            if (p.email === CEO_EMAIL) setToken(sess.access_token);
+          }
+          return;
+        }
+        if (sess) {
+          clearTimeout(t);
+          const p = JSON.parse(atob(sess.access_token.split(".")[1]));
+          if (p.email === CEO_EMAIL) {
+            established = true;
+            setToken(sess.access_token);
+            setAuth("ok");
+          } else window.location.href = "/AiLaneCEO/";
+        }
+      }
       (async () => {
         const { data: { session } } = await sb.auth.getSession();
+        if (!active) return;
         if (session) {
           const p = JSON.parse(atob(session.access_token.split(".")[1]));
           if (p.email === CEO_EMAIL) {
+            established = true;
             setToken(session.access_token);
             setAuth("ok");
-            return;
           }
         }
-        const t = setTimeout(() => {
+        if (!established) t = setTimeout(() => {
           window.location.href = "/AiLaneCEO/";
         }, 3e3);
-        sb.auth.onAuthStateChange((ev, sess) => {
-          if (sess) {
-            clearTimeout(t);
-            const p = JSON.parse(atob(sess.access_token.split(".")[1]));
-            if (p.email === CEO_EMAIL) {
-              setToken(sess.access_token);
-              setAuth("ok");
-            } else window.location.href = "/AiLaneCEO/";
-          }
-        });
+        sub = sb.auth.onAuthStateChange(onAuthEvent).data.subscription;
       })();
+      return () => {
+        active = false;
+        clearTimeout(t);
+        if (sub) sub.unsubscribe();
+      };
     }, []);
     useEffect(() => {
       if (auth !== "ok" || !token) return;
@@ -505,11 +521,16 @@
     }), closed.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ React.createElement("div", { className: "section-label" }, "Recently closed"), closed.map((c, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", justifyContent: "space-between", gap: 10, padding: "6px 0", borderBottom: i < closed.length - 1 ? "1px solid var(--border-subtle)" : "none" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "0.7rem", color: "var(--text-secondary)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, c.title), /* @__PURE__ */ React.createElement("div", { className: "ts", style: { flexShrink: 0 } }, String(c.status || "").replace(/_/g, " "), c.closed_at ? " · " + shortDate(c.closed_at) : "")))), gov != null && gov.live && /* @__PURE__ */ React.createElement("div", { className: "muted-note" }, "Auto-closed (non-material) last 7 days: ", sum.auto_ratified_7d != null ? sum.auto_ratified_7d : 0)));
   }
   var ACGE_STATE_STYLE = { closed: ["var(--accent-amber)", "🔒"], armed: ["var(--accent-cyan)", "👁"], open: ["var(--accent-green)", "✓"] };
+  var acgeRefreshAt = 0;
   async function fetchAcgeOversight(token) {
     try {
       var r = await fetch("https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/acge-ceo-oversight", {
         headers: { "Authorization": "Bearer " + token }
       });
+      if (r.status === 401 && Date.now() - acgeRefreshAt >= 3e5) {
+        acgeRefreshAt = Date.now();
+        await sb.auth.refreshSession();
+      }
       if (!r.ok) return null;
       return await r.json();
     } catch (e) {
