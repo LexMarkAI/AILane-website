@@ -293,7 +293,18 @@ function App(){
   const[reviewers,setReviewers]=useState(null);
   const[loading,setLoading]=useState(true);
 
-  useEffect(()=>{(async()=>{const{data:{session}}=await sb.auth.getSession();if(session){const p=JSON.parse(atob(session.access_token.split('.')[1]));if(p.email===CEO_EMAIL){setToken(session.access_token);setAuth('ok');return;}}const t=setTimeout(()=>{window.location.href='/AiLaneCEO/';},3000);sb.auth.onAuthStateChange((ev,sess)=>{if(sess){clearTimeout(t);const p=JSON.parse(atob(sess.access_token.split('.')[1]));if(p.email===CEO_EMAIL){setToken(sess.access_token);setAuth('ok');}else window.location.href='/AiLaneCEO/';}});})();},[]);
+  // D-16: one onAuthStateChange subscription for the life of the page. Once a CEO session is in
+  // place (existing session or the listener path), each refreshed CEO token goes to setToken, so
+  // the [token] loads and the 5-minute ACGE poll never keep sending the first token after it expires.
+  useEffect(()=>{
+    let sub=null,established=false,t=null,active=true;
+    function onAuthEvent(ev,sess){
+      if(established){if(sess&&(ev==='TOKEN_REFRESHED'||ev==='SIGNED_IN'||ev==='USER_UPDATED')){const p=JSON.parse(atob(sess.access_token.split('.')[1]));if(p.email===CEO_EMAIL)setToken(sess.access_token);}return;}
+      if(sess){clearTimeout(t);const p=JSON.parse(atob(sess.access_token.split('.')[1]));if(p.email===CEO_EMAIL){established=true;setToken(sess.access_token);setAuth('ok');}else window.location.href='/AiLaneCEO/';}
+    }
+    (async()=>{const{data:{session}}=await sb.auth.getSession();if(!active)return;if(session){const p=JSON.parse(atob(session.access_token.split('.')[1]));if(p.email===CEO_EMAIL){established=true;setToken(session.access_token);setAuth('ok');}}if(!established)t=setTimeout(()=>{window.location.href='/AiLaneCEO/';},3000);sub=sb.auth.onAuthStateChange(onAuthEvent).data.subscription;})();
+    return()=>{active=false;clearTimeout(t);if(sub)sub.unsubscribe();};
+  },[]);
 
   useEffect(()=>{if(auth!=='ok'||!token)return;
     const H={'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY};
@@ -724,11 +735,16 @@ function GovernanceAlertsPanel({token}){
 // Permission gates can only render "open" with a non-null ratified_ref — an
 // open gate without one (DB-forbidden) renders INVARIANT BREACH + alarm.
 const ACGE_STATE_STYLE={closed:['var(--accent-amber)','🔒'],armed:['var(--accent-cyan)','👁'],open:['var(--accent-green)','✓']};
+// D-16: a 401 usually means the token expired while the page stayed open. One refresh, at most
+// once per poll interval so it can never loop; a new session reaches setToken through App's
+// onAuthStateChange listener and the poller restarts on its [token] dependency. Null either way.
+let acgeRefreshAt=0;
 async function fetchAcgeOversight(token){
   try{
     var r=await fetch('https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/acge-ceo-oversight',{
       headers:{'Authorization':'Bearer '+token}
     });
+    if(r.status===401&&Date.now()-acgeRefreshAt>=300000){acgeRefreshAt=Date.now();await sb.auth.refreshSession();}
     if(!r.ok)return null;
     return await r.json();
   }catch(e){return null;}
