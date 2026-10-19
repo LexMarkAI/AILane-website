@@ -607,13 +607,16 @@ function showOutOfScope(message) {
     '<p style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:10px;">Document not in scope</p>' +
     '<p style="font-size:13px;color:#8A9BB0;line-height:1.7;max-width:420px;margin:0 auto 20px;">' +
     'The Ailane Compliance Checker analyses UK employment documents only — employment contracts, staff handbooks, and workplace policies. ' +
-    (clean ? clean : 'The document you submitted does not appear to be an employment document.') +
+    '<span id="oos-reason"></span>' +
     '</p>' +
     '<div style="background:rgba(13,115,119,0.08);border:1px solid rgba(13,115,119,0.25);border-radius:4px;padding:14px 18px;font-size:12px;color:#8A9BB0;line-height:1.65;max-width:420px;margin:0 auto;">' +
     '<strong style="color:var(--teal2);">Need a refund or have a question?</strong><br>' +
     'Contact us at <a href="mailto:support@ailane.ai" style="color:var(--teal2);">support@ailane.ai</a> quoting your session reference: ' +
     '<span style="font-family:monospace;font-size:11px;">' + stripeSession.slice(-16) + '</span>' +
     '</div></div>';
+  // processing_error is server text — set as text, never parsed as HTML.
+  document.getElementById('oos-reason').textContent =
+    clean ? clean : 'The document you submitted does not appear to be an employment document.';
 }
 
 // ── show report ───────────────────────────────────────────────────────────
