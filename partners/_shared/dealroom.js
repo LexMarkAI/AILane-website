@@ -1050,7 +1050,7 @@ const DC_TIERS = [
   { code: 'tribunal_exposure', label: 'Tribunal Exposure', price: '£18 per employer per year', description: 'Identity + binary tribunal-decision indicator + counts, dates, jurisdictional summary. Includes the no-adverse-signal declaration with coverage transparency.', locked: false },
   { code: 'outcome_intelligence', label: 'Outcome Intelligence', price: '£33 per employer per year', description: 'Tribunal Exposure + outcome-classified data (claim outcomes, awards, ACEI sector base rates, peer-percentile context).', locked: false },
   { code: 'full_acei', label: 'Full ACEI', price: '£45 per employer per year', description: 'Outcome Intelligence + 12-category ACEI scoring with severity-weighted signals and sector-multiplier overlay.', locked: true },
-  { code: 'full_enrichment', label: 'Full Enrichment', price: '£90 per employer per year', description: 'Full ACEI + complete 171-column enrichment estate (representative profiles, hearing-day metrics, judge-canonical fields, citation authority).', locked: true },
+  { code: 'full_enrichment', label: 'Full Enrichment', price: '£90 per employer per year', description: 'Full ACEI + complete 171-column enrichment estate (representative profiles, hearing-day metrics, citation authority).', locked: true },
   { code: 'premium', label: 'Premium', price: '£140 per employer per year', description: 'Full Enrichment + cross-domain regulatory signal (HSE prosecutions, coroner PFD, corporate-relationship rollup).', locked: true },
 ];
 const DC_FIELDSET_TO_INTERNAL = { identity: 'operational_readiness', tribunal_exposure: 'operational_readiness', outcome_intelligence: 'operational_readiness', full_acei: 'governance', full_enrichment: 'enterprise', premium: 'enterprise' };
