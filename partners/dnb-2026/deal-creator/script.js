@@ -131,7 +131,7 @@
       code: 'full_enrichment',
       label: 'Full Enrichment',
       price: '£90 per employer per year',
-      description: 'Full ACEI + complete 171-column enrichment estate (representative profiles, hearing-day metrics, judge-canonical fields, citation authority).',
+      description: 'Full ACEI + complete 171-column enrichment estate (representative profiles, hearing-day metrics, citation authority).',
       locked: true
     },
     {
