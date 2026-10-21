@@ -401,6 +401,7 @@ function App(){
         <Collapse title="ISMS Action Center"><IsmsActionCenter token={token}/></Collapse>
         <Collapse title="Live Compliance Oversight"><ComplianceOversight vendors={vendors} isms={isms} findings={findings}/></Collapse>
         <Collapse title="Compliance & Certification Tracker"><CertificationTracker certs={certs}/></Collapse>
+        <Collapse title="ISMS operating status"><IsmsOperatingStatus token={token}/></Collapse>
         <Collapse title="Data Protection Complaints — s.164A Register"><ComplaintsRegister legal={legal}/></Collapse>
         <Collapse title="Legal Responsibilities & Oversight"><LegalResponsibilities reviewers={reviewers} token={token}/></Collapse>
 
@@ -456,6 +457,159 @@ function CertificationTracker({certs}){
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// ── SECTION 1a — ISMS OPERATING STATUS (AILANE-CC-BRIEF-CEO-LEGAL-ISMS-PANEL-SITE-001) ──
+// Renders the isms_operating key of the Director-only legal_oversight_assurance()
+// RPC, called once through the page's authenticated client after the auth guard.
+// No isms_operating key → neutral "not yet available"; a failed call → "unavailable"
+// with only the error code warned. Every value is a JSX text node. Dates are en-GB
+// calendar dates; timestamps are shown in Europe/London.
+const ISMS_OP_TONE={
+  red:{color:'var(--accent-red)',background:'var(--accent-red-dim)',borderColor:'rgba(239,68,68,0.25)'},
+  amber:{color:'var(--accent-amber)',background:'var(--accent-amber-dim)',borderColor:'rgba(245,158,11,0.25)'},
+  green:{color:'var(--accent-green)',background:'var(--accent-green-dim)',borderColor:'rgba(16,185,129,0.25)'},
+};
+function ismsOpObj(o){return o!=null&&typeof o==='object'&&!Array.isArray(o)?o:null;}
+function ismsOpVal(v,none){return v==null||v===''?(none||'not recorded'):v;}
+function ismsOpWhen(v,none){
+  if(v==null||v==='')return none||'not recorded';
+  const s=String(v);const d=new Date(s);if(isNaN(d.getTime()))return s;
+  return /^\d{4}-\d{2}-\d{2}$/.test(s)
+    ?d.toLocaleDateString('en-GB',{timeZone:'UTC',day:'numeric',month:'short',year:'numeric'})
+    :d.toLocaleString('en-GB',{timeZone:'Europe/London',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function ismsOpOlderThan(v,days){if(v==null||v==='')return false;const t=new Date(String(v)).getTime();return !isNaN(t)&&(Date.now()-t)/86400000>days;}
+function IsmsOpFact({label,value,tone}){
+  return <span style={{fontSize:'0.66rem',color:'var(--text-secondary)'}}>{label} <span style={{fontFamily:'var(--font-mono)',color:tone?ISMS_OP_TONE[tone].color:'var(--text-primary)'}}>{value}</span></span>;
+}
+function IsmsOperatingStatus({token}){
+  const[state,setState]=useState({phase:'loading'});   // loading | ok | absent | error
+  const[showAll,setShowAll]=useState(false);
+  useEffect(()=>{
+    if(!token)return;let active=true;
+    (async()=>{
+      try{
+        const{data,error,status}=await sb.rpc('legal_oversight_assurance');
+        if(!active)return;
+        if(error||(status&&(status<200||status>=300))){console.warn('legal_oversight_assurance unavailable',(error&&error.code)||status||'unknown');setState({phase:'error'});return;}
+        const op=ismsOpObj(ismsOpObj(data)&&data.isms_operating);
+        if(!op){setState({phase:'absent'});return;}
+        setState({phase:'ok',op,generatedAt:data.generated_at});
+      }catch(e){if(active){console.warn('legal_oversight_assurance unavailable','network');setState({phase:'error'});}}
+    })();
+    return()=>{active=false;};
+  },[token]);
+
+  const head=<div className="card-head"><div className="card-head-title">ISMS operating status</div><div className="card-head-badge">legal_oversight_assurance</div></div>;
+  if(state.phase!=='ok'){
+    const line=state.phase==='loading'?'Loading ISMS operating status…':state.phase==='absent'?'ISMS operating data not yet available.':'ISMS operating data unavailable';
+    return <div className="card">{head}<div className="card-body"><div className="ts">{line}</div></div></div>;
+  }
+
+  const op=state.op;
+  const rk=ismsOpObj(op.risks),ac=ismsOpObj(op.actions),ia=ismsOpObj(op.internal_audit),mr=ismsOpObj(op.management_review);
+  const soa=ismsOpObj(op.soa),ev=ismsOpObj(op.evidence_90d),pr=ismsOpObj(op.periodic)||{};
+  const top=Array.isArray(op.top_risks)?op.top_risks:[];
+  const acts=Array.isArray(op.open_actions)?op.open_actions:[];
+  const shown=showAll?acts:acts.slice(0,10);
+  const overdue=rk&&rk.overdue!=null?Number(rk.overdue):null;
+  const without=ev&&ev.implemented_or_inherited_without_90d!=null?Number(ev.implemented_or_inherited_without_90d):null;
+  const mt={marginTop:14};
+  const facts={display:'flex',gap:16,flexWrap:'wrap',alignItems:'center',padding:'4px 0'};
+  const line={fontSize:'0.66rem',color:'var(--text-secondary)',marginTop:4,lineHeight:1.5};
+  return(
+    <div className="card">
+      {head}
+      <div className="card-body">
+        <div className="ts">Live from the ISMS registers · generated {ismsOpWhen(state.generatedAt)}</div>
+
+        {/* Risk register */}
+        <div className="section-label" style={mt}>Risk register</div>
+        <div style={facts}>
+          <IsmsOpFact label="Open risks" value={ismsOpVal(rk&&rk.open)}/>
+          <IsmsOpFact label="Overdue reviews" value={ismsOpVal(rk&&rk.overdue)} tone={overdue==null?null:overdue>0?'red':'green'}/>
+          <IsmsOpFact label="Highest residual" value={ismsOpVal(rk&&rk.max_residual)}/>
+          <IsmsOpFact label="Next review due" value={ismsOpWhen(rk&&rk.next_review_due)}/>
+          {overdue!=null&&<span className="cstat" style={ISMS_OP_TONE[overdue>0?'red':'green']}>{overdue>0?'reviews overdue':'reviews in date'}</span>}
+        </div>
+
+        {/* Top risks */}
+        <div className="section-label" style={mt}>Top risks</div>
+        {top.length===0&&<div className="ts">No top risks recorded.</div>}
+        {top.length>0&&(
+          <div className="ct-table-wrap"><table className="ct-table">
+            <thead><tr><th>Ref</th><th>Risk</th><th>Residual</th><th>Review due</th></tr></thead>
+            <tbody>{top.map((r,i)=>{const x=ismsOpObj(r)||{};return(
+              <tr key={(x.ref||'')+':'+i}>
+                <td className="mono">{ismsOpVal(x.ref)}</td><td>{ismsOpVal(x.title)}</td><td className="mono">{ismsOpVal(x.residual)}</td>
+                <td className="mono">{ismsOpWhen(x.review_due)}{x.overdue===true&&<span className="q-breach" style={{marginLeft:6}}>Overdue</span>}</td>
+              </tr>
+            );})}</tbody>
+          </table></div>
+        )}
+
+        {/* Actions */}
+        <div className="section-label" style={mt}>Actions</div>
+        <div style={facts}>
+          <div>
+            <IsmsOpFact label="Open" value={ismsOpVal(ac&&ac.open)}/>{' · '}
+            <IsmsOpFact label="Blocked" value={ismsOpVal(ac&&ac.blocked)} tone={ac&&Number(ac.blocked)>0?'amber':null}/>{' · '}
+            <IsmsOpFact label="Done" value={ismsOpVal(ac&&ac.done)}/>
+          </div>
+        </div>
+        {acts.length===0&&<div className="ts">No open actions recorded.</div>}
+        {acts.length>0&&(
+          <div className="ct-table-wrap"><table className="ct-table">
+            <thead><tr><th>Ref</th><th>Action</th><th>Status</th><th>Linked risk</th></tr></thead>
+            <tbody>{shown.map((a,i)=>{const x=ismsOpObj(a)||{};const st=String(ismsOpVal(x.status));return(
+              <tr key={(x.ref||'')+':'+i}>
+                <td className="mono">{ismsOpVal(x.ref)}</td><td>{ismsOpVal(x.title)}</td>
+                <td><span className={'astat '+(st==='blocked'?'partial':'pending')}>{st.replace(/_/g,' ')}</span></td>
+                <td className="mono">{ismsOpVal(x.linked_risk,'none')}</td>
+              </tr>
+            );})}</tbody>
+          </table></div>
+        )}
+        {acts.length>10&&<div className="q-actions"><button type="button" onClick={()=>setShowAll(s=>!s)}>{showAll?'Show first 10':'Show all ('+acts.length+')'}</button></div>}
+
+        {/* Cycle and evidence */}
+        <div className="section-label" style={mt}>Cycle and evidence</div>
+        <div className="ov-grid" style={{gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))'}}>
+          <div className="ov-cell">
+            <div className="l">Internal audit</div>
+            <div style={line}>{ia?ismsOpVal(ia.ref)+' · '+ismsOpWhen(ia.date)+' · '+ismsOpVal(ia.status):'not recorded'}</div>
+          </div>
+          <div className="ov-cell">
+            <div className="l">Management review</div>
+            <div style={line}>{mr?ismsOpVal(mr.ref)+' · '+ismsOpWhen(mr.date)+' · next '+ismsOpWhen(mr.next_review):'not recorded'}{mr&&mr.overdue===true&&<span className="q-breach" style={{marginLeft:6}}>Overdue</span>}</div>
+          </div>
+          <div className="ov-cell">
+            <div className="l">SoA</div>
+            <div style={line}>{soa?ismsOpVal(soa.version)+' · reviewed '+ismsOpWhen(soa.last_reviewed)+' · Implemented '+ismsOpVal(soa.implemented)+' · Inherited '+ismsOpVal(soa.inherited)+' · Partial '+ismsOpVal(soa.partial)+' · Planned '+ismsOpVal(soa.planned)+' (of '+ismsOpVal(soa.controls)+')':'not recorded'}</div>
+          </div>
+          <div className="ov-cell">
+            <div className="l">Evidence (90 days)</div>
+            {ev?(
+              <div>
+                <div style={line}><IsmsOpFact label="Controls with evidence" value={ismsOpVal(ev.controls_with_evidence_90d)}/></div>
+                <div style={line}><IsmsOpFact label="Implemented or inherited without evidence" value={ismsOpVal(ev.implemented_or_inherited_without_90d)+' of '+ismsOpVal(ev.implemented_or_inherited)} tone={without!=null&&without>0?'red':null}/></div>
+              </div>
+            ):<div style={line}>not recorded</div>}
+          </div>
+          <div className="ov-cell">
+            <div className="l">Periodic records</div>
+            <div style={line}><IsmsOpFact label="Access reviews" value={ismsOpVal(pr.access_reviews)+' (last '+ismsOpWhen(pr.last_access_review,'none')+')'} tone={pr.access_reviews!=null&&Number(pr.access_reviews)===0?'red':null}/></div>
+            <div style={line}><IsmsOpFact label="Awareness" value={ismsOpWhen(pr.last_awareness)}/></div>
+            <div style={line}><IsmsOpFact label="Vendor checks" value={ismsOpWhen(pr.last_vendor_verification)}/></div>
+            <div style={line}><IsmsOpFact label="Weekly check" value={ismsOpWhen(pr.last_weekly_check)} tone={ismsOpOlderThan(pr.last_weekly_check,8)?'amber':null}/></div>
+            <div style={line}><IsmsOpFact label="Risk review evidence" value={ismsOpWhen(pr.last_risk_review_evidence)}/></div>
+            <div style={line}><IsmsOpFact label="Certification tracker" value={ismsOpWhen(pr.certification_tracker_updated)} tone={ismsOpOlderThan(pr.certification_tracker_updated,30)?'amber':null}/></div>
+          </div>
+        </div>
       </div>
     </div>
   );
