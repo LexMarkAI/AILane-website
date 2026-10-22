@@ -10,7 +10,7 @@
       endpoint: '/waitlist-confirm',
       ok: 'confirmed',
       okTitle: 'Thank you — you are on the list',
-      okText: 'Your email address is confirmed. We will let you know as soon as purchasing reopens.',
+      okText: 'Your email address is confirmed. We will email you about the updates you asked for, and every email has an unsubscribe link.',
       badTitle: 'This link is no longer valid',
       badText: 'The confirmation link has expired or has already been used. If you would still like to be notified, please sign up again from the Ailane website.'
     },
@@ -18,7 +18,7 @@
       endpoint: '/waitlist-unsubscribe',
       ok: 'unsubscribed',
       okTitle: 'You have been unsubscribed',
-      okText: 'We will not email you about purchasing or product updates again. You can sign up again at any time from the Ailane website.',
+      okText: 'We will not email you about Ailane launches, reopening or product updates again. You can sign up again at any time from the Ailane website.',
       badTitle: 'This link is no longer valid',
       badText: 'We could not find a subscription for this link. If you continue to receive emails, please contact us via the Ailane website.'
     },
