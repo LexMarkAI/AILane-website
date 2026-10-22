@@ -98,7 +98,8 @@
     bar.innerHTML =
       '<div class="ailane-consent-inner">' +
         '<p class="ailane-consent-text">We use strictly necessary cookies to run this workspace (these keep you signed in). ' +
-        'With your consent we also use Google Analytics to understand how the site is used. ' +
+        'We also count visits to our home page as daily totals to improve it, with no cookies and nothing that identifies you. ' +
+        'With your consent we also use Google Analytics to understand how the site is used. Choose Decline to opt out of both. ' +
         'See the <a href="' + PRIVACY_URL + '">Privacy Notice</a>.</p>' +
         '<div class="ailane-consent-actions">' +
           '<button type="button" id="ailane-consent-decline" class="ailane-consent-btn ailane-consent-btn-ghost">Decline</button>' +
@@ -123,10 +124,19 @@
   // without a prior or fresh 'granted' decision.
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', present); } else { present(); }
 
+  // AMD-344: re-open the choice from a "Cookie choices" link. Clears the stored decision and shows the strip again.
+  function choices() {
+    try { window.localStorage.removeItem(STORE_KEY); } catch (e) { /* storage unavailable: the strip is still shown */ }
+    removeStrip();
+    if (document.body) showStrip(); else document.addEventListener('DOMContentLoaded', showStrip);
+  }
+
   window.ailaneConsent = {
     present: present,
     grant: grant,
     decline: decline,
+    choices: choices,
+    decision: function () { return read(); },
     hasDecision: function () { return read() !== null; }
   };
 })();

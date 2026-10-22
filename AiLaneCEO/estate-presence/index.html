@@ -129,6 +129,16 @@ body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(1
 
 @media (max-width:980px){.grid-2{grid-template-columns:1fr;}}
 @media (max-width:760px){.kpis{grid-template-columns:repeat(2,1fr);}.main{padding:16px 16px 48px;}.top-bar{padding:12px 16px;}.person{grid-template-columns:auto 1fr;}.p-time{grid-column:2;text-align:left;}}
+/* AMD-344 Front door section */
+.fd{margin-top:28px;padding-top:22px;border-top:1px solid var(--border-default);display:flex;flex-direction:column;gap:16px;}
+.fd-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px;}
+.fd-title{font-family:var(--font-display);font-size:1.05rem;font-weight:700;color:var(--text-primary);letter-spacing:0.01em;}
+.fd-title span{color:var(--accent-cyan);}
+.fd-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.fd-act{padding:3px 9px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-base);color:var(--text-secondary);font-family:var(--font-mono);font-size:0.62rem;cursor:pointer;transition:all 0.15s;}
+.fd-act:hover:not(:disabled){border-color:var(--border-accent);color:var(--text-primary);}
+.fd-act:disabled{opacity:0.45;cursor:default;}
+.fd-note{margin-top:10px;font-size:0.68rem;color:var(--text-muted);line-height:1.5;}
 </style>
 <!-- Ailane favicon / app icons — estate head standard (AMD-246, RULE 35) -->
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -396,6 +406,190 @@ function Feed({items}){
   );
 }
 
+// ─── AMD-344 Front door: website sign-ups, Design Partner requests and home page visits (Director only) ───
+const C_VISITS='#0284C7';
+const C_SIGNUPS='#059669';
+const FD_TIER={operational_readiness:'Operational level', governance:'Governance level'};
+const FD_SIZE={'1-49':'1–49','50-249':'50–249','250-999':'250–999','1000-4999':'1,000–4,999','5000+':'5,000+'};
+const FD_STATUS={requested:'Awaiting review', under_review:'Under review', invited:'Invited', not_selected:'Not selected'};
+const FD_STATUS_CHIP={requested:'ghost', under_review:'cyan', invited:'green', not_selected:'ghost'};
+const FD_SOURCE={web_form:'Home page form', eileen_handoff:'Via Eileen', commerce_pause:'Purchase page'};
+const FD_INTEREST={general:'General', contract_check:'Contract Compliance Check', knowledge_library:'Knowledge Library', operational:'Operational', governance:'Governance', institutional:'Institutional', design_partner:'Design Partner programme'};
+
+function relabel(counts, map){
+  const out={};
+  Object.entries(counts||{}).forEach(([k,v])=>{ const l=map[k]||k; out[l]=(out[l]||0)+num(v); });
+  return out;
+}
+
+function MiniBars({days, field, color, label}){
+  const wrap=useRef(null);
+  const ds=(days||[]).map(d=>({day:d.day, v:num(d[field])}));
+  const W=useWidth(wrap, 520, ds.length>=2);
+  if(ds.length<2) return <div ref={wrap} className="muted-note">No history yet.</div>;
+  const H=128,L=30,R=8,T=12,B=22;
+  const maxY=niceMax(Math.max(1,...ds.map(d=>d.v)));
+  const bw=(W-L-R)/ds.length;
+  const y=v=>T+(H-T-B)*(1-v/maxY);
+  return (
+    <div className="chart-wrap" ref={wrap}>
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label}>
+        {[0,maxY].map((v,i)=>(
+          <g key={i}>
+            <line x1={L} x2={W-R} y1={y(v)} y2={y(v)} stroke="rgba(255,255,255,0.06)"/>
+            <text x={L-6} y={y(v)+3.5} textAnchor="end" className="axis-text">{Math.round(v)}</text>
+          </g>
+        ))}
+        {ds.map((d,i)=>{
+          const h=Math.max(d.v>0?2:0, y(0)-y(d.v));
+          return (
+            <g key={d.day}>
+              <title>{dayLabel(d.day)+': '+d.v}</title>
+              {h>0 && <rect x={L+i*bw+1} y={y(0)-h} width={Math.max(2,bw-2)} height={h} rx="2" fill={color}/>}
+              {((ds.length-1-i)%(W<520?14:7)===0) && <text x={L+i*bw+bw/2} y={H-6} textAnchor="middle" className="axis-text">{dayLabel(d.day)}</text>}
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+function FrontDoor({token}){
+  const [fd,setFd]=useState(null);
+  const [st,setSt]=useState('loading'); // loading | ok | notlive | error
+  const [busy,setBusy]=useState(null);
+  const alive=useRef(true);
+  useEffect(()=>()=>{alive.current=false;},[]);
+
+  const load=useCallback(async()=>{
+    if(!token) return;
+    try{
+      const r=await rpc(token,'fn_ceo_front_door',{p_days:30});
+      if(!alive.current) return;
+      if(r.status===404){ setSt('notlive'); return; }
+      if(!r.ok || !r.json || typeof r.json!=='object'){ console.error('fn_ceo_front_door HTTP '+r.status, r.json); setSt(s=>s==='ok'?'ok':'error'); return; }
+      setFd(r.json); setSt('ok');
+    }catch(e){ console.error('fn_ceo_front_door error', e); if(alive.current) setSt(s=>s==='ok'?'ok':'error'); }
+  },[token]);
+
+  useEffect(()=>{
+    if(!token) return;
+    load();
+    const id=setInterval(()=>{ if(document.visibilityState==='visible') load(); }, REFRESH_MS);
+    return ()=>clearInterval(id);
+  },[token,load]);
+
+  const mark=async(id,status)=>{
+    setBusy(id);
+    try{
+      const r=await rpc(token,'fn_ceo_front_door_beta_status',{p_id:id, p_status:status});
+      if(!r.ok) console.error('fn_ceo_front_door_beta_status HTTP '+r.status, r.json);
+      await load();
+    }finally{ if(alive.current) setBusy(null); }
+  };
+
+  const reg=(fd&&fd.register)||{};
+  const t=reg.totals||{};
+  const vis=(fd&&fd.visits)||{};
+  const eil=(fd&&fd.eileen)||{};
+  const gates=(fd&&fd.gates)||{};
+  const people=Array.isArray(reg.people)?reg.people:[];
+  const beta=people.filter(p=>p.beta_requested);
+  const refs=Object.fromEntries((vis.top_referrers||[]).map(r=>[r.name, r.visits]));
+  const camps=Object.fromEntries((vis.top_campaigns||[]).map(r=>[r.name, r.visits]));
+
+  return (
+    <div className="fd">
+      <div className="fd-head">
+        <div className="fd-title">Front <span>door</span></div>
+        <div className="panel-note">website sign-ups, Design Partner requests and home page visits · last 30 days{gates.register_open===false?' · register not yet open':''}</div>
+      </div>
+
+      {st==='loading' && <div className="muted-note">Loading the front door…</div>}
+      {st==='notlive' && <div className="info-banner"><strong>The front door is not live yet.</strong> The backend function <code>fn_ceo_front_door</code> has not been deployed.</div>}
+      {st==='error' && <div className="err-banner"><span>Front door data could not be loaded.</span><button className="refresh-btn" onClick={load}>Retry</button></div>}
+
+      {fd && (
+        <>
+          <div className="kpis">
+            <Kpi label="Visits today" swatch={C_VISITS} value={num(vis.today)} sub={num(vis.last_7)+' in the last 7 days'}/>
+            <Kpi label="Registered" swatch={C_SIGNUPS} value={num(t.confirmed)} sub={num(t.new_7d)+' new this week · '+num(t.pending)+' awaiting email confirmation'}/>
+            <Kpi label="Design Partner requests" value={num(t.beta_requests)} sub={num(t.beta_awaiting_review)+' awaiting your review'}/>
+            <Kpi label="Eileen website chats" value={num(eil.conversations)} sub={num(eil.register_mentions)+' mentioned registering'}/>
+          </div>
+
+          <div className="grid-2">
+            <div className="panel">
+              <div className="panel-head"><div className="panel-title">Design Partner requests</div><div className="panel-note">confirmed · indicative level from organisation size</div></div>
+              {beta.length===0
+                ? <div className="empty-state"><strong>No requests yet.</strong>Requests appear here once the visitor confirms their email address.</div>
+                : <div className="roster">{beta.map(p=>(
+                    <div className="person" key={p.id}>
+                      <div className="avatar">{initials(p.organisation_name||p.full_name||p.email)}</div>
+                      <div>
+                        <div className="p-name">{p.organisation_name||'Organisation not given'}</div>
+                        <div className="p-org">{(p.full_name?p.full_name+' · ':'')+p.email}</div>
+                        <div className="p-chips">
+                          <span className={'chip '+(p.indicative_tier==='governance'?'purple':'cyan')}>{FD_TIER[p.indicative_tier]||'—'}</span>
+                          <span className="chip ghost">{(FD_SIZE[p.org_size_band]||p.org_size_band)+' employees'}</span>
+                          <span className={'chip '+(FD_STATUS_CHIP[p.beta_status]||'ghost')}>{FD_STATUS[p.beta_status]||p.beta_status}</span>
+                        </div>
+                        <div className="fd-actions">
+                          {['under_review','invited','not_selected'].map(s=>(
+                            <button key={s} className="fd-act" disabled={busy===p.id||p.beta_status===s} onClick={()=>mark(p.id,s)}>{FD_STATUS[s]}</button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="p-time">{p.beta_requested_at?ago(p.beta_requested_at):''}</div>
+                    </div>
+                  ))}</div>}
+              <div className="fd-note">Marking a request sends nothing. Invitations follow the Design Partner runbook (AILANE-BETA-DP-001).</div>
+            </div>
+            <div className="panel">
+              <div className="panel-head"><div className="panel-title">What they asked about</div><div className="panel-note">confirmed sign-ups</div></div>
+              <BarList counts={relabel(reg.by_interest, FD_INTEREST)} empty="No sign-ups yet."/>
+              <div className="sub-title">Where they signed up</div>
+              <BarList counts={relabel(reg.by_source, FD_SOURCE)} empty="No sign-ups yet."/>
+            </div>
+          </div>
+
+          <div className="grid-2">
+            <div className="panel">
+              <div className="panel-head"><div className="panel-title">Home page visits</div><div className="panel-note">daily totals · no cookies, no identifiers</div></div>
+              <MiniBars days={vis.daily} field="visits" color={C_VISITS} label="Home page visits per day, last 30 days"/>
+              <div className="sub-title">Confirmed sign-ups per day</div>
+              <MiniBars days={reg.daily} field="confirmed" color={C_SIGNUPS} label="Confirmed sign-ups per day, last 30 days"/>
+            </div>
+            <div className="panel">
+              <div className="panel-head"><div className="panel-title">Where visits came from</div><div className="panel-note">referring site</div></div>
+              <BarList counts={refs} empty="No visits recorded yet."/>
+              <div className="sub-title">Campaign links</div>
+              <BarList counts={camps} empty="No campaign links used yet."/>
+            </div>
+          </div>
+
+          <div className="panel">
+            <div className="panel-head"><div className="panel-title">Registered interest</div><div className="panel-note">{people.length} most recent confirmed sign-ups · newest first</div></div>
+            {people.length===0
+              ? <div className="empty-state"><strong>No confirmed sign-ups yet.</strong>People appear here only after they confirm their email address.</div>
+              : <div className="feed">{people.slice(0,50).map(p=>(
+                  <div className="feed-row" key={p.id}>
+                    <div className="feed-time">{p.confirmed_at?ago(p.confirmed_at):''}</div>
+                    <div>
+                      <div className="feed-what">{(p.full_name?p.full_name+' · ':'')+p.email}{p.organisation_name?' · '+p.organisation_name:''}</div>
+                      <div className="feed-who">{(p.interests||[]).map(k=>FD_INTEREST[k]||k).join(', ')} · {FD_SOURCE[p.source]||p.source}</div>
+                    </div>
+                    <div>{p.updates && <span className="chip green">updates</span>}</div>
+                  </div>
+                ))}</div>}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function App(){
   const [auth,setAuth]=useState('checking');
   const [token,setToken]=useState(null);
@@ -530,13 +724,16 @@ function App(){
           </>
         )}
 
+        <FrontDoor token={token}/>
+
         <details className="about">
           <summary>What this view shows, and what it never shows</summary>
           <ul>
             <li><strong>Signed in</strong>: an unexpired session refreshed in the last {win.online_minutes} minutes. <strong>Active</strong>: a sign-in, session refresh or product action in the last {win.active_minutes} minutes.</li>
             <li>Sources are records the estate already keeps on the server: sign-in sessions, deal-room document access, Knowledge Library access and conversation records, and legal review room access. Nothing new is collected in visitors' browsers.</li>
             <li>History is stored as counts only, every 10 minutes, and deleted after 90 days.</li>
-            <li>Never shown: IP addresses, device details, message or document content, individual analytics (Google Analytics is not linked to accounts), or anonymous visitors.</li>
+            <li>Never shown: IP addresses, device details, message or document content, individual analytics (Google Analytics is not linked to accounts), or individual anonymous visitors. Website visits appear only as daily totals in the Front door section.</li>
+            <li>Front door: people who registered interest on the website and confirmed their email address, with what they asked for, and Design Partner requests with the indicative level from organisation size (AMD-344). Each person gave consent when they signed up.</li>
             <li>Lawful basis and records: see the governance note for this view (legitimate interests assessment, ROPA entry and privacy notice line).</li>
           </ul>
         </details>

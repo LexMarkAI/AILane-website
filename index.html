@@ -925,6 +925,170 @@ footer {
   }
   .footer-inner { flex-direction: column; align-items: flex-start; }
 }
+/* ── REGISTER INTEREST + DESIGN PARTNER PANEL (AMD-344 · LANDING-REGISTER-001) ──
+   Uses the page's existing :root tokens only (--cyan, --op-cyan, --gov-purple, --frame-*, --font-*).
+   No gold: the panel is pre-subscription chrome (EILEEN-001 §5; PALETTE-001). */
+#register { padding: 112px 0 120px; overflow: hidden; isolation: isolate;
+  background:
+    radial-gradient(ellipse 55% 60% at 18% 30%, rgba(14,165,233,0.10), transparent 70%),
+    radial-gradient(ellipse 45% 55% at 88% 75%, rgba(168,85,247,0.07), transparent 70%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%); }
+#register::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background-image: radial-gradient(rgba(148,163,184,0.14) 1px, transparent 1px);
+  background-size: 28px 28px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, #000 30%, transparent 75%);
+          mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, #000 30%, transparent 75%); }
+.rg-wrap { display: grid; grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr); gap: 64px; align-items: start; }
+.rg-eyebrow { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-mono); font-size: 0.74rem;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--cyan-soft); margin-bottom: 22px; }
+.rg-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 0 0 rgba(14,165,233,0.6); animation: rgPulse 2.4s ease-out infinite; }
+@keyframes rgPulse { 0% { box-shadow: 0 0 0 0 rgba(14,165,233,0.55); } 70% { box-shadow: 0 0 0 12px rgba(14,165,233,0); } 100% { box-shadow: 0 0 0 0 rgba(14,165,233,0); } }
+#register h2.rg-title { font-size: clamp(2.2rem, 4.6vw, 3.4rem); line-height: 1.08; margin-bottom: 20px; letter-spacing: -0.01em; }
+.rg-title em { font-style: normal; background: linear-gradient(100deg, #7dd3fc 0%, var(--cyan) 45%, #a78bfa 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.rg-lede { font-size: 1.08rem; color: var(--text-dim); max-width: 520px; margin-bottom: 34px; }
+
+.rg-programme { position: relative; border-radius: 16px; padding: 26px 26px 22px; background: linear-gradient(160deg, rgba(15,23,42,0.92), rgba(10,14,26,0.88));
+  border: 1px solid var(--frame-cyan); box-shadow: var(--frame-glow); }
+.rg-programme-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-bottom: 16px; }
+.rg-badge { white-space: nowrap; font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: #e0f2fe;
+  padding: 6px 12px; border-radius: 999px; background: rgba(14,165,233,0.14); border: 1px solid var(--cyan-border); }
+.rg-invite { font-size: 0.78rem; color: var(--text-muted); }
+.rg-benefits { list-style: none; display: grid; gap: 14px; margin-bottom: 18px; }
+.rg-benefits li { position: relative; padding-left: 34px; color: var(--text); font-size: 0.97rem; line-height: 1.55; }
+.rg-benefits li strong { color: var(--text-heading); font-weight: 600; }
+.rg-benefits li::before { content: ""; position: absolute; left: 0; top: 2px; width: 22px; height: 22px; border-radius: 7px;
+  background: rgba(14,165,233,0.12) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2322d3ee' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='5 12.5 10 17 19 7.5'/%3E%3C/svg%3E") center/14px no-repeat;
+  border: 1px solid rgba(34,211,238,0.35); }
+.rg-tier { display: inline-block; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.02em; padding: 1px 9px; margin: 0 2px; border-radius: 999px; line-height: 1.6; }
+.rg-tier--op { color: var(--op-cyan); background: rgba(34,211,238,0.10); border: 1px solid rgba(34,211,238,0.35); }
+.rg-tier--gov { color: #c4b5fd; background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.38); }
+.rg-prog-status { font-size: 0.86rem; color: #bae6fd; background: rgba(14,165,233,0.08); border: 1px solid var(--cyan-border); border-radius: 10px; padding: 10px 12px; margin: 0 0 14px; }
+.rg-prog-status[hidden] { display: none; }
+.rg-beta[hidden], .rg-chip[hidden] { display: none; }
+.rg-fine { font-size: 0.8rem; color: var(--text-muted); line-height: 1.55; border-top: 1px solid var(--border-subtle); padding-top: 14px; }
+.rg-fine a, .rg-small a { color: var(--cyan); text-decoration: none; }
+.rg-fine a:hover, .rg-small a:hover { text-decoration: underline; }
+
+/* Form card with a slow animated edge light */
+.rg-card-wrap { position: relative; border-radius: 20px; padding: 1px;
+  background: linear-gradient(140deg, rgba(56,189,248,0.55), rgba(148,163,184,0.10) 35%, rgba(168,85,247,0.40) 70%, rgba(56,189,248,0.55));
+  background-size: 300% 300%; animation: rgEdge 14s ease-in-out infinite; box-shadow: 0 30px 80px -30px rgba(2,6,23,0.9), var(--frame-glow); }
+@keyframes rgEdge { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+.rg-card { border-radius: 19px; padding: 30px 30px 24px; background: linear-gradient(180deg, rgba(13,20,36,0.97), rgba(8,12,22,0.97)); }
+.rg-step { display: flex; align-items: center; gap: 10px; font-size: 0.82rem; font-weight: 600; letter-spacing: 0.04em; color: var(--text-heading); margin: 0 0 12px; }
+.rg-step-n { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font-family: var(--font-mono); font-size: 0.72rem;
+  color: #02121e; background: var(--cyan); }
+.rg-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.rg-chip { font: inherit; font-size: 0.86rem; color: var(--text); cursor: pointer; padding: 8px 14px; border-radius: 999px;
+  background: rgba(30,41,59,0.55); border: 1px solid var(--border-medium); transition: border-color .2s, background .2s, color .2s, transform .15s; display: inline-flex; align-items: center; gap: 7px; }
+.rg-chip:hover { border-color: var(--cyan-border); color: var(--text-heading); }
+.rg-chip:active { transform: scale(0.97); }
+.rg-chip::before { content: ""; width: 0; height: 14px; opacity: 0; transition: width .2s, opacity .2s;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e0f2fe' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='5 12.5 10 17 19 7.5'/%3E%3C/svg%3E") center/14px no-repeat; }
+.rg-chip[aria-pressed="true"] { background: rgba(14,165,233,0.18); border-color: var(--cyan); color: #e0f2fe; box-shadow: 0 0 18px rgba(14,165,233,0.18); }
+.rg-chip[aria-pressed="true"]::before { width: 14px; opacity: 1; }
+.rg-chip:focus-visible, .rg-submit:focus-visible, .rg-size input:focus-visible + span, .rg-switch input:focus-visible + .rg-switch-ui, .rg-check input:focus-visible + .rg-box { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+.rg-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+.rg-field { display: grid; gap: 6px; font-size: 0.82rem; color: var(--text-dim); }
+.rg-field em, .rg-sizes legend em { font-style: normal; color: var(--text-muted); font-size: 0.76rem; margin-left: 4px; }
+.rg-req { color: var(--cyan-soft); margin-left: 2px; }
+.rg-field input { font: inherit; font-size: 0.95rem; color: var(--text-heading); padding: 12px 14px; border-radius: 10px;
+  background: rgba(2,6,23,0.55); border: 1px solid var(--border-medium); transition: border-color .2s, box-shadow .2s; width: 100%; }
+.rg-field input::placeholder { color: #475569; }
+.rg-field input:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(14,165,233,0.18); }
+.rg-field input[aria-invalid="true"] { border-color: #f87171; box-shadow: 0 0 0 3px rgba(248,113,113,0.15); }
+
+.rg-beta { border-radius: 14px; border: 1px solid var(--border-medium); background: rgba(15,23,42,0.6); padding: 16px; margin-bottom: 18px; transition: border-color .25s, background .25s; }
+.rg-beta.is-on { border-color: var(--frame-cyan); background: rgba(14,165,233,0.06); }
+.rg-switch { display: flex; align-items: flex-start; gap: 14px; cursor: pointer; }
+.rg-switch input, .rg-check input, .rg-size input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.rg-switch-ui { flex: 0 0 auto; position: relative; width: 44px; height: 24px; border-radius: 999px; background: #1e293b; border: 1px solid var(--border-medium); transition: background .25s, border-color .25s; margin-top: 1px; }
+.rg-switch-ui::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #94a3b8; transition: transform .25s cubic-bezier(.3,1.4,.5,1), background .25s; }
+.rg-switch input:checked + .rg-switch-ui { background: rgba(14,165,233,0.35); border-color: var(--cyan); }
+.rg-switch input:checked + .rg-switch-ui::after { transform: translateX(20px); background: #e0f2fe; box-shadow: 0 0 10px rgba(14,165,233,0.7); }
+.rg-switch-text { display: grid; gap: 2px; font-size: 0.92rem; color: var(--text-heading); line-height: 1.45; }
+.rg-switch-text small { color: var(--text-dim); font-size: 0.8rem; }
+.rg-beta-panel { display: grid; gap: 14px; margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--border-medium); animation: rgReveal .35s ease; }
+.rg-beta-panel[hidden] { display: none; }
+@keyframes rgReveal { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.rg-sizes { border: 0; display: grid; gap: 8px; }
+.rg-sizes legend { font-size: 0.82rem; color: var(--text-dim); margin-bottom: 8px; padding: 0; }
+.rg-size-row { display: grid; grid-template-columns: 0.8fr 1fr 1fr 1.32fr 0.92fr; gap: 6px; }
+.rg-size { position: relative; }
+.rg-size span { display: block; text-align: center; white-space: nowrap; font-size: 0.82rem; font-variant-numeric: tabular-nums; padding: 10px 2px; border-radius: 10px; cursor: pointer;
+  color: var(--text); background: rgba(2,6,23,0.5); border: 1px solid var(--border-medium); transition: all .2s; }
+.rg-size span:hover { border-color: var(--cyan-border); }
+.rg-size input:checked + span { color: #e0f2fe; background: rgba(14,165,233,0.18); border-color: var(--cyan); box-shadow: 0 0 16px rgba(14,165,233,0.2); }
+.rg-sizes.is-invalid .rg-size span { border-color: rgba(248,113,113,0.6); }
+.rg-fit { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; font-size: 0.84rem; color: var(--text-dim); min-height: 30px; }
+.rg-fit[hidden] { display: none; }
+.rg-fit small { flex-basis: 100%; color: var(--text-muted); font-size: 0.76rem; }
+
+.rg-consents { display: grid; gap: 10px; margin-bottom: 20px; }
+.rg-check { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; font-size: 0.88rem; color: var(--text); line-height: 1.5; position: relative; }
+.rg-box { flex: 0 0 auto; width: 20px; height: 20px; border-radius: 6px; margin-top: 1px; border: 1px solid var(--border-medium); background: rgba(2,6,23,0.6); transition: all .2s; display: grid; place-items: center; }
+.rg-box::after { content: ""; width: 12px; height: 12px; opacity: 0; transform: scale(.6); transition: all .2s;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2302121e' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='5 12.5 10 17 19 7.5'/%3E%3C/svg%3E") center/12px no-repeat; }
+.rg-check input:checked + .rg-box { background: var(--cyan); border-color: var(--cyan); }
+.rg-check input:checked + .rg-box::after { opacity: 1; transform: none; }
+.rg-check.is-invalid .rg-box { border-color: #f87171; }
+.rg-check em { font-style: normal; font-size: 0.74rem; color: var(--text-muted); margin-left: 4px; }
+.rg-hp { position: absolute !important; left: -9999px !important; width: 1px; height: 1px; opacity: 0; }
+
+.rg-submit { position: relative; overflow: hidden; width: 100%; display: inline-flex; justify-content: center; align-items: center; gap: 10px;
+  font: inherit; font-weight: 600; font-size: 1rem; color: #02121e; padding: 15px 22px; border: 0; border-radius: 12px; cursor: pointer;
+  background: linear-gradient(100deg, #38bdf8 0%, var(--cyan) 55%, #22d3ee 100%); box-shadow: 0 10px 30px -10px rgba(14,165,233,0.7); transition: transform .15s, box-shadow .2s, filter .2s; }
+.rg-submit::after { content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%; transform: skewX(-20deg);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent); transition: left .7s ease; }
+.rg-submit:hover { box-shadow: 0 14px 38px -10px rgba(14,165,233,0.85); }
+.rg-submit:hover::after { left: 120%; }
+.rg-submit:active { transform: translateY(1px); }
+.rg-submit[disabled] { cursor: progress; filter: saturate(0.6) brightness(0.9); }
+.rg-submit svg { transition: transform .2s; }
+.rg-submit:hover svg { transform: translateX(3px); }
+.rg-spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(2,18,30,0.35); border-top-color: #02121e; animation: rgSpin .8s linear infinite; display: none; }
+.rg-submit.is-busy .rg-spinner { display: inline-block; }
+.rg-submit.is-busy svg { display: none; }
+@keyframes rgSpin { to { transform: rotate(360deg); } }
+.rg-small { font-size: 0.76rem; color: var(--text-muted); line-height: 1.55; margin-top: 14px; }
+.rg-msg { margin-top: 12px; font-size: 0.86rem; padding: 10px 12px; border-radius: 10px; color: #fecaca; background: rgba(127,29,29,0.25); border: 1px solid rgba(248,113,113,0.35); }
+.rg-msg.is-info { color: #bae6fd; background: rgba(12,74,110,0.3); border-color: var(--cyan-border); }
+.rg-msg[hidden] { display: none; }
+
+.rg-done { text-align: center; padding: 26px 8px 10px; }
+.rg-done[hidden] { display: none; }
+.rg-done svg { width: 74px; height: 74px; margin: 0 auto 18px; display: block; }
+.rg-done circle { stroke: var(--cyan); stroke-width: 2.5; fill: rgba(14,165,233,0.08); stroke-dasharray: 220; stroke-dashoffset: 220; animation: rgDraw .7s ease forwards; }
+.rg-done polyline { stroke: #e0f2fe; stroke-width: 3.5; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 60; stroke-dashoffset: 60; animation: rgDraw .45s .55s ease forwards; }
+@keyframes rgDraw { to { stroke-dashoffset: 0; } }
+.rg-done h3 { font-size: 1.7rem; margin-bottom: 10px; }
+.rg-done p { color: var(--text-dim); font-size: 0.96rem; max-width: 380px; margin: 0 auto 10px; }
+.rg-done .rg-small { margin-top: 18px; }
+
+/* Eileen chat hand-off button (rendered under an Eileen reply when offer_register is returned) */
+.chat-cta { display: inline-flex; align-items: center; gap: 8px; margin: 2px 0 10px; font: inherit; font-size: 0.84rem; font-weight: 600;
+  color: #e0f2fe; background: rgba(14,165,233,0.16); border: 1px solid var(--cyan); border-radius: 999px; padding: 7px 14px; cursor: pointer; transition: background .2s, box-shadow .2s; }
+.chat-cta:hover { background: rgba(14,165,233,0.26); box-shadow: 0 0 16px rgba(14,165,233,0.3); }
+
+@media (max-width: 960px) {
+  .rg-wrap { grid-template-columns: 1fr; gap: 40px; }
+  #register { padding: 84px 0 96px; }
+}
+@media (max-width: 560px) {
+  .rg-card { padding: 22px 18px 18px; }
+  .rg-programme { padding: 20px 18px 18px; }
+  .rg-grid2 { grid-template-columns: 1fr; }
+  .rg-size-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .rg-size-row .rg-size:nth-child(4) { grid-column: span 2; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rg-dot, .rg-card-wrap, .rg-spinner { animation: none; }
+  .rg-beta-panel { animation: none; }
+  .rg-done circle, .rg-done polyline { animation: none; stroke-dashoffset: 0; }
+  .rg-submit::after { display: none; }
+}
 </style>
 <!-- Ailane favicon / app icons — estate head standard (AMD-246) -->
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -1348,6 +1512,113 @@ footer {
   </div>
 </section>
 
+<!-- ── SECTION 6.5 — REGISTER INTEREST + DESIGN PARTNER PROGRAMME (AMD-344 · LANDING-REGISTER-001) ── -->
+<section id="register" data-section="register" aria-labelledby="rg-title">
+<div class="container rg-wrap">
+  <div class="rg-intro">
+    <p class="rg-eyebrow"><span class="rg-dot" aria-hidden="true"></span><span data-i18n="register.eyebrow">Early access</span></p>
+    <h2 class="rg-title" id="rg-title" data-i18n="register.title">Be first <em>through the door.</em></h2>
+    <p class="rg-lede" data-i18n="register.lede">Register your interest and we'll tell you as soon as Ailane opens. Organisations that want to help shape the platform can also ask to join our Design Partner programme.</p>
+    <div class="rg-programme">
+      <div class="rg-programme-head">
+        <span class="rg-badge" data-i18n="register.prog.badge">Design Partner programme</span>
+        <span class="rg-invite" data-i18n="register.prog.invite">By invitation</span>
+      </div>
+      <ul class="rg-benefits">
+        <li data-i18n="register.prog.b1"><strong>90 days' complimentary access</strong> at <span class="rg-tier rg-tier--op">Operational</span> or <span class="rg-tier rg-tier--gov">Governance</span> level, matched to your organisation</li>
+        <li data-i18n="register.prog.b2"><strong>Extension to 180 days</strong> may be offered to active partners</li>
+        <li data-i18n="register.prog.b3"><strong>No payment details.</strong> Nothing converts to a paid plan unless you choose one</li>
+        <li data-i18n="register.prog.b4"><strong>An onboarding call</strong>, and your feedback shapes what we build next</li>
+      </ul>
+      <p class="rg-prog-status" data-i18n="register.prog.status">New places open soon. Choose &ldquo;Design Partner programme&rdquo; in the form to hear first.</p>
+      <p class="rg-fine" data-i18n="register.prog.fine">Places are offered by invitation, at our discretion, to organisations using Ailane for their business. Pre-release features are marked as such. Programme terms: <a href="/beta-terms/">Design Partner Programme Addendum</a>.</p>
+    </div>
+  </div>
+
+  <div class="rg-card-wrap">
+    <form id="rg-form" class="rg-card" novalidate>
+      <p class="rg-step"><span class="rg-step-n" aria-hidden="true">1</span><span data-i18n="register.step1">What would you like to hear about?</span></p>
+      <div class="rg-chips" role="group" aria-label="Topics of interest">
+        <button type="button" class="rg-chip" data-interest="contract_check" aria-pressed="false"><span data-i18n="register.i.check">Contract Compliance Check</span></button>
+        <button type="button" class="rg-chip" data-interest="knowledge_library" aria-pressed="false"><span data-i18n="register.i.kl">Knowledge Library</span></button>
+        <button type="button" class="rg-chip" data-interest="operational" aria-pressed="false"><span data-i18n="register.i.op">Operational</span></button>
+        <button type="button" class="rg-chip" data-interest="governance" aria-pressed="false"><span data-i18n="register.i.gov">Governance</span></button>
+        <button type="button" class="rg-chip" data-interest="institutional" aria-pressed="false"><span data-i18n="register.i.inst">Institutional</span></button>
+        <button type="button" class="rg-chip" data-interest="design_partner" aria-pressed="false"><span data-i18n="register.i.dp">Design Partner programme</span></button>
+      </div>
+
+      <p class="rg-step"><span class="rg-step-n" aria-hidden="true">2</span><span data-i18n="register.step2">Your details</span></p>
+      <div class="rg-grid2">
+        <label class="rg-field">
+          <span><span data-i18n="register.f.email">Email</span><span class="rg-req" aria-hidden="true">*</span></span>
+          <input type="email" name="email" autocomplete="email" inputmode="email" maxlength="254" required>
+        </label>
+        <label class="rg-field">
+          <span><span data-i18n="register.f.name">Your name</span><em data-i18n="register.f.optional">optional</em></span>
+          <input type="text" name="full_name" autocomplete="name" maxlength="120">
+        </label>
+      </div>
+
+      <div class="rg-beta">
+        <label class="rg-switch">
+          <input type="checkbox" name="beta_requested">
+          <span class="rg-switch-ui" aria-hidden="true"></span>
+          <span class="rg-switch-text"><span data-i18n="register.beta.toggle">Consider my organisation for the Design Partner programme</span><small data-i18n="register.beta.toggle2">and contact me about it</small></span>
+        </label>
+        <div class="rg-beta-panel" hidden>
+          <label class="rg-field">
+            <span><span data-i18n="register.f.org">Organisation</span><em data-i18n="register.f.orghint">helps us match you</em></span>
+            <input type="text" name="organisation_name" autocomplete="organization" maxlength="200">
+          </label>
+          <fieldset class="rg-sizes">
+            <legend><span data-i18n="register.f.size">Organisation size</span><span class="rg-req" aria-hidden="true">*</span><em data-i18n="register.f.sizehint">employees</em></legend>
+            <div class="rg-size-row">
+              <label class="rg-size"><input type="radio" name="org_size_band" value="1-49"><span>1–49</span></label>
+              <label class="rg-size"><input type="radio" name="org_size_band" value="50-249"><span>50–249</span></label>
+              <label class="rg-size"><input type="radio" name="org_size_band" value="250-999"><span>250–999</span></label>
+              <label class="rg-size"><input type="radio" name="org_size_band" value="1000-4999"><span>1,000–4,999</span></label>
+              <label class="rg-size"><input type="radio" name="org_size_band" value="5000+"><span>5,000+</span></label>
+            </div>
+          </fieldset>
+          <div class="rg-fit" aria-live="polite" hidden></div>
+        </div>
+      </div>
+
+      <div class="rg-consents">
+        <label class="rg-check">
+          <input type="checkbox" name="consent_launch">
+          <span class="rg-box" aria-hidden="true"></span>
+          <span><span data-i18n="register.c.launch">Email me when Ailane launches or new products open.</span><em data-i18n="register.c.required">Required</em></span>
+        </label>
+        <label class="rg-check">
+          <input type="checkbox" name="consent_updates">
+          <span class="rg-box" aria-hidden="true"></span>
+          <span><span data-i18n="register.c.updates">Also send me occasional product updates.</span><em data-i18n="register.c.optional">Optional</em></span>
+        </label>
+      </div>
+
+      <input type="text" name="website" class="rg-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+      <button type="submit" class="rg-submit">
+        <span class="rg-spinner" aria-hidden="true"></span>
+        <span data-i18n="register.submit">Register interest</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+      </button>
+      <p class="rg-small" data-i18n="register.small">For organisations and professionals, aged 18 or over. We'll email you once to confirm your address, and every email has an unsubscribe link. See our <a href="/privacy/">Privacy Policy</a>.</p>
+      <p class="rg-msg" role="alert" hidden></p>
+    </form>
+
+    <div id="rg-done" class="rg-card rg-done" hidden tabindex="-1">
+      <svg viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="34"/><polyline points="24 39.5 33.5 49 52 29"/></svg>
+      <h3 data-i18n="register.done.title">Check your inbox</h3>
+      <p data-i18n="register.done.p1">We've sent a link to confirm your email address. It expires in 7 days.</p>
+      <p class="rg-done-beta" hidden data-i18n="register.done.beta">Once you've confirmed, we'll review your Design Partner request and reply by email.</p>
+      <p class="rg-small" data-i18n="register.done.small">Nothing there? Check your spam folder, or try again in ten minutes.</p>
+    </div>
+  </div>
+</div>
+</section>
+
 <!-- ── SECTION 7 — FINAL CTA (LP-002 §3.1) ─────────────────── -->
 <section id="cta" data-section="cta">
   <div class="container cta-row">
@@ -1371,6 +1642,7 @@ footer {
       <a href="/terms/" data-i18n="footer.links.terms">Terms of Service</a>
       <a href="/privacy/" data-i18n="footer.links.privacy">Privacy Policy</a>
       <a href="/tribunal-privacy/" data-i18n="footer.links.tribunalPrivacy">Tribunal Data Privacy Notice</a>
+      <a href="#" data-action="cookie-choices" data-i18n="footer.links.cookies">Cookie choices</a>
     </div>
   </div>
 </footer>
@@ -1852,6 +2124,8 @@ async function sendToEileen(userText) {
       eileenBubble.textContent = data.response;
       historyEl.appendChild(eileenBubble);
       updateEileenChatActiveClass();
+      /* AMD-344: Register interest hand-off button (defined in the AMD-344 script at the end of this file). */
+      if (window.ailaneRegisterCta) window.ailaneRegisterCta(historyEl, userText, data.response);
 
       if (commentary) commentary.textContent = '';
       historyEl.scrollTop = historyEl.scrollHeight;
@@ -2741,6 +3015,262 @@ document.addEventListener('DOMContentLoaded', async function() {
     })
     .catch(function () { /* leave static fallbacks; never blank, never redirect */ });
   } catch (e) { /* passive: do nothing */ }
+})();
+</script>
+<script>
+/* ── AMD-344 · Register interest + Design Partner panel, Eileen hand-off, Cookie choices, visit statistics ──
+   Passive page script: no auth, no session, no redirect, no Supabase client (RULE 27).
+   Sign-ups post to the waitlist-signup Edge Function (double opt-in; consent wording recorded server-side).
+   Contact details are typed into the form only; Eileen never collects them in chat. */
+(function () {
+  'use strict';
+  var SB = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+  var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+  var SIGNUP_URL = SB + '/functions/v1/waitlist-signup';
+  var CONSENT_KEY = 'ailane_cookie_consent_v1';
+
+  function track(name, params) { try { if (typeof gtag === 'function') gtag('event', name, params || {}); } catch (e) {} }
+  function decision() { try { return window.localStorage.getItem(CONSENT_KEY); } catch (e) { return null; } }
+
+  /* ── 1. Register panel ─────────────────────────────────────────────────────────────────────────────── */
+  var form = document.getElementById('rg-form');
+  var done = document.getElementById('rg-done');
+  var source = 'web_form';
+  var started = false;
+  var settings = { register_open: true, dp_open: false };
+
+  if (form && done) {
+    var chips = form.querySelectorAll('.rg-chip');
+    var betaToggle = form.querySelector('input[name="beta_requested"]');
+    var betaBox = form.querySelector('.rg-beta');
+    var betaPanel = form.querySelector('.rg-beta-panel');
+    var dpChip = form.querySelector('.rg-chip[data-interest="design_partner"]');
+    var sizes = form.querySelector('.rg-sizes');
+    var fit = form.querySelector('.rg-fit');
+    var email = form.querySelector('input[name="email"]');
+    var launch = form.querySelector('input[name="consent_launch"]');
+    var submit = form.querySelector('.rg-submit');
+    var msg = form.querySelector('.rg-msg');
+    var progNote = document.querySelector('.rg-prog-status');
+
+    /* Indicative match only (AMD-344 D-2): 1–249 employees → Operational level; 250+ → Governance level.
+       The level is confirmed with the organisation before any access starts (Beta Programme Addendum cl. 3.1). */
+    var FIT = {
+      '1-49':      { cls: 'rg-tier--op',  label: 'Operational level' },
+      '50-249':    { cls: 'rg-tier--op',  label: 'Operational level' },
+      '250-999':   { cls: 'rg-tier--gov', label: 'Governance level' },
+      '1000-4999': { cls: 'rg-tier--gov', label: 'Governance level' },
+      '5000+':     { cls: 'rg-tier--gov', label: 'Governance level', note: 'and an Institutional conversation if useful' }
+    };
+    var MESSAGES = {
+      invalid_email: 'Please enter a valid email address.',
+      consent_required: 'Please tick the first box so we can email you.',
+      size_required: 'Please choose your organisation size so we can match you.',
+      waitlist_closed: 'Registration opens very shortly. Please check back soon.',
+      rate_limited: 'Too many attempts. Please wait a few minutes and try again.',
+      email_failed: 'We could not send the confirmation email just now. Please try again shortly.',
+      service: 'Something went wrong. Please try again shortly.'
+    };
+
+    var markStarted = function () { if (!started) { started = true; track('register_interest_started', { source: source }); } };
+    var showMsg = function (text, info) { msg.textContent = text; msg.classList.toggle('is-info', !!info); msg.hidden = false; };
+    var clearMsg = function () { msg.hidden = true; msg.textContent = ''; };
+    var setChip = function (btn, on) { btn.setAttribute('aria-pressed', on ? 'true' : 'false'); };
+    var selectedSize = function () { var r = form.querySelector('input[name="org_size_band"]:checked'); return r ? r.value : ''; };
+
+    chips.forEach(function (btn) {
+      btn.addEventListener('click', function () { setChip(btn, btn.getAttribute('aria-pressed') !== 'true'); markStarted(); });
+    });
+
+    var renderFit = function () {
+      var f = FIT[selectedSize()];
+      if (!f) { fit.hidden = true; fit.textContent = ''; return; }
+      fit.textContent = '';
+      var lead = document.createElement('span'); lead.textContent = 'Indicative match:';
+      var chip = document.createElement('span'); chip.className = 'rg-tier ' + f.cls; chip.textContent = f.label;
+      fit.appendChild(lead); fit.appendChild(chip);
+      if (f.note) { var n = document.createElement('span'); n.textContent = f.note; fit.appendChild(n); }
+      var s = document.createElement('small'); s.textContent = 'We confirm the level with you before anything starts.'; fit.appendChild(s);
+      fit.hidden = false;
+    };
+    var setBeta = function (on) {
+      on = !!on && settings.dp_open;
+      betaToggle.checked = on; betaPanel.hidden = !on; betaBox.classList.toggle('is-on', on);
+      if (!on) sizes.classList.remove('is-invalid');
+    };
+    /* Design Partner requests are taken only while places are open (commerce_settings.dp_requests_open, AMD-344 D-3).
+       Otherwise the toggle is replaced by an interest chip, so visitors can still ask to hear about the programme. */
+    var applySettings = function () {
+      betaBox.hidden = !settings.dp_open;
+      if (dpChip) dpChip.hidden = settings.dp_open;
+      if (progNote) progNote.hidden = settings.dp_open;
+      if (!settings.dp_open) setBeta(false);
+      if (!settings.register_open) { showMsg(MESSAGES.waitlist_closed, true); }
+    };
+
+    betaToggle.addEventListener('change', function () { setBeta(betaToggle.checked); markStarted(); });
+    form.querySelectorAll('input[name="org_size_band"]').forEach(function (r) {
+      r.addEventListener('change', function () { sizes.classList.remove('is-invalid'); renderFit(); });
+    });
+    email.addEventListener('input', function () { email.removeAttribute('aria-invalid'); markStarted(); });
+    launch.addEventListener('change', function () { launch.closest('.rg-check').classList.remove('is-invalid'); });
+
+    try {
+      fetch(SB + '/rest/v1/commerce_settings?id=eq.1&select=waitlist_enabled,dp_requests_open', {
+        headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
+      })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (rows) {
+          var s = Array.isArray(rows) ? rows[0] : null;
+          if (s) { settings.register_open = s.waitlist_enabled === true; settings.dp_open = s.dp_requests_open === true; }
+          applySettings();
+        })
+        .catch(function () { applySettings(); });
+    } catch (e) { applySettings(); }
+    applySettings();
+
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      clearMsg();
+      var em = (email.value || '').trim().toLowerCase();
+      var beta = settings.dp_open && betaToggle.checked;
+      var size = selectedSize();
+      if (!em || em.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
+        email.setAttribute('aria-invalid', 'true'); email.focus(); showMsg(MESSAGES.invalid_email); return;
+      }
+      if (beta && !size) { sizes.classList.add('is-invalid'); showMsg(MESSAGES.size_required); return; }
+      if (!launch.checked) { launch.closest('.rg-check').classList.add('is-invalid'); showMsg(MESSAGES.consent_required); return; }
+
+      var interests = [];
+      chips.forEach(function (b) { if (!b.hidden && b.getAttribute('aria-pressed') === 'true') interests.push(b.getAttribute('data-interest')); });
+      if (beta && interests.indexOf('design_partner') < 0) interests.push('design_partner');
+
+      var payload = {
+        email: em,
+        full_name: (form.querySelector('input[name="full_name"]').value || '').trim(),
+        interests: interests.length ? interests : ['general'],
+        source: source,
+        source_path: '/',
+        consent_reopen_notice: true,
+        consent_product_updates: form.querySelector('input[name="consent_updates"]').checked,
+        beta_requested: beta,
+        organisation_name: beta ? (form.querySelector('input[name="organisation_name"]').value || '').trim() : '',
+        org_size_band: beta ? size : '',
+        website: form.querySelector('input[name="website"]').value || ''
+      };
+
+      submit.disabled = true; submit.classList.add('is-busy');
+      fetch(SIGNUP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, body: j }; }); })
+        .then(function (res) {
+          if (res.ok && res.body && res.body.status === 'ok') {
+            track('register_interest_submitted', { source: source, design_partner: beta });
+            form.hidden = true;
+            done.querySelector('.rg-done-beta').hidden = !beta;
+            done.hidden = false;
+            try { done.focus({ preventScroll: true }); } catch (e) { done.focus(); }
+            return;
+          }
+          var code = res.body && res.body.code;
+          showMsg(MESSAGES[code] || MESSAGES.service, code === 'waitlist_closed');
+        })
+        .catch(function () { showMsg(MESSAGES.service); })
+        .then(function () { submit.disabled = false; submit.classList.remove('is-busy'); });
+    });
+
+    /* Hand-off from Eileen: opens the panel pre-filled. Contact details are still typed by the visitor. */
+    window.ailaneRegister = {
+      open: function (opts) {
+        opts = opts || {};
+        source = opts.source === 'eileen_handoff' ? 'eileen_handoff' : 'web_form';
+        if (!form.hidden) {
+          (opts.interests || []).forEach(function (k) {
+            var b = form.querySelector('.rg-chip[data-interest="' + k + '"]');
+            if (b && !b.hidden) setChip(b, true);
+          });
+          if (opts.beta) { if (settings.dp_open) setBeta(true); else if (dpChip) setChip(dpChip, true); }
+        }
+        var sec = document.getElementById('register');
+        if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setTimeout(function () { try { (form.hidden ? done : email).focus({ preventScroll: true }); } catch (e) {} }, 650);
+        track('register_interest_opened', { source: source });
+      }
+    };
+  }
+
+  /* ── 2. Eileen hand-off button ─────────────────────────────────────────────────────────────────────────
+     Called by sendToEileen after each reply. Shows one "Register interest" button under the reply when the
+     visitor asks to sign up or be notified, or when Eileen names the form. */
+  var SIGNUP_INTENT = [
+    /\b(sign(?:ing)?[\s-]?up|register(?:ing)?|registration|wait[\s-]?list|notify me|let me know when|keep me (?:posted|updated|informed)|early access|beta|design partner|trial|pilot)\b/i,
+    /\bwhen\b[^?.!]{0,40}\b(you|ailane|it|the (?:platform|product|library|knowledge library|check|checker|service|site))\b[^?.!]{0,30}\b(launch|launching|open|opening|live|available|ready|released?)\b/i,
+    /\b(launch date|go[\s-]?live date|release date)\b/i
+  ];
+  var BETA_INTENT = /\b(beta|design partner|early access|trial|pilot)\b/i;
+  var SECTION_INTEREST = {
+    'knowledge-library': 'knowledge_library', 'kl-search': 'knowledge_library', 'kl-ask': 'knowledge_library', 'kl-check': 'knowledge_library',
+    'products': 'contract_check', 'check': 'contract_check',
+    'operational': 'operational', 'governance': 'governance', 'enterprise': 'institutional'
+  };
+  var TEXT_INTEREST = [
+    [/knowledge library/i, 'knowledge_library'], [/contract|compliance check/i, 'contract_check'],
+    [/operational/i, 'operational'], [/governance/i, 'governance'], [/institutional|enterprise/i, 'institutional']
+  ];
+  window.ailaneRegisterCta = function (historyEl, userText, replyText) {
+    try {
+      if (!historyEl || !window.ailaneRegister || !document.getElementById('register')) return;
+      var u = String(userText || ''), r = String(replyText || '');
+      var asked = SIGNUP_INTENT.some(function (re) { return re.test(u); });
+      var named = /register interest/i.test(r);
+      if (!asked && !named) return;
+      var interests = [];
+      var sec = (typeof currentSection === 'string') ? SECTION_INTEREST[currentSection] : null;
+      if (sec) interests.push(sec);
+      TEXT_INTEREST.forEach(function (p) { if (p[0].test(u) && interests.indexOf(p[1]) < 0) interests.push(p[1]); });
+      var beta = BETA_INTENT.test(u) || /design partner/i.test(r);
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'chat-cta';
+      btn.textContent = 'Register interest →';
+      btn.addEventListener('click', function () {
+        window.ailaneRegister.open({ interests: interests, beta: beta, source: 'eileen_handoff' });
+      });
+      historyEl.appendChild(btn);
+      historyEl.scrollTop = historyEl.scrollHeight;
+    } catch (e) { /* passive: never break the chat */ }
+  };
+
+  /* ── 3. Footer "Cookie choices": re-opens the consent strip (objection route; PECR Sch. A1 para 5) ──── */
+  document.querySelectorAll('[data-action="cookie-choices"]').forEach(function (a) {
+    a.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      if (window.ailaneConsent && typeof window.ailaneConsent.choices === 'function') window.ailaneConsent.choices();
+    });
+  });
+
+  /* ── 4. Aggregate visit statistics (Privacy Policy §16.6) ──────────────────────────────────────────────
+     Counts the home page only: path, referring domain and campaign tags, added to a daily total. No cookie is set,
+     nothing is stored on the device and no identifier is sent. Not sent if the visitor has chosen Decline. Without
+     a choice yet, it waits 8 seconds so the banner can be read and declined first. */
+  if (decision() === 'denied') return;
+  var sent = false;
+  function send() {
+    if (sent || decision() === 'denied') return;
+    sent = true;
+    var ref = '';
+    try { ref = document.referrer ? new URL(document.referrer).hostname : ''; } catch (e) { ref = ''; }
+    var q = null; try { q = new URLSearchParams(window.location.search); } catch (e) { q = null; }
+    var g = function (k) { return (q && q.get(k)) || ''; };
+    try {
+      fetch(SB + '/rest/v1/rpc/fn_site_visit_record', {
+        method: 'POST',
+        headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_path: window.location.pathname, p_referrer_host: ref,
+          p_utm_source: g('utm_source'), p_utm_medium: g('utm_medium'), p_utm_campaign: g('utm_campaign') })
+      }).catch(function () {});
+    } catch (e) { /* passive */ }
+  }
+  if (decision() === 'granted') { send(); } else { setTimeout(send, 8000); }
 })();
 </script>
 </body></html>
