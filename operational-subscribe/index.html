@@ -14,6 +14,7 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#0a0e1a">
+  <script src="/assets/js/ailane-purchaser-gate.js"></script>
   <link rel="stylesheet" href="/assets/css/ailane-commerce.css">
   <script src="/assets/js/ailane-commerce.js" defer></script>
   <style>
@@ -52,6 +53,7 @@
       <li>5 compliance checks per month</li>
       <li>PDF compliance reports</li>
     </ul>
+    <div id="purchaser-op"></div>
     <div class="consent">
       <input type="checkbox" id="op-consent" onchange="toggleOpBtn()">
       <label for="op-consent">I confirm I have read and agree to the <a href="https://ailane.ai/terms/" target="_blank">Terms of Service</a> and <a href="https://ailane.ai/privacy/" target="_blank">Privacy Policy</a>. I understand Ailane provides regulatory intelligence, not legal advice. The subscription renews monthly and can be cancelled at any time from Manage billing.</label>
@@ -63,10 +65,17 @@
   </div>
   <script>
   var CREATE_CHECKOUT_URL = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/create-checkout';
+  // CHECKOUT-GATE-WEBSITE-001 §2 (AMD-365): the button also waits for the purchaser gate
+  // (a purchaser type selected and the declaration ticked).
   function toggleOpBtn() {
     var chk = document.getElementById('op-consent');
     var btn = document.getElementById('op-pay');
-    if (chk && chk.checked) { btn.classList.remove('disabled-pay'); } else { btn.classList.add('disabled-pay'); }
+    var gate = document.getElementById('purchaser-op');
+    var gateOk = !!(gate && window.AilanePurchaser && window.AilanePurchaser.isComplete(gate));
+    if (chk && chk.checked && gateOk) { btn.classList.remove('disabled-pay'); } else { btn.classList.add('disabled-pay'); }
+  }
+  if (window.AilanePurchaser) {
+    window.AilanePurchaser.mount(document.getElementById('purchaser-op'), { id: 'op', onChange: toggleOpBtn });
   }
   function checkConsent(checkId) {
     var chk = document.getElementById(checkId);
@@ -78,6 +87,14 @@
   }
   function startCheckout(productType, consentId, el) {
     try { if (!checkConsent(consentId)) return false; } catch (e) { return false; }
+    var gate = document.getElementById('purchaser-op');
+    var purchaser = (gate && window.AilanePurchaser) ? window.AilanePurchaser.payload(gate) : null;
+    var errEl = document.getElementById('checkout-error-' + consentId);
+    if (!purchaser) {
+      if (errEl) errEl.textContent = 'Please tell us who you are buying for, and confirm the declaration, before continuing.';
+      return false;
+    }
+    if (errEl) errEl.textContent = '';
     if (el.dataset.busy === '1') return false;
     el.dataset.busy = '1';
     var prior = el.textContent;
@@ -86,9 +103,10 @@
     fetch(CREATE_CHECKOUT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ product_type: productType })
+      body: JSON.stringify(Object.assign({ product_type: productType }, purchaser))
     }).then(function (r) { return r.json(); }).then(function (d) {
       if (d && d.url) { window.location.href = d.url; return; }
+      if (window.AilanePurchaser.handleResponse(d, gate)) { el.dataset.busy = '0'; el.textContent = prior; return; }
       if (window.AilaneCommerce && window.AilaneCommerce.handleCheckoutError(null, d, { interest: productType, trigger: el })) { el.dataset.busy = '0'; el.textContent = prior; return; }
       throw new Error((d && d.error) || 'no url');
     }).catch(function () {
