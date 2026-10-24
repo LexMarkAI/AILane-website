@@ -10104,12 +10104,24 @@
     const [consent, setConsent] = useState(false);
     const [busy, setBusy] = useState("");
     const [err, setErr] = useState("");
+    const gateRef = useRef(null);
+    const [gateOk, setGateOk] = useState(false);
     const c = UPSELL_CONFIG[productType];
-    if (!c) return null;
-    if (minutesRemaining == null || minutesRemaining <= 0 || minutesRemaining > c.threshold) return null;
+    const visible = !!c && minutesRemaining != null && minutesRemaining > 0 && minutesRemaining <= c.threshold;
+    useEffect(() => {
+      if (!visible || !gateRef.current || !window.AilanePurchaser) return;
+      setGateOk(false);
+      window.AilanePurchaser.mount(gateRef.current, { id: "ext-" + productType, onChange: setGateOk });
+    }, [visible, productType]);
+    if (!visible) return null;
     function startExtend(offer) {
       if (!consent) {
         setErr("Please confirm you have read the Terms of Service and Privacy Policy before proceeding.");
+        return;
+      }
+      const purchaser = window.AilanePurchaser ? window.AilanePurchaser.payload(gateRef.current) : null;
+      if (!purchaser) {
+        setErr("Please tell us who you are buying for, and confirm the declaration, before continuing.");
         return;
       }
       if (busy) return;
@@ -10122,10 +10134,14 @@
       fetch(CREATE_CHECKOUT_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product_type: offer.productType })
+        body: JSON.stringify({ product_type: offer.productType, ...purchaser })
       }).then((r) => r.json()).then((d) => {
         if (d && d.url) {
           window.location.href = d.url;
+          return;
+        }
+        if (window.AilanePurchaser.handleResponse(d, gateRef.current)) {
+          setBusy("");
           return;
         }
         throw new Error(d && d.error || "no url");
@@ -10134,7 +10150,7 @@
         setErr("Checkout is temporarily unavailable \u2014 please try again in a moment.");
       });
     }
-    const ready = consent && !busy;
+    const ready = consent && gateOk && !busy;
     return /* @__PURE__ */ React.createElement(
       "div",
       {
@@ -10176,6 +10192,7 @@
         },
         "\xD7"
       )),
+      /* @__PURE__ */ React.createElement("div", { ref: gateRef, style: { marginTop: "12px", color: "#CBD5E1" } }),
       /* @__PURE__ */ React.createElement("label", { style: { display: "flex", gap: "8px", alignItems: "flex-start", marginTop: "12px", cursor: "pointer" } }, /* @__PURE__ */ React.createElement(
         "input",
         {

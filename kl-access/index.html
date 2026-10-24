@@ -391,6 +391,8 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#0a0e1a">
+  <script src="/assets/js/ailane-ai-governance.js"></script>
+<script src="/assets/js/ailane-purchaser-gate.js"></script>
 <link rel="stylesheet" href="/assets/css/ailane-commerce.css">
 <script src="/assets/js/ailane-commerce.js" defer></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap">
@@ -787,6 +789,7 @@
             <li>ACAS, HSE, and ICO guidance</li>
             <li>ERA 2025 intelligence</li>
           </ul>
+          <div id="purchaser-kl-q"></div>
           <div class="d6-consent kl-consent" id="consent-kl-q">
             <input type="checkbox" id="kl-q" onchange="toggleKlBtn('pay-kl-q','kl-q')">
             <label for="kl-q">I confirm I have read and agree to the <a href="https://ailane.ai/terms/" target="_blank">Terms of Service</a> and <a href="https://ailane.ai/privacy/" target="_blank">Privacy Policy</a>. I understand Ailane provides regulatory intelligence, not legal advice.</label>
@@ -813,6 +816,7 @@
             <li>Research notes and session history</li>
             <li>24 hours uninterrupted access</li>
           </ul>
+          <div id="purchaser-kl-d"></div>
           <div class="d6-consent kl-consent" id="consent-kl-d">
             <input type="checkbox" id="kl-d" onchange="toggleKlBtn('pay-kl-d','kl-d')">
             <label for="kl-d">I confirm I have read and agree to the <a href="https://ailane.ai/terms/" target="_blank">Terms of Service</a> and <a href="https://ailane.ai/privacy/" target="_blank">Privacy Policy</a>. I understand Ailane provides regulatory intelligence, not legal advice.</label>
@@ -838,6 +842,7 @@
             <li>Legislative horizon tracker</li>
             <li>7 days of sustained research</li>
           </ul>
+          <div id="purchaser-kl-w"></div>
           <div class="d6-consent kl-consent" id="consent-kl-w">
             <input type="checkbox" id="kl-w" onchange="toggleKlBtn('pay-kl-w','kl-w')">
             <label for="kl-w">I confirm I have read and agree to the <a href="https://ailane.ai/terms/" target="_blank">Terms of Service</a> and <a href="https://ailane.ai/privacy/" target="_blank">Privacy Policy</a>. I understand Ailane provides regulatory intelligence, not legal advice.</label>
@@ -1409,6 +1414,14 @@
 
     if (!chatEl || !inputEl || !sendBtn) return;
 
+    // A15 (CHECKOUT-GATE-WEBSITE-001 §5, AMD-365): persistent AI identity label as the first
+    // child of the message area; renderMessage() appends after it, so it stays above every message.
+    if (messagesEl && window.AilaneAIGov) {
+      var aiLabel = window.AilaneAIGov.identityLabel();
+      aiLabel.style.marginBottom = '10px';
+      messagesEl.insertBefore(aiLabel, messagesEl.firstChild);
+    }
+
     var eileenChat = {
       state: 'ambient',
       messages: [],
@@ -1675,12 +1688,21 @@
 <script>
 /* KL pass checkout — GOLIVE-WIRING-001. Pattern mirrors /compliance-check/ (AMD-263 D2). */
 var CREATE_CHECKOUT_URL = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/create-checkout';
+/* CHECKOUT-GATE-WEBSITE-001 §2 (AMD-365): the button also waits for the purchaser gate
+   (purchaser-<chkId>) — a purchaser type selected and the declaration ticked. */
 function toggleKlBtn(btnId, chkId) {
   var chk = document.getElementById(chkId);
   var btn = document.getElementById(btnId);
   if (!btn) return;
-  if (chk && chk.checked) { btn.classList.remove('disabled-pay'); } else { btn.classList.add('disabled-pay'); }
+  var gate = document.getElementById('purchaser-' + chkId);
+  var gateOk = !!(gate && window.AilanePurchaser && window.AilanePurchaser.isComplete(gate));
+  if (chk && chk.checked && gateOk) { btn.classList.remove('disabled-pay'); } else { btn.classList.add('disabled-pay'); }
 }
+['kl-q', 'kl-d', 'kl-w'].forEach(function (key) {
+  var host = document.getElementById('purchaser-' + key);
+  if (!host || !window.AilanePurchaser) return;
+  window.AilanePurchaser.mount(host, { id: key, onChange: function () { toggleKlBtn('pay-' + key, key); } });
+});
 function checkConsent(checkId) {
   var chk = document.getElementById(checkId);
   if (!chk || !chk.checked) {
@@ -1691,6 +1713,14 @@ function checkConsent(checkId) {
 }
 function startCheckout(productType, consentId, el) {
   try { if (!checkConsent(consentId)) return false; } catch (e) { return false; }
+  var gate = document.getElementById('purchaser-' + consentId);
+  var purchaser = (gate && window.AilanePurchaser) ? window.AilanePurchaser.payload(gate) : null;
+  var errEl = document.getElementById('checkout-error-' + consentId);
+  if (!purchaser) {
+    if (errEl) errEl.textContent = 'Please tell us who you are buying for, and confirm the declaration, before continuing.';
+    return false;
+  }
+  if (errEl) errEl.textContent = '';
   if (el.dataset.busy === '1') return false;
   el.dataset.busy = '1';
   var prior = el.textContent;
@@ -1699,9 +1729,10 @@ function startCheckout(productType, consentId, el) {
   fetch(CREATE_CHECKOUT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ product_type: productType })
+    body: JSON.stringify(Object.assign({ product_type: productType }, purchaser))
   }).then(function (r) { return r.json(); }).then(function (d) {
     if (d && d.url) { window.location.href = d.url; return; }
+    if (window.AilanePurchaser.handleResponse(d, gate)) { el.dataset.busy = '0'; el.textContent = prior; return; }
     if (window.AilaneCommerce && window.AilaneCommerce.handleCheckoutError(null, d, { interest: productType, trigger: el })) { el.dataset.busy = '0'; el.textContent = prior; return; }
     throw new Error((d && d.error) || 'no url');
   }).catch(function () {

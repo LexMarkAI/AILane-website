@@ -580,6 +580,11 @@ function bindEileenPanel(ctx) {
   if (panel.dataset.bound === '1') return;
   panel.dataset.bound = '1';
 
+  // A15 (CHECKOUT-GATE-WEBSITE-001 §5, AMD-365): persistent AI identity label as the first
+  // child of the transcript. Bubbles are appended after it and clearEmptyState() removes only
+  // the empty-state hint, so it stays above every message.
+  if (window.AilaneAIGov) transcript.insertBefore(window.AilaneAIGov.identityLabel(), transcript.firstChild);
+
   let conversationMessages = loadStoredTranscript(ctx);
   let eileenAnimating = false;
   let eileenAnimationCancelled = false;

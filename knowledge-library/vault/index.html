@@ -356,6 +356,7 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#0a0e1a">
+<script src="/assets/js/ailane-purchaser-gate.js"></script>
 <link rel="stylesheet" href="/assets/css/ailane-commerce.css">
 <script src="/assets/js/ailane-commerce.js" defer></script>
 <link rel="stylesheet" href="/assets/css/brand-lockup.css">
@@ -1837,7 +1838,24 @@
         var addOne = el('button', 'btn-primary', 'Add a check — £19'); addOne.type = 'button'; addOne.setAttribute('data-ailane-buy', 'kl_check_addon');
         var addBundle = el('button', 'btn-primary', 'Add a check + Solicitors Preparation Bundle — £29'); addBundle.type = 'button'; addBundle.setAttribute('data-ailane-buy', 'kl_check_addon_bundle');
 
+        // CHECKOUT-GATE-WEBSITE-001 §2 (AMD-365) — purchaser gate directly above the buy row.
+        // This in-session panel has no Terms box, so the buttons wait for the gate alone. While
+        // purchases are paused, ailane-commerce.js keeps them clickable for its notice; leave that.
+        var gateHost = el('div');
+        function syncBuyButtons() {
+          if (document.documentElement.classList.contains('ailane-purchases-paused')) return;
+          var ok = !!(window.AilanePurchaser && window.AilanePurchaser.isComplete(gateHost));
+          addOne.disabled = !ok; addBundle.disabled = !ok;
+        }
+        if (window.AilanePurchaser) window.AilanePurchaser.mount(gateHost, { id: 'vault-addon', onChange: syncBuyButtons });
+        syncBuyButtons();
+
         function startCheckAddon(productType) {
+          var purchaser = window.AilanePurchaser ? window.AilanePurchaser.payload(gateHost) : null;
+          if (!purchaser) {
+            showMsg(buyErr, 'Please tell us who you are buying for, and confirm the declaration, before continuing.', 'err');
+            return;
+          }
           var email = '';
           try { email = JSON.parse(atob(token.split('.')[1])).email || ''; } catch (e) {}
           if (window.gtag) window.gtag('event', 'begin_checkout', { item_id: productType });
@@ -1845,11 +1863,12 @@
           fetch(FN + '/create-checkout', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ product_type: productType, email: email })
+            body: JSON.stringify(Object.assign({ product_type: productType, email: email }, purchaser))
           })
             .then(function (r) { return r.json(); })
             .then(function (d) {
               if (d && d.url) { window.location.href = d.url; return; }
+              if (window.AilanePurchaser.handleResponse(d, gateHost)) { addOne.disabled = false; addBundle.disabled = false; return; }
               if (window.AilaneCommerce && window.AilaneCommerce.handleCheckoutError(null, d, { interest: productType, trigger: productType === 'kl_check_addon' ? addOne : addBundle })) { addOne.disabled = false; addBundle.disabled = false; return; }
               throw new Error((d && d.error) || 'no url');
             })
@@ -1862,7 +1881,7 @@
         addOne.addEventListener('click', function (ev) { ev.stopPropagation(); startCheckAddon('kl_check_addon'); });
         addBundle.addEventListener('click', function (ev) { ev.stopPropagation(); startCheckAddon('kl_check_addon_bundle'); });
         buyRow.appendChild(addOne); buyRow.appendChild(addBundle);
-        actions.appendChild(buyRow); actions.appendChild(buyErr);
+        actions.appendChild(gateHost); actions.appendChild(buyRow); actions.appendChild(buyErr);
         pane.appendChild(actions);
 
         wrap.appendChild(pane);

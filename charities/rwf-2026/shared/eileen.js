@@ -57,6 +57,9 @@
     var body = el('ce-body');
     if (!body) return;
     body.innerHTML = '';
+    /* A15 (CHECKOUT-GATE-WEBSITE-001 §5, AMD-365): persistent AI identity label, first child of
+     * the message area, re-added on every render so it always sits above the first message. */
+    if (window.AilaneAIGov) body.appendChild(window.AilaneAIGov.identityLabel());
     var intro = document.createElement('div');
     intro.className = 'ep-intro';
     intro.textContent = 'Hello — I am Eileen, the Ailane intelligence entity. Ask me about this room, the documents, or your upcoming obligations.';

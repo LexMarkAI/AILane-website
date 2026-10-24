@@ -9025,10 +9025,21 @@ function UpsellCard({ productType, minutesRemaining, onDismiss }) {
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
+  // CHECKOUT-GATE-WEBSITE-001 §2 (AMD-365) — purchaser gate (window.AilanePurchaser, loaded by
+  // the host page) mounted above the Terms box; the offers also wait for it to be complete.
+  const gateRef = useRef(null);
+  const [gateOk, setGateOk] = useState(false);
 
   const c = UPSELL_CONFIG[productType];
-  if (!c) return null;
-  if (minutesRemaining == null || minutesRemaining <= 0 || minutesRemaining > c.threshold) return null;
+  const visible = !!c && minutesRemaining != null && minutesRemaining > 0 && minutesRemaining <= c.threshold;
+
+  useEffect(() => {
+    if (!visible || !gateRef.current || !window.AilanePurchaser) return;
+    setGateOk(false);
+    window.AilanePurchaser.mount(gateRef.current, { id: 'ext-' + productType, onChange: setGateOk });
+  }, [visible, productType]);
+
+  if (!visible) return null;
 
   // Consent-gated create-checkout, mirroring the /kl-access/ product-card anchors
   // (brief §0c/§2). While the extend products are is_active=false the function 404s
@@ -9036,17 +9047,20 @@ function UpsellCard({ productType, minutesRemaining, onDismiss }) {
   // dark behaviour as the anchors; no special-casing.
   function startExtend(offer) {
     if (!consent) { setErr('Please confirm you have read the Terms of Service and Privacy Policy before proceeding.'); return; }
+    const purchaser = window.AilanePurchaser ? window.AilanePurchaser.payload(gateRef.current) : null;
+    if (!purchaser) { setErr('Please tell us who you are buying for, and confirm the declaration, before continuing.'); return; }
     if (busy) return;
     setErr(''); setBusy(offer.productType);
     try { if (window.gtag) window.gtag('event', 'begin_checkout', { item_id: offer.productType }); } catch (e) {}
     fetch(CREATE_CHECKOUT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ product_type: offer.productType }),
+      body: JSON.stringify({ product_type: offer.productType, ...purchaser }),
     })
       .then((r) => r.json())
       .then((d) => {
         if (d && d.url) { window.location.href = d.url; return; }
+        if (window.AilanePurchaser.handleResponse(d, gateRef.current)) { setBusy(''); return; }
         throw new Error((d && d.error) || 'no url');
       })
       .catch(() => {
@@ -9055,7 +9069,7 @@ function UpsellCard({ productType, minutesRemaining, onDismiss }) {
       });
   }
 
-  const ready = consent && !busy;
+  const ready = consent && gateOk && !busy;
 
   return (
     <div
@@ -9094,6 +9108,7 @@ function UpsellCard({ productType, minutesRemaining, onDismiss }) {
           ×
         </button>
       </div>
+      <div ref={gateRef} style={{ marginTop: '12px', color: '#CBD5E1' }} />
       <label style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginTop: '12px', cursor: 'pointer' }}>
         <input
           type="checkbox"

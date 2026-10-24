@@ -188,6 +188,7 @@
     DOM.sendBtn = portal.querySelector('[data-send]');
     DOM.saveBtn = portal.querySelector('[data-save]');
     DOM.latencyLine = portal.querySelector('[data-latency]');
+    prependIdentityLabel();
 
     // Wire close
     portal.querySelectorAll('[data-eileen-close]').forEach((el) => {
@@ -236,6 +237,13 @@
     }
   }
 
+  // A15 (CHECKOUT-GATE-WEBSITE-001 §5, AMD-365): persistent AI identity label as the first
+  // child of the message list. renderMessages() rebuilds the list, so it re-adds the label.
+  function prependIdentityLabel() {
+    if (!window.AilaneAIGov || !DOM.messageList) return;
+    DOM.messageList.insertBefore(window.AilaneAIGov.identityLabel(), DOM.messageList.firstChild);
+  }
+
   function renderMessages() {
     const esc = window.dealroomAuth.escapeHtml;
     if (!STATE.messages.length) {
@@ -244,6 +252,7 @@
           Start a conversation. Ask Eileen about any document on this page, or about the engagement, the legal framework, or the regulatory landscape. She references Ailane's intelligence estate to give grounded answers.
         </div>
       `;
+      prependIdentityLabel();
       updateSaveButton();
       return;
     }
@@ -258,6 +267,7 @@
         </div>
       `;
     }).join('');
+    prependIdentityLabel();
 
     // Scroll to bottom
     requestAnimationFrame(() => {
