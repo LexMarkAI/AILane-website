@@ -1,0 +1,21 @@
+name: KL content banned-source guard
+on:
+  pull_request:
+    paths:
+      - 'knowledge-library/content/**'
+      - 'scripts/check-kl-content-banned-source.mjs'
+  push:
+    branches: [main]
+    paths:
+      - 'knowledge-library/content/**'
+permissions:
+  contents: read
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node scripts/check-kl-content-banned-source.mjs
