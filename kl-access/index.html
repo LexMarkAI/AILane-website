@@ -391,6 +391,7 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#0a0e1a">
+  <script src="/assets/js/ailane-ai-governance.js"></script>
 <script src="/assets/js/ailane-purchaser-gate.js"></script>
 <link rel="stylesheet" href="/assets/css/ailane-commerce.css">
 <script src="/assets/js/ailane-commerce.js" defer></script>
@@ -1412,6 +1413,14 @@
     var gdprNotice = panel.querySelector('#eileen-gdpr-notice');
 
     if (!chatEl || !inputEl || !sendBtn) return;
+
+    // A15 (CHECKOUT-GATE-WEBSITE-001 §5, AMD-365): persistent AI identity label as the first
+    // child of the message area; renderMessage() appends after it, so it stays above every message.
+    if (messagesEl && window.AilaneAIGov) {
+      var aiLabel = window.AilaneAIGov.identityLabel();
+      aiLabel.style.marginBottom = '10px';
+      messagesEl.insertBefore(aiLabel, messagesEl.firstChild);
+    }
 
     var eileenChat = {
       state: 'ambient',
