@@ -3019,7 +3019,7 @@ function MessageBubble({ msg, onRunAnalysis, onVaultOnly, klPassHolder, hubMode 
         {hasStats && (
           <div className="kl-msg-footer">
             <div className="kl-msg-stats">
-              Based on {msg.provisionsCount || 0} provision{msg.provisionsCount === 1 ? '' : 's'} and {msg.casesCount || 0} case{msg.casesCount === 1 ? '' : 's'}
+              Based on {msg.provisionsCount || 0} provision{msg.provisionsCount === 1 ? '' : 's'} and {msg.casesCount || 0} case{msg.casesCount === 1 ? '' : 's'}{msg.asAt ? (msg.provisionsDated ? " \u00B7 law as at " + klFmtDate(msg.asAt) : " \u00B7 dates not confirmed") : ""}
             </div>
           </div>
         )}
@@ -5921,6 +5921,118 @@ function klResearchWriteOpen(key, map) {
   } catch (e) { /* non-fatal */ }
 }
 
+// ── AMD-364 (AILANE-CC-BRIEF-KL-PROVISION-DATES-WEB-001): dated view of a provision ──
+// Reads public.kl_provision_timeline (authenticated RPC) for one provision at the "Law as at" date: its status on that date,
+// the date its wording applies from and to, the wording that applied, every version held, and changes listed on
+// legislation.gov.uk. All text is rendered as React text nodes (no HTML injection).
+function klTodayIso() {
+  try { return new Date().toLocaleDateString("en-CA", { timeZone: "Europe/London" }); } catch (e) { return new Date().toISOString().slice(0, 10); }
+}
+var KL_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+function klFmtDate(iso) {
+  var m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? Number(m[3]) + " " + KL_MONTHS[Number(m[2]) - 1] + " " + m[1] : String(iso || "");
+}
+function klSectionCandidates(sec) {
+  var s = String(sec || "").trim();
+  if (!s) return [];
+  var out = [s];
+  if (/^\d/.test(s)) { out.push("s." + s); out.push("reg." + s); }
+  return out.filter(function(v, i, a) { return a.indexOf(v) === i; }).slice(0, 3);
+}
+var KL_STATUS = {
+  in_force: { label: "In force on this date", colour: "#10B981", bg: "rgba(16,185,129,0.1)" },
+  repealed: { label: "Repealed or omitted on this date", colour: "#F87171", bg: "rgba(248,113,113,0.1)" },
+  not_in_force: { label: "Not in force on this date", colour: "#F59E0B", bg: "rgba(245,158,11,0.1)" },
+  not_yet_in_force: { label: "Not yet in force on this date", colour: "#F59E0B", bg: "rgba(245,158,11,0.1)" },
+  text_not_held: { label: "Wording for this date not held", colour: "#F59E0B", bg: "rgba(245,158,11,0.1)" },
+  undated: { label: "Date of application not recorded", colour: "#F59E0B", bg: "rgba(245,158,11,0.1)" },
+  commentary: { label: "Ailane commentary (not statutory text)", colour: "#94A3B8", bg: "rgba(148,163,184,0.1)" }
+};
+function ProvisionTimeline(props) {
+  var instrumentId = props.instrumentId, sectionNum = props.sectionNum, asAt = props.asAt;
+  var _st = useState({ loading: true, data: null, error: null });
+  var st = _st[0], setSt = _st[1];
+  var _show = useState(false);
+  var showText = _show[0], setShowText = _show[1];
+  useEffect(function() {
+    var cancelled = false;
+    async function load() {
+      if (!instrumentId || !sectionNum) { setSt({ loading: false, data: null, error: "no_section" }); return; }
+      if (!window.__klToken) { setSt({ loading: false, data: null, error: "signed_out" }); return; }
+      setSt({ loading: true, data: null, error: null });
+      var cands = klSectionCandidates(sectionNum);
+      for (var i = 0; i < cands.length; i++) {
+        try {
+          var resp = await fetch(SUPABASE_URL + "/rest/v1/rpc/kl_provision_timeline", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + window.__klToken, "apikey": SUPABASE_ANON_KEY },
+            body: JSON.stringify({ p_instrument_id: instrumentId, p_section_num: cands[i], p_as_at: asAt })
+          });
+          if (!resp.ok) { if (!cancelled) setSt({ loading: false, data: null, error: "http" }); return; }
+          var d = await resp.json();
+          if (d && d.found === true) { if (!cancelled) setSt({ loading: false, data: d, error: null }); return; }
+        } catch (e) {
+          if (!cancelled) setSt({ loading: false, data: null, error: "network" });
+          return;
+        }
+      }
+      if (!cancelled) setSt({ loading: false, data: null, error: "not_found" });
+    }
+    load();
+    return function() { cancelled = true; };
+  }, [instrumentId, sectionNum, asAt]);
+  var box = { marginTop: "8px", padding: "8px", borderRadius: "4px", borderLeft: "2px solid rgba(14,165,233,0.3)", background: "rgba(14,165,233,0.03)", fontSize: "11px", color: "#CBD5E1", lineHeight: 1.6 };
+  var small = { fontSize: "10px", color: "#64748B" };
+  var link = { fontSize: "10px", color: "#0EA5E9", textDecoration: "none" };
+  if (st.loading) return React.createElement("div", { style: box }, "Loading the dates for this provision…");
+  if (st.error) {
+    return React.createElement("div", { style: box },
+      st.error === "signed_out"
+        ? "Sign in to see the date this wording applies from, earlier wording and changes due."
+        : "Dates for this provision could not be loaded. The text above is the Knowledge Library snapshot and may not show the law on " + klFmtDate(asAt) + ".");
+  }
+  var d = st.data, r = d.resolution || {};
+  var s = KL_STATUS[r.status] || { label: String(r.status || "Status unknown"), colour: "#94A3B8", bg: "rgba(148,163,184,0.1)" };
+  var versions = Array.isArray(d.versions) ? d.versions : [];
+  var pending = Array.isArray(d.pending_changes) ? d.pending_changes : [];
+  return React.createElement("div", { style: box },
+    React.createElement("div", { style: { display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap", marginBottom: "4px" } },
+      React.createElement("span", { style: { fontSize: "10px", padding: "2px 6px", borderRadius: "4px", color: s.colour, background: s.bg } }, s.label),
+      React.createElement("span", { style: small }, "Law as at " + klFmtDate(d.as_at))),
+    r.applicability && React.createElement("div", { style: { marginBottom: "6px" } }, r.applicability),
+    r.text && React.createElement("button", {
+      type: "button",
+      onClick: function() { setShowText(!showText); },
+      style: { fontSize: "10px", padding: "2px 8px", borderRadius: "4px", background: "transparent", border: "1px solid rgba(14,165,233,0.25)", color: "#0EA5E9", cursor: "pointer", marginBottom: "6px" }
+    }, showText ? "Hide the wording for " + klFmtDate(d.as_at) : "Show the wording for " + klFmtDate(d.as_at)),
+    showText && r.text && React.createElement("div", { style: { whiteSpace: "pre-wrap", maxHeight: "240px", overflowY: "auto", fontFamily: "'DM Mono', monospace", color: "#94A3B8", marginBottom: "6px" } }, r.text),
+    versions.length > 0 && React.createElement("div", { style: { marginTop: "4px" } },
+      React.createElement("div", { style: { fontWeight: 600, color: "#E2E8F0", marginBottom: "2px" } }, "Versions held"),
+      versions.map(function(v, i) {
+        var tags = [];
+        if (v.text_basis === "editorial_summary") tags.push("editorial summary");
+        if (v.text_basis === "commentary") tags.push("commentary");
+        if (v.repealed_text) tags.push("repealed");
+        if (v.period === "applies_on_date") tags.push("applies on " + klFmtDate(d.as_at));
+        if (v.period === "future") tags.push("later than " + klFmtDate(d.as_at));
+        return React.createElement("div", { key: "v-" + i },
+          "• " + v.label + (tags.length ? " (" + tags.join("; ") + ")" : ""),
+          v.official_pit_url && React.createElement("a", { href: v.official_pit_url, target: "_blank", rel: "noopener noreferrer", style: Object.assign({ marginLeft: "6px" }, link) }, "official text"));
+      })),
+    pending.length > 0 && React.createElement("div", { style: { marginTop: "6px" } },
+      React.createElement("div", { style: { fontWeight: 600, color: "#E2E8F0", marginBottom: "2px" } }, "Changes listed on legislation.gov.uk"),
+      pending.map(function(c, i) {
+        var by = [c.affecting_title || c.affecting, c.affecting_provisions].filter(Boolean).join(" ");
+        return React.createElement("div", { key: "c-" + i },
+          "• " + c.label + ": " + (c.effect || "change") + (by ? " by " + by : "") + (c.affected_provisions ? " (affects " + c.affected_provisions + ")" : "")
+            + (c.covered_by_version ? " — a version from this date is already held" : ""),
+          c.affecting_url && React.createElement("a", { href: c.affecting_url, target: "_blank", rel: "noopener noreferrer", style: Object.assign({ marginLeft: "6px" }, link) }, "source"));
+      })),
+    r.official_pit_url && React.createElement("a", { href: r.official_pit_url, target: "_blank", rel: "noopener noreferrer", style: Object.assign({ display: "inline-block", marginTop: "6px" }, link) }, "↗ Official text on " + klFmtDate(d.as_at)),
+    d.notice && React.createElement("div", { style: Object.assign({ marginTop: "6px" }, small) }, d.notice));
+}
+
 function ResearchPanel({ lang, klPassHolder }) {
   // KL-PARITY-004 WP1.5 — Eileen affordance bridge. Operational keeps its byte-identical
   // path: __klSendMessage seeds-and-sends while the right drawer stays open alongside the
@@ -5973,6 +6085,9 @@ function ResearchPanel({ lang, klPassHolder }) {
   // re-render with display titles. The fetch itself is session-cached.
   var _instMapReady = useState(!!(typeof window !== 'undefined' && window.__klInstrumentsMap));
   var setInstMapReady = _instMapReady[1];
+  var _libAsAt = useState(klTodayIso());
+  var libAsAt = _libAsAt[0];
+  var setLibAsAt = _libAsAt[1];
 
   useEffect(function() {
     var cancelled = false;
@@ -6580,7 +6695,7 @@ function ResearchPanel({ lang, klPassHolder }) {
             }, formalTitle)
           : null,
         React.createElement('div', { style: { fontSize: '11px', color: '#64748B', fontFamily: "'DM Mono', monospace", marginBottom: '4px' } },
-          [displayType, displayJurisdiction, detail.currentAsOf && ('Verified ' + detail.currentAsOf)].filter(Boolean).join(' \u00B7 ')
+          [displayType, displayJurisdiction, detail.currentAsOf && ('Snapshot verified ' + detail.currentAsOf)].filter(Boolean).join(' \u00B7 ')
         ),
         detail.chapters && React.createElement('div', { style: { fontSize: '11px', color: '#94A3B8', marginBottom: '8px' } }, detail.chapters),
         React.createElement('div', { style: { display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' } },
@@ -6594,6 +6709,28 @@ function ResearchPanel({ lang, klPassHolder }) {
           // §W-D: freshness badge alongside the in-force state
           React.createElement(FreshnessBadge, { lastVerified: lastVerified, style: { padding: '2px 6px', borderRadius: '4px' } })
         )
+      ),
+
+      // AMD-364: "Law as at" date for the provision panels below; the provision text itself is the static snapshot.
+      React.createElement(
+        "div",
+        { style: { display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", margin: "0 0 12px 0", padding: "8px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" } },
+        React.createElement("label", { htmlFor: "kl-law-as-at", style: { fontSize: "11px", color: "#E2E8F0", fontWeight: 600 } }, "Law as at"),
+        React.createElement("input", {
+          id: "kl-law-as-at",
+          type: "date",
+          value: libAsAt,
+          onChange: function(e) { if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) setLibAsAt(e.target.value); },
+          style: { fontSize: "11px", background: "transparent", color: "#E2E8F0", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "4px", padding: "2px 6px" }
+        }),
+        libAsAt !== klTodayIso() && React.createElement("button", {
+          type: "button",
+          onClick: function() { setLibAsAt(klTodayIso()); },
+          style: { fontSize: "10px", padding: "2px 8px", borderRadius: "4px", background: "transparent", border: "1px solid rgba(14,165,233,0.25)", color: "#0EA5E9", cursor: "pointer" }
+        }, "Today"),
+        React.createElement("div", { style: { flexBasis: "100%", fontSize: "10px", color: "#64748B", lineHeight: 1.5 } },
+          "The provision text below is the Knowledge Library snapshot" + (detail.currentAsOf ? " verified " + detail.currentAsOf : "")
+            + ". Open a provision to see its status on " + klFmtDate(libAsAt) + ", the date its wording applies from, earlier wording and changes due.")
       ),
 
       description && React.createElement('div', {
@@ -6669,6 +6806,7 @@ function ResearchPanel({ lang, klPassHolder }) {
               provText && React.createElement('div', { style: { fontSize: '11px', color: '#94A3B8', lineHeight: 1.6, maxHeight: '200px', overflowY: 'auto', fontFamily: "'DM Mono', monospace" } },
                 provText.length > 500 ? provText.slice(0, 500) + '\u2026' : provText
               ),
+              React.createElement(ProvisionTimeline, { instrumentId: activeInstrument && activeInstrument.id, sectionNum: provSection, asAt: libAsAt }),
               prov.sourceUrl && React.createElement('a', {
                 href: prov.sourceUrl,
                 target: '_blank',
@@ -14245,6 +14383,8 @@ function App() {
           role: 'assistant',
           content: data.response,
           provisionsCount: data.provisions_count,
+          asAt: typeof data.as_at === "string" ? data.as_at : null,
+          provisionsDated: data.provisions_dated === true,
           casesCount: data.cases_count,
           // §7.3 — carry the paired question + conversation id + retrieved provisions
           // so "Save to Notes" can persist the full exchange as an eileen_conversation
